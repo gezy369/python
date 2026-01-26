@@ -4,6 +4,6 @@ import pandas as pd
 app = Flask(__name__)
 
 @app.route("/data")
-def data():
+def home():
     df = pd.read_csv("Orders.csv")
     return jsonify(df.to_dict(orient="records"))
