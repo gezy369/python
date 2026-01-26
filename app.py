@@ -1,14 +1,9 @@
-from flask import Flask
+from flask import Flask, jsonify
+import pandas as pd
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "Hello world second time!"
-
-    import csv
-
-    with open("./imported_data/Orders.csv", newline="") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            print(row)
+@app.route("/data")
+def data():
+    df = pd.read_csv("data.csv")
+    return jsonify(df.to_dict(orient="records"))
