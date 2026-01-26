@@ -5,5 +5,5 @@ app = Flask(__name__)
 
 @app.route("/data")
 def data():
-    df = pd.read_csv("data.csv")
+    df = pd.read_csv("Orders.csv")
     return jsonify(df.to_dict(orient="records"))
