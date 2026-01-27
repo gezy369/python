@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 @app.route("/home")
-render "My new website"
+return "My new website"
 
 # reads the CSV file and the URL is /data
 @app.route("/data")
