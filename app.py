@@ -1,20 +1,3 @@
-from flask import Flask, request, jsonify, Response
-from werkzeug.utils import secure_filename
-import os
-
-app = Flask(__name__)
-
-UPLOAD_FOLDER = "imported_data"
-ALLOWED_EXTENSIONS = {"csv"}
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# ---------- DRAG & DROP PAGE ----------
 @app.route("/upload", methods=["GET"])
 def upload_page():
     return Response("""
@@ -24,65 +7,124 @@ def upload_page():
 <title>Upload CSV</title>
 <style>
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #f4f4f4;
-  padding: 50px;
+  margin: 0;
+  padding: 0;
 }
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+/* LEFT SIDE */
+.left {
+  width: 40%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
 .dropzone {
-  width: 400px;
+  width: 100%;
+  max-width: 350px;
   height: 200px;
   border: 3px dashed #666;
   border-radius: 10px;
-  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-size: 18px;
   color: #666;
-  margin: auto;
   cursor: pointer;
 }
+
 .dropzone.dragover {
   border-color: #00aaff;
   background: #e6f7ff;
 }
+
 button {
   margin-top: 15px;
   width: 100%;
+  max-width: 350px;
   padding: 10px;
+}
+
+#message {
+  margin-top: 15px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.success { color: green; }
+.error { color: red; }
+
+/* RIGHT SIDE */
+.right {
+  width: 60%;
+  padding: 60px;
+}
+
+.right h2 {
+  margin-top: 0;
 }
 </style>
 </head>
 <body>
 
-<h2 style="text-align:center;">Upload CSV (Drag & Drop)</h2>
+<div class="container">
 
-<div id="dropzone" class="dropzone">
-  Drop CSV file here or click to select
+  <!-- LEFT: UPLOAD -->
+  <div class="left">
+    <h2>Upload CSV</h2>
+
+    <div id="dropzone" class="dropzone">
+      Drop CSV file here<br>or click to select
+    </div>
+
+    <input type="file" id="fileInput" accept=".csv" hidden>
+    <button onclick="uploadFile()">Upload</button>
+
+    <div id="message"></div>
+  </div>
+
+  <!-- RIGHT: EXPLANATION -->
+  <div class="right">
+    <h2>How to uplade file</h2>
+    <p>
+      How to uplade file
+    </p>
+  </div>
+
 </div>
-
-<input type="file" id="fileInput" accept=".csv" hidden>
-<button onclick="uploadFile()">Upload</button>
 
 <script>
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
+const messageDiv = document.getElementById("message");
 let selectedFile = null;
 
-// Click to select
 dropzone.onclick = () => fileInput.click();
+
 fileInput.onchange = (e) => {
   selectedFile = e.target.files[0];
   dropzone.innerHTML = "Selected: " + selectedFile.name;
 };
 
-// Drag events
 dropzone.ondragover = (e) => {
   e.preventDefault();
   dropzone.classList.add("dragover");
 };
+
 dropzone.ondragleave = () => dropzone.classList.remove("dragover");
+
 dropzone.ondrop = (e) => {
   e.preventDefault();
   dropzone.classList.remove("dragover");
@@ -90,10 +132,13 @@ dropzone.ondrop = (e) => {
   dropzone.innerHTML = "Dropped: " + selectedFile.name;
 };
 
-// Upload function
 function uploadFile() {
+  messageDiv.innerHTML = "";
+  messageDiv.className = "";
+
   if (!selectedFile) {
-    alert("No file selected");
+    messageDiv.innerHTML = "No file selected";
+    messageDiv.className = "error";
     return;
   }
 
@@ -105,32 +150,24 @@ function uploadFile() {
     body: formData
   })
   .then(res => res.json())
-  .then(data => alert(JSON.stringify(data)))
-  .catch(err => alert("Upload failed"));
+  .then(data => {
+    if (data.error) {
+      messageDiv.innerHTML = data.error;
+      messageDiv.className = "error";
+    } else {
+      messageDiv.innerHTML = "✅ Upload successful: " + data.filename;
+      messageDiv.className = "success";
+      dropzone.innerHTML = "Drop another CSV file here";
+      selectedFile = null;
+    }
+  })
+  .catch(() => {
+    messageDiv.innerHTML = "Upload failed";
+    messageDiv.className = "error";
+  });
 }
 </script>
 
 </body>
 </html>
 """, mimetype="text/html")
-
-
-# ---------- UPLOAD HANDLER ----------
-@app.route("/upload", methods=["POST"])
-def upload_csv():
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
-
-    if not allowed_file(file.filename):
-        return jsonify({"error": "Only CSV files allowed"}), 400
-
-    filename = secure_filename(file.filename)
-    path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(path)
-
-    return jsonify({"message": "Upload OK", "filename": filename})
