@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}My App{% endblock %}</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      background: #1f2933;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+    }
+
+    .sidebar h1 {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 30px;
+    }
+
+    .menu-item {
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      text-decoration: none;
+    }
+
+    .menu-item:hover {
+      background: #374151;
+    }
+
+    /* MAIN */
+    .main {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- MENU (VISIBLE EVERYWHERE) -->
+  <div class="sidebar">
+    <h1>My App</h1>
+
+    <a class="menu-item" href="{{ url_for('dashboard') }}">
+      📊 Dashboard
+    </a>
+
+    <a class="menu-item" href="{{ url_for('upload_page') }}">
+      ➕ New trades
+    </a>
+  </div>
+
+  <!-- PAGE CONTENT -->
+  <div class="main">
+    {% block content %}{% endblock %}
+  </div>
+
+</div>
+</body>
+</html>
