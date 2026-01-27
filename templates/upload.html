@@ -4,18 +4,21 @@
 
 {% block content %}
 <style>
-/* Upload layout */
 .upload-container {
   display: flex;
   height: 100%;
 }
 
-/* LEFT: upload */
 .upload-left {
   width: 40%;
   background: #ffffff;
   padding: 40px;
   box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.upload-right {
+  width: 60%;
+  padding: 60px;
 }
 
 .dropzone {
@@ -50,17 +53,11 @@ button {
 
 .success { color: green; }
 .error { color: red; }
-
-/* RIGHT: explanation */
-.upload-right {
-  width: 60%;
-  padding: 60px;
-}
 </style>
 
 <div class="upload-container">
 
-  <!-- LEFT SIDE -->
+  <!-- LEFT: UPLOAD -->
   <div class="upload-left">
     <h2>Upload CSV</h2>
 
@@ -74,7 +71,7 @@ button {
     <div id="message"></div>
   </div>
 
-  <!-- RIGHT SIDE -->
+  <!-- RIGHT: EXPLANATION -->
   <div class="upload-right">
     <h2>How to uplade file</h2>
     <p>How to uplade file</p>
@@ -119,7 +116,7 @@ function uploadFile() {
     return;
   }
 
-  let formData = new FormData();
+  const formData = new FormData();
   formData.append("file", selectedFile);
 
   fetch("{{ url_for('upload_file') }}", {
