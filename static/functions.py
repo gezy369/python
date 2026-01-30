@@ -1,10 +1,13 @@
 import pandas as pd
+import numpy as np
+
+csv_file = r"imported_data\Performance.csv"
 
 #This function allows to handle the CSV format before pushing in the DB
-def csv_handler():
+def csv_handler(csv_file):
     # Read the CSV
-    df_trade = pd.read_csv(r"PYTHON CODING\Performance.csv")
-    print(df_trade)
+    df_trade = pd.read_csv(csv_file)
+
 
     # Clean the PnL column
     df_trade["pnl"] = (
@@ -32,20 +35,20 @@ def csv_handler():
         )
     )
 
-    # Optional: compute daily PnL
-    df_trades["buy_date"] = df_trades["boughtTimestamp"].dt.date
-
-    daily_pnl = (
-        df_trades
-        .groupby("buy_date", as_index=False)["pnl"]
-        .sum()
+    # Adds the side of the trade
+    df_trades["side"] = np.where(
+        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
+        "short",
+        "long"
     )
 
     # Print results
     print("=== Reconstructed Trades ===")
     print(df_trades)
 
-    print("\n=== Daily PnL ===")
-    print(daily_pnl)
+    return df_trades
 
-return df_trades
+csv_handler(csv_file)
+
+
+
