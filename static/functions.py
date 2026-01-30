@@ -47,7 +47,7 @@ def csv_handler(csv_file):
     print(df_trades)
 
     return df_trades
-#test
+
 csv_handler(csv_file)
 
 
