@@ -1,5 +1,6 @@
 import pandas as pd
 
+#This function allows to handle the CSV format before pushing in the DB
 def csv_handler():
     # Read the CSV
     df_trade = pd.read_csv(r"PYTHON CODING\Performance.csv")
