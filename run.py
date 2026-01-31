@@ -1,3 +1,7 @@
+import sys
+print(sys.path)
+
+
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -46,7 +50,6 @@ def upload_file():
     csv_handler(stream)
 
     return jsonify({"message": "CSV processed"})
-
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
