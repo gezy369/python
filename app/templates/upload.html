@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}New Trades{% endblock %}
+
+{% block content %}
+
+<div class="upload-container">
+
+  <!-- LEFT: UPLOAD -->
+  <div class="upload-left">
+    <h2>Upload CSV</h2>
+
+    <div id="dropzone" class="dropzone">
+      Drop CSV file here<br>or click to select
+    </div>
+
+    <input type="file" id="fileInput" accept=".csv" hidden>
+    <button onclick="uploadFile()">Upload</button>
+
+    <div id="message"></div>
+  </div>
+
+  <!-- RIGHT: EXPLANATION -->
+  <div class="upload-right">
+    <h2>How to uplade file</h2>
+    <p>How to uplade file</p>
+  </div>
+
+</div>
+
+<script>
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const messageDiv = document.getElementById("message");
+let selectedFile = null;
+
+dropzone.onclick = () => fileInput.click();
+
+fileInput.onchange = (e) => {
+  selectedFile = e.target.files[0];
+  dropzone.innerHTML = "Selected: " + selectedFile.name;
+};
+
+dropzone.ondragover = (e) => {
+  e.preventDefault();
+  dropzone.classList.add("dragover");
+};
+
+dropzone.ondragleave = () => dropzone.classList.remove("dragover");
+
+dropzone.ondrop = (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("dragover");
+  selectedFile = e.dataTransfer.files[0];
+  dropzone.innerHTML = "Dropped: " + selectedFile.name;
+};
+
+function uploadFile() {
+  messageDiv.innerHTML = "";
+  messageDiv.className = "";
+
+  if (!selectedFile) {
+    messageDiv.innerHTML = "No file selected";
+    messageDiv.className = "error";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+
+  fetch("{{ url_for('upload_file') }}", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      messageDiv.innerHTML = data.error;
+      messageDiv.className = "error";
+    } else {
+      messageDiv.innerHTML = "✅ Upload successful: " + data.filename;
+      messageDiv.className = "success";
+      dropzone.innerHTML = "Drop another CSV file here";
+      selectedFile = null;
+    }
+  })
+  .catch(() => {
+    messageDiv.innerHTML = "Upload failed";
+    messageDiv.className = "error";
+  });
+}
+</script>
+
+{% endblock %}
