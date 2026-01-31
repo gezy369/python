@@ -30,26 +30,28 @@ def dashboard():
 
 @app.route("/upload", methods=["GET", "POST"])
 def upload_file():
-
-        # User opens the page
     if request.method == "GET":
         return render_template("upload.html")
     
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
 
-    file = request.files["file"]
+        file = request.files["file"]
 
-    if not file.filename.lower().endswith(".csv"):
-        return jsonify({"error": "Only CSV files allowed"}), 400
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({"error": "Only CSV files allowed"}), 400
 
-    # ✅ read file in memory
-    stream = io.StringIO(file.stream.read().decode("utf-8"))
+        # Read CSV directly into pandas DataFrame
+        df = pd.read_csv(file)  # <- file is already a file-like object
 
-    # call your logic
-    csv_handler(stream)
+        # Pass DataFrame to your function
+        csv_handler(df)
 
-    return jsonify({"message": "CSV processed"})
+        return jsonify({"message": "CSV processed", "filename": file.filename})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
