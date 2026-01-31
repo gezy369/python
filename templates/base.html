@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>{% block title %}My App{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('utils', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
       📊 Dashboard
     </a>
 
-    <a class="menu-item" href="{{ url_for('upload_page') }}">
+    <a class="menu-item" href="{{ url_for('upload_file') }}">
       ➕ New trades
     </a>
   </div>
