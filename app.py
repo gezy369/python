@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from statics.functions.py import csv_handler
 import os
+import io
 
 app = Flask(__name__)
 
@@ -22,34 +24,29 @@ def allowed_file(filename):
 def dashboard():
     return render_template("dashboard.html")
 
-@app.route("/upload", methods=["GET"])
-def upload_page():
-    return render_template("upload.html")
-
-@app.route("/upload", methods=["POST"])
+@app.route("/upload", methods=["GET", "POST"])
 def upload_file():
+
+        # User opens the page
+    if request.method == "GET":
+        return render_template("upload.html")
+    
     if "file" not in request.files:
-        return jsonify({"error": "No file provided"})
+        return jsonify({"error": "No file provided"}), 400
 
     file = request.files["file"]
 
-    if file.filename == "":
-        return jsonify({"error": "No file selected"})
+    if not file.filename.lower().endswith(".csv"):
+        return jsonify({"error": "Only CSV files allowed"}), 400
 
-    if not allowed_file(file.filename):
-        return jsonify({"error": "Only CSV files are allowed"})
+    # ✅ read file in memory
+    stream = io.StringIO(file.stream.read().decode("utf-8"))
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = secure_filename(file.filename)
-    new_filename = f"{timestamp}_{filename}"
+    # call your logic
+    csv_handler(stream)
 
-    save_path = os.path.join(app.config["UPLOAD_FOLDER"], new_filename)
-    file.save(save_path)
+    return jsonify({"message": "CSV processed"})
 
-    return jsonify({
-        "message": "Upload successful",
-        "filename": new_filename
-    })
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":

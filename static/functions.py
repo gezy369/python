@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 
-csv_file = r"imported_data\Performance.csv"
+#csv_file = r"imported_data\Performance.csv"
 
 #This function allows to handle the CSV format before pushing in the DB
-def csv_handler(csv_file):
+def csv_handler(df_trade):
     # Read the CSV
-    df_trade = pd.read_csv(csv_file)
+    # df_trade = pd.read_csv(csv_file)
 
 
     # Clean the PnL column
@@ -23,7 +23,7 @@ def csv_handler(csv_file):
     df_trade["soldTimestamp"] = pd.to_datetime(df_trade["soldTimestamp"], format="%m/%d/%Y %H:%M:%S")
 
     # Group partial fills into full trades
-    trade_cols = ["symbol", "boughtTimestamp", "soldTimestamp", "buyPrice", "sellPrice"]
+    trade_cols = ["symbol", "boughtTimestamp", "buyPrice", "sellPrice"]
 
     df_trades = (
         df_trade
@@ -31,7 +31,8 @@ def csv_handler(csv_file):
         .agg(
             qty=("qty", "sum"),
             pnl=("pnl", "sum"),
-            duration=("duration", "first")
+            duration=("duration", "first"),
+            soldTimestamp=("soldTimestamp", "first")
         )
     )
 
@@ -48,7 +49,7 @@ def csv_handler(csv_file):
 
     return df_trades
 
-csv_handler(csv_file)
+#csv_handler(csv_file)
 
 
 
