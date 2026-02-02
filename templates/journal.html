@@ -24,22 +24,15 @@ fetch("/api/trades")
   .then(res => res.json())
   .then(data => {
     originalData = [...data];
-    buildTable(data);
+    buildHeaders(Object.keys(data[0]));
+    buildRows(data);
   });
 
-function buildTable(data) {
-  const table = document.getElementById("tradeTable");
+
+function buildHeaders(columns) {
   const thead = document.getElementById("headerRow");
-  const tbody = table.querySelector("tbody");
-
   thead.innerHTML = "";
-  tbody.innerHTML = "";
 
-  if (!data.length) return;
-
-  const columns = Object.keys(data[0]);
-
-  // Headers
   columns.forEach(col => {
     const th = document.createElement("th");
 
@@ -59,6 +52,33 @@ function buildTable(data) {
     th.appendChild(input);
     thead.appendChild(th);
   });
+}
+
+function buildRows(data) {
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
+
+  const columns = Object.keys(data[0] || {});
+
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+
+    columns.forEach(col => {
+      const td = document.createElement("td");
+      td.textContent = row[col];
+
+      if (col.toLowerCase() === "pnl") {
+        td.className = Number(row[col]) >= 0
+          ? "pnl-positive"
+          : "pnl-negative";
+      }
+
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
 
   // Rows
   data.forEach(row => {
@@ -79,7 +99,7 @@ function buildTable(data) {
 
     tbody.appendChild(tr);
   });
-}
+
 
 // Sorting
 function sortTable(column, label) {
@@ -110,7 +130,7 @@ function sortTable(column, label) {
       : String(b[column]).localeCompare(String(a[column]));
   });
 
-  buildTable(sorted);
+  buildRows(sorted);
 }
 
 // Reset sorting
@@ -135,7 +155,7 @@ function filterTable() {
     );
   });
 
-  buildTable(filtered);
+  buildRows(filtered);
 }
 </script>
 
