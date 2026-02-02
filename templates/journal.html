@@ -219,25 +219,13 @@ function filterTable() {
 
   let filtered = [...originalData];
 
-  // Column filters
-  inputs.forEach((input, index) => {
-    if (!input.value) return;
-    const col = COLUMN_ORDER[index]; // Use the correct column name
-
-    filtered = filtered.filter(row =>
-      String(row[col] ?? "")
-        .toLowerCase()
-        .includes(input.value.toLowerCase())
-    );
-  });
-
-  // Date range filter
+  // --- Date range filter first ---
   if (dateFrom || dateTo) {
     const fromDate = dateFrom ? new Date(dateFrom) : null;
     const toDate = dateTo ? new Date(dateTo) : null;
 
     filtered = filtered.filter(row => {
-      const rowDate = row.boughtTimestamp; // Already a Date object
+      const rowDate = new Date(row.boughtTimestamp); // Always convert
 
       if (fromDate && rowDate < fromDate) return false;
       if (toDate && rowDate > toDate) return false;
@@ -246,8 +234,21 @@ function filterTable() {
     });
   }
 
+  // --- Column filters ---
+  inputs.forEach((input, index) => {
+    if (!input.value) return;
+    const col = COLUMN_ORDER[index]; // Use column name
+
+    filtered = filtered.filter(row =>
+      String(row[col] ?? "")
+        .toLowerCase()
+        .includes(input.value.toLowerCase())
+    );
+  });
+
   buildRows(filtered, COLUMN_ORDER);
 }
+
 
 
 
