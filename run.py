@@ -44,17 +44,20 @@ def journal():
 @app.route("/api/trades")
 def api_trades():
     try:
-        # Fetch all trades from Supabase
         response = supabase.table("trades").select("*").execute()
-
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch trades"}), 500
-
-        rows = response.data  # list of dicts
+        
+        # Check if the API returned data
+        if hasattr(response, "data") and response.data is not None:
+            rows = response.data
+        else:
+            rows = []
+        
         return jsonify(rows)
-
+    
     except Exception as e:
+        print("Supabase API error:", e)
         return jsonify({"error": str(e)}), 500
+
 
 
 # ===== TRADES UPLOAD =====
