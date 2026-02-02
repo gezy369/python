@@ -25,6 +25,10 @@ def allowed_file(filename):
 def dashboard():
     return render_template("dashboard.html")
 
+
+
+
+# ===== TRADES UPLOAD =====
 @app.route("/upload", methods=["GET", "POST"])
 def upload_file():
     if request.method == "GET":
@@ -43,12 +47,17 @@ def upload_file():
         df = pd.read_csv(file)  # <- file is already a file-like object
 
         # Pass DataFrame to your function
-        csv_handler(df)
-
+        df_imported_trades = csv_handler(df)
+        print(df_imported_trades)
         return jsonify({"message": "CSV processed", "filename": file.filename})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+
+
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
