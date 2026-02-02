@@ -4,7 +4,8 @@ from datetime import datetime
 from utils.functions import csv_handler
 import os
 import io
-import pandas as pd 
+import pandas as pd
+from supabase import create_client, Client
 
 app = Flask(__name__)
 
@@ -16,15 +17,14 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ===== HELPERS =====
+
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ===== SUPABASE CONFIG =====
-from supabase import create_client, Client
-import os
 
-SUPABASE_URL = os.environ.get("https://hkthbxcfvsqrusmauhpe.supabase.co")
-SUPABASE_KEY = os.environ.get("sb_publishable_P0pLUWVY65gouEg0MVsusA_Mesfetqt")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
