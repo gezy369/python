@@ -67,6 +67,9 @@ def upload_file():
         columns = list(df_imported_trades.columns)
 
         # Insert into Supabase
+        # Convert timestamps to strings for JSON / Supabase
+        df_imported_trades["boughtTimestamp"] = df_imported_trades["boughtTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+        df_imported_trades["soldTimestamp"] = df_imported_trades["soldTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
         # Convert DataFrame to list of dicts
         records = df_imported_trades.to_dict(orient="records")
 

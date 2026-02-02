@@ -43,6 +43,9 @@ def csv_handler(df_trade):
         "long"
     )
 
+    # Reorder columns
+    #df_trades = df_trades[[trade_date],[symbol]]
+
     # Print results
     print("=== Reconstructed Trades ===")
     print(df_trades)
