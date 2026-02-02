@@ -20,6 +20,36 @@
     <div id="message"></div>
   </div>
 
+  <!-- IMPORTED TRADES TABLE -->
+  <div id="table-container"></div>
+
+  <script>
+    function renderTable(columns, rows) {
+      let html = "<table border='1' cellpadding='6' cellspacing='0'>";
+      
+      // Header
+      html += "<thead><tr>";
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += "</tr></thead>";
+
+      // Body
+      html += "<tbody>";
+      rows.forEach(row => {
+        html += "<tr>";
+        columns.forEach(col => {
+          html += `<td>${row[col] ?? ""}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+
+      document.getElementById("table-container").innerHTML = html;
+    }
+  </script>
+
+
   <!-- RIGHT: EXPLANATION -->
   <div class="upload-right">
     <h2>How to uplade file</h2>
@@ -27,6 +57,7 @@
   </div>
 
 </div>
+
 
 <script>
 const dropzone = document.getElementById("dropzone");
@@ -78,11 +109,16 @@ function uploadFile() {
       messageDiv.innerHTML = data.error;
       messageDiv.className = "error";
     } else {
-      messageDiv.innerHTML = "✅ Upload successful: " + data.filename;
+      messageDiv.innerHTML = "✅ CSV processed";
       messageDiv.className = "success";
+
+      renderTable(data.columns, data.rows);
+
       dropzone.innerHTML = "Drop another CSV file here";
       selectedFile = null;
     }
+  })
+
   })
   .catch(() => {
     messageDiv.innerHTML = "Upload failed";

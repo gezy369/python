@@ -48,13 +48,22 @@ def upload_file():
 
         # Pass DataFrame to your function
         df_imported_trades = csv_handler(df)
-        print(df_imported_trades)
-        return jsonify({"message": "CSV processed", "filename": file.filename})
+        
+        # Convert DataFrame to JSON-safe format
+        data = df_imported_trades.to_dict(orient="records")
+        columns = list(df_imported_trades.columns)
+
+        return jsonify({
+            "message": "Trades imported successfuly",
+            "rows": data,
+            "columns": columns
+        })
+
+        #return jsonify({"message": "CSV processed", "filename": file.filename})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
+    
 
 
 
