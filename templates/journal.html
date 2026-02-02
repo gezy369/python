@@ -26,6 +26,21 @@
 let originalData = [];
 let currentSort = { column: null, direction: null };
 
+// Columns labels
+//const COLUMN_LABELS = {
+ // id: "ID",
+ // symbol: "Symbol",
+ // side: "Side",
+ // qty: "Qty",
+ // buyPrice: "Buy Price",
+ // sellPrice: "Sell Price",
+ // pnl: "PnL ($)",
+ // boughtTimestamp: "Bought At",
+ // soldTimestamp: "Sold At",
+ // duration: "Duration"
+//};
+
+
 //Trade table columns order
 const COLUMN_ORDER = [
   "id",
@@ -40,17 +55,7 @@ const COLUMN_ORDER = [
   "pnl"
 ];
 
-const COLUMN_LABELS = {
-  symbol: "Symbol",
-  side: "Side",
-  qty: "Qty",
-  buyPrice: "Buy Price",
-  sellPrice: "Sell Price",
-  pnl: "PnL ($)",
-  boughtTimestamp: "Bought At",
-  soldTimestamp: "Sold At",
-  duration: "Duration"
-};
+
 
 // Fetch trades
 fetch("/api/trades")
