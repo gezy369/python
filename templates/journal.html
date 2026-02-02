@@ -6,12 +6,13 @@
 
 <h1>Trades Journal</h1>
 
-<table id="trades-table" class="display">
+<table id="trades-table" class="display" style="width:100%">
     <thead>
+        <!-- Column headers -->
         <tr>
             <th>Symbol</th>
             <th>Bought Timestamp</th>
-            <th>Sell Timestamp</th>
+            <th>Sold Timestamp</th>
             <th>Buy Price</th>
             <th>Sell Price</th>
             <th>Qty</th>
@@ -19,9 +20,22 @@
             <th>Duration</th>
             <th>Side</th>
         </tr>
+
+        <!-- Per-column filters -->
+        <tr id="filters">
+            <th><input type="text" placeholder="Filter Symbol" /></th>
+            <th><input type="text" placeholder="Filter Bought" /></th>
+            <th><input type="text" placeholder="Filter Sold" /></th>
+            <th><input type="text" placeholder="Filter Buy Price" /></th>
+            <th><input type="text" placeholder="Filter Sell Price" /></th>
+            <th><input type="text" placeholder="Filter Qty" /></th>
+            <th><input type="text" placeholder="Filter PnL" /></th>
+            <th><input type="text" placeholder="Filter Duration" /></th>
+            <th><input type="text" placeholder="Filter Side" /></th>
+        </tr>
     </thead>
     <tbody>
-        <!-- Data will be filled by JS -->
+        <!-- Rows will be populated by JS -->
     </tbody>
 </table>
 
@@ -34,30 +48,52 @@
 
 <script>
 $(document).ready(function() {
-    // Fetch trades from API
+    const tableBody = $("#trades-table tbody");
+
+    // Fetch trades from Flask API
     $.getJSON("/api/trades", function(data) {
-        const tableBody = $("#trades-table tbody");
+        if (!data || data.error) {
+            tableBody.html(`<tr><td colspan="9" style="color:red;">Error loading trades: ${data?.error || 'Unknown error'}</td></tr>`);
+            return;
+        }
+
+        if (data.length === 0) {
+            tableBody.html(`<tr><td colspan="9">No trades found.</td></tr>`);
+            return;
+        }
+
+        // Populate table rows
         data.forEach(trade => {
             const row = `<tr>
-                <td contenteditable="true">${trade.symbol}</td>
-                <td contenteditable="true">${trade.boughtTimestamp}</td>
-                <td contenteditable="true">${trade.soldTimestamp}</td>
-                <td contenteditable="true">${trade.buyPrice}</td>
-                <td contenteditable="true">${trade.sellPrice}</td>
-                <td contenteditable="true">${trade.qty}</td>
-                <td contenteditable="true">${trade.pnl}</td>
-                <td contenteditable="true">${trade.duration}</td>
-                <td contenteditable="true">${trade.side}</td>
+                <td contenteditable="true">${trade.symbol || ""}</td>
+                <td contenteditable="true">${trade.boughtTimestamp || ""}</td>
+                <td contenteditable="true">${trade.soldTimestamp || ""}</td>
+                <td contenteditable="true">${trade.buyPrice || ""}</td>
+                <td contenteditable="true">${trade.sellPrice || ""}</td>
+                <td contenteditable="true">${trade.qty || ""}</td>
+                <td contenteditable="true">${trade.pnl || ""}</td>
+                <td contenteditable="true">${trade.duration || ""}</td>
+                <td contenteditable="true">${trade.side || ""}</td>
             </tr>`;
             tableBody.append(row);
         });
 
-        // Initialize DataTables
-        $("#trades-table").DataTable({
+        // Initialize DataTable
+        var table = $("#trades-table").DataTable({
             paging: true,
             searching: true,
-            ordering: true
+            ordering: true,
+            pageLength: 15
         });
+
+        // Apply per-column filters
+        $('#trades-table thead tr#filters th input').on('keyup change', function () {
+            let colIndex = $(this).parent().index();
+            table.column(colIndex).search(this.value).draw();
+        });
+
+    }).fail(function() {
+        tableBody.html(`<tr><td colspan="9" style="color:red;">Failed to fetch trades from server.</td></tr>`);
     });
 });
 </script>
