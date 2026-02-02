@@ -6,114 +6,136 @@
 
 <h2>Trade Journal</h2>
 
-<div class="table-wrapper">
-  <table id="tradeTable">
-    <thead>
-      <tr>
-        <th>
-          <span class="sortable" onclick="sortTable('symbol')">Symbol</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="symbol">
-        </th>
+<button id="resetSort" onclick="resetSort()">Reset sorting</button>
 
-        <th>
-          <span class="sortable" onclick="sortTable('side')">Side</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="side">
-        </th>
-
-        <th>
-          <span class="sortable" onclick="sortTable('qty')">Qty</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="qty">
-        </th>
-
-        <th>
-          <span class="sortable" onclick="sortTable('pnl')">PnL</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="pnl">
-        </th>
-
-        <th>
-          <span class="sortable" onclick="sortTable('boughtTimestamp')">Bought</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="boughtTimestamp">
-        </th>
-
-        <th>
-          <span class="sortable" onclick="sortTable('soldTimestamp')">Sold</span><br>
-          <input type="text" onkeyup="filterTable()" data-col="soldTimestamp">
-        </th>
-      </tr>
-    </thead>
-
-    <tbody id="tableBody"></tbody>
-  </table>
-</div>
+<table id="tradeTable">
+  <thead>
+    <tr id="headerRow"></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script>
-let trades = [];
-let sortState = { column: null, asc: true };
+let originalData = [];
+let currentSort = { column: null, direction: null };
 
-// ---------------- LOAD DATA ----------------
+// Fetch trades
 fetch("/api/trades")
   .then(res => res.json())
   .then(data => {
-    trades = data;
-    renderTable(trades);
+    originalData = [...data];
+    buildTable(data);
   });
 
-// ---------------- RENDER ----------------
-function renderTable(data) {
-  const tbody = document.getElementById("tableBody");
+function buildTable(data) {
+  const table = document.getElementById("tradeTable");
+  const thead = document.getElementById("headerRow");
+  const tbody = table.querySelector("tbody");
+
+  thead.innerHTML = "";
   tbody.innerHTML = "";
 
+  if (!data.length) return;
+
+  const columns = Object.keys(data[0]);
+
+  // Headers
+  columns.forEach(col => {
+    const th = document.createElement("th");
+
+    const label = document.createElement("span");
+    label.textContent = col;
+    label.className = "sortable";
+    label.onclick = () => sortTable(col, label);
+
+    const input = document.createElement("input");
+    input.placeholder = "Filter";
+    input.onkeyup = filterTable;
+    input.onclick = e => e.stopPropagation();
+    input.onmousedown = e => e.stopPropagation();
+
+    th.appendChild(label);
+    th.appendChild(document.createElement("br"));
+    th.appendChild(input);
+    thead.appendChild(th);
+  });
+
+  // Rows
   data.forEach(row => {
     const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-      <td>${row.symbol}</td>
-      <td>${row.side}</td>
-      <td>${row.qty}</td>
-      <td>${row.pnl}</td>
-      <td>${row.boughtTimestamp}</td>
-      <td>${row.soldTimestamp}</td>
-    `;
+    columns.forEach(col => {
+      const td = document.createElement("td");
+      td.textContent = row[col];
+
+      // Conditional PnL coloring
+      if (col.toLowerCase() === "pnl") {
+        const val = Number(row[col]);
+        td.className = val >= 0 ? "pnl-positive" : "pnl-negative";
+      }
+
+      tr.appendChild(td);
+    });
 
     tbody.appendChild(tr);
   });
 }
 
-// ---------------- SORT ----------------
-function sortTable(column) {
-  if (sortState.column === column) {
-    sortState.asc = !sortState.asc;
-  } else {
-    sortState.column = column;
-    sortState.asc = true;
-  }
+// Sorting
+function sortTable(column, label) {
+  const headers = document.querySelectorAll(".sortable");
+  headers.forEach(h => h.classList.remove("active"));
 
-  const sorted = [...trades].sort((a, b) => {
-    if (a[column] < b[column]) return sortState.asc ? -1 : 1;
-    if (a[column] > b[column]) return sortState.asc ? 1 : -1;
-    return 0;
+  label.classList.add("active");
+
+  const direction =
+    currentSort.column === column && currentSort.direction === "asc"
+      ? "desc"
+      : "asc";
+
+  currentSort = { column, direction };
+
+  const sorted = [...originalData].sort((a, b) => {
+    if (a[column] == null) return 1;
+    if (b[column] == null) return -1;
+
+    if (!isNaN(a[column])) {
+      return direction === "asc"
+        ? a[column] - b[column]
+        : b[column] - a[column];
+    }
+
+    return direction === "asc"
+      ? String(a[column]).localeCompare(String(b[column]))
+      : String(b[column]).localeCompare(String(a[column]));
   });
 
-  renderTable(sorted);
+  buildTable(sorted);
 }
 
-// ---------------- FILTER ----------------
+// Reset sorting
+function resetSort() {
+  currentSort = { column: null, direction: null };
+  document.querySelectorAll(".sortable").forEach(h => h.classList.remove("active"));
+  buildTable(originalData);
+}
+
+// Filtering
 function filterTable() {
-  const inputs = document.querySelectorAll("thead input");
-  let filtered = [...trades];
+  const inputs = document.querySelectorAll("th input");
+  let filtered = [...originalData];
 
-  inputs.forEach(input => {
-    const col = input.dataset.col;
-    const val = input.value.toLowerCase();
+  inputs.forEach((input, index) => {
+    if (!input.value) return;
 
-    if (val) {
-      filtered = filtered.filter(row =>
-        String(row[col]).toLowerCase().includes(val)
-      );
-    }
+    filtered = filtered.filter(row =>
+      String(Object.values(row)[index])
+        .toLowerCase()
+        .includes(input.value.toLowerCase())
+    );
   });
 
-  renderTable(filtered);
+  buildTable(filtered);
 }
 </script>
 
