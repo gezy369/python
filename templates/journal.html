@@ -3,6 +3,63 @@
 {% block title %}Journal{% endblock %}
 
 {% block content %}
-<h2>Trades journal</h2>
-<p>Welcome to the journal.</p>
+
+<h1>Trades Journal</h1>
+
+<table id="trades-table" class="display">
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <th>Bought Timestamp</th>
+            <th>Sell Timestamp</th>
+            <th>Buy Price</th>
+            <th>Sell Price</th>
+            <th>Qty</th>
+            <th>PnL</th>
+            <th>Duration</th>
+            <th>Side</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data will be filled by JS -->
+    </tbody>
+</table>
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Fetch trades from API
+    $.getJSON("/api/trades", function(data) {
+        const tableBody = $("#trades-table tbody");
+        data.forEach(trade => {
+            const row = `<tr>
+                <td contenteditable="true">${trade.symbol}</td>
+                <td contenteditable="true">${trade.boughtTimestamp}</td>
+                <td contenteditable="true">${trade.soldTimestamp}</td>
+                <td contenteditable="true">${trade.buyPrice}</td>
+                <td contenteditable="true">${trade.sellPrice}</td>
+                <td contenteditable="true">${trade.qty}</td>
+                <td contenteditable="true">${trade.pnl}</td>
+                <td contenteditable="true">${trade.duration}</td>
+                <td contenteditable="true">${trade.side}</td>
+            </tr>`;
+            tableBody.append(row);
+        });
+
+        // Initialize DataTables
+        $("#trades-table").DataTable({
+            paging: true,
+            searching: true,
+            ordering: true
+        });
+    });
+});
+</script>
+
 {% endblock %}

@@ -40,6 +40,22 @@ def dashboard():
 def journal():
     return render_template("journal.html")
 
+# Fetch all the trades in the DB
+@app.route("/api/trades")
+def api_trades():
+    try:
+        # Fetch all trades from Supabase
+        response = supabase.table("trades").select("*").execute()
+
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch trades"}), 500
+
+        rows = response.data  # list of dicts
+        return jsonify(rows)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # ===== TRADES UPLOAD =====
 @app.route("/upload", methods=["GET", "POST"])
@@ -86,8 +102,6 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-
-
 
 
 # ===== ENTRY POINT =====

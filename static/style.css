@@ -46,6 +46,10 @@ body {
   overflow-y: auto;
 }
 
+.main h1 {
+  font-size: 18px;
+}
+
 /* ===== UPLOAD PAGE ===== */
 .upload-container {
   display: flex;
@@ -73,7 +77,7 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 18px;
+  font-size: 14px;
   color: #666;
   cursor: pointer;
 }
@@ -114,7 +118,7 @@ button {
 #table-container table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 #table-container th,
