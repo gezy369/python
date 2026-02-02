@@ -28,6 +28,7 @@ let currentSort = { column: null, direction: null };
 
 //Trade table columns order
 const COLUMN_ORDER = [
+  "id",
   "symbol",
   "boughtTimestamp",
   "soldTimestamp",
@@ -38,6 +39,18 @@ const COLUMN_ORDER = [
   "sellPrice",
   "pnl"
 ];
+
+const COLUMN_LABELS = {
+  symbol: "Symbol",
+  side: "Side",
+  qty: "Qty",
+  buyPrice: "Buy Price",
+  sellPrice: "Sell Price",
+  pnl: "PnL ($)",
+  boughtTimestamp: "Bought At",
+  soldTimestamp: "Sold At",
+  duration: "Duration"
+};
 
 // Fetch trades
 fetch("/api/trades")
@@ -197,17 +210,26 @@ function filterTable() {
     );
   });
 
-  // Date range filter (assumes boughtTimestamp column)
-  if (dateFrom || dateTo) {
-    filtered = filtered.filter(row => {
-      const rowDate = row.boughtTimestamp.slice(0, 10); // YYYY-MM-DD
+    // Date range filter (assumes boughtTimestamp column)
+    if (dateFrom || dateTo) {
+    const fromDate = dateFrom ? new Date(dateFrom) : null;
+    const toDate = dateTo ? new Date(dateTo) : null;
 
-        if (dateFrom && rowDate < dateFrom) return false;
-        if (dateTo && rowDate > dateTo) return false;
+  filtered = filtered.filter(row => {
+    const rowDate = new Date(row.boughtTimestamp); // Convert string to Date
 
-      return true;
-    });
-  }
+    rowDate.setHours(0, 0, 0, 0);
+
+    if (fromDate) fromDate.setHours(0, 0, 0, 0);
+    if (toDate) toDate.setHours(0, 0, 0, 0);
+
+    if (fromDate && rowDate < fromDate) return false;
+    if (toDate && rowDate > toDate) return false;
+
+    return true;
+  });
+}
+
 
   buildRows(filtered);
 }
