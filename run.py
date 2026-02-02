@@ -19,6 +19,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# ===== SUPABASE CONFIG =====
+from supabase import create_client, Client
+import os
+
+SUPABASE_URL = os.environ.get("https://hkthbxcfvsqrusmauhpe.supabase.co")
+SUPABASE_KEY = os.environ.get("sb_publishable_P0pLUWVY65gouEg0MVsusA_Mesfetqt")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
 # ===== ROUTES =====
 
 @app.route("/")
@@ -26,6 +36,9 @@ def dashboard():
     return render_template("dashboard.html")
 
 
+@app.route("/journal")
+def journal():
+    return render_template("journal.html")
 
 
 # ===== TRADES UPLOAD =====
@@ -53,14 +66,18 @@ def upload_file():
         data = df_imported_trades.to_dict(orient="records")
         columns = list(df_imported_trades.columns)
 
+        
+
         return jsonify({
-            "message": "Trades imported successfuly",
             "rows": data,
             "columns": columns
         })
 
-        #return jsonify({"message": "CSV processed", "filename": file.filename})
-
+        # Insert into Supabase
+        supabase.table("trades").insert(records).execute()
+        return jsonify({"message": "CSV processed and inserted!", "filename": file.filename})
+        
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     

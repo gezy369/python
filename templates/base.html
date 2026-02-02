@@ -10,10 +10,14 @@
 
   <!-- MENU (VISIBLE EVERYWHERE) -->
   <div class="sidebar">
-    <h1>My App</h1>
+    <h1>Trading Futures</h1>
 
     <a class="menu-item" href="{{ url_for('dashboard') }}">
       📊 Dashboard
+    </a>
+
+    <a class="menu-item" href="{{ url_for('Journal') }}">
+      📔 Journal
     </a>
 
     <a class="menu-item" href="{{ url_for('upload_file') }}">
