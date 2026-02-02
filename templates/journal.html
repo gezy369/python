@@ -54,17 +54,16 @@ const COLUMN_ORDER = [
   "sellPrice",
   "pnl"
 ];
-
-
-
-// Fetch trades
+//fetch data
 fetch("/api/trades")
   .then(res => res.json())
   .then(data => {
     originalData = [...data];
-    buildHeaders(COLUMN_ORDER);
-    buildRows(data, COLUMN_ORDER);
+    buildHeaders(COLUMN_ORDER);         // headers in correct order
+    buildRows(data, COLUMN_ORDER);      // rows in correct order
   });
+
+
 
 
 function buildHeaders(columns) {
@@ -92,35 +91,39 @@ function buildHeaders(columns) {
   });
 }
 
-function buildRows(data) {
-  const tbody = document.querySelector("#tradeTable tbody");
-  tbody.innerHTML = "";
+function buildRows(data, columnsOrder) {
+    const tbody = document.querySelector("#tradeTable tbody");
+    tbody.innerHTML = "";
 
-  const columns = Object.keys(data[0] || {});
+    // If no column order provided, fallback to keys from data
+    const columns = columnsOrder || Object.keys(data[0] || {});
 
-  data.forEach(row => {
-    const tr = document.createElement("tr");
+    data.forEach(row => {
+        const tr = document.createElement("tr");
 
-    columns.forEach(col => {
-      const td = document.createElement("td");
+        columns.forEach(col => {
+        const td = document.createElement("td");
+
+        // Format PnL
         if (col === "pnl") {
-        td.textContent = formatPnL(row[col]);
+            td.textContent = formatPnL(row[col]);
         } else {
-        td.textContent = row[col];
+            td.textContent = row[col] ?? "";  // fallback to empty string if undefined
         }
 
-      if (col.toLowerCase() === "pnl") {
-        td.className = Number(row[col]) >= 0
-          ? "pnl-positive"
-          : "pnl-negative";
-      }
+        // Add coloring for PnL
+        if (col.toLowerCase() === "pnl") {
+            td.className = Number(row[col]) >= 0
+            ? "pnl-positive"
+            : "pnl-negative";
+        }
 
-      tr.appendChild(td);
+        tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
     });
-
-    tbody.appendChild(tr);
-  });
-}
+    }
 
   // Rows
   data.forEach(row => {
