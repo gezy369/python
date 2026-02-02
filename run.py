@@ -66,17 +66,19 @@ def upload_file():
         data = df_imported_trades.to_dict(orient="records")
         columns = list(df_imported_trades.columns)
 
-        
-
         return jsonify({
             "rows": data,
             "columns": columns
         })
 
         # Insert into Supabase
-        supabase.table("trades").insert(records).execute()
-        return jsonify({"message": "CSV processed and inserted!", "filename": file.filename})
-        
+        # Convert DataFrame to list of dicts
+        records = df_imported_trades.to_dict(orient="records")
+
+        # Insert into Supabase
+        response = supabase.table("trades").insert(records).execute()
+
+        print(response)
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
