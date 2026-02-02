@@ -222,31 +222,33 @@ function filterTable() {
   // Column filters
   inputs.forEach((input, index) => {
     if (!input.value) return;
+    const col = COLUMN_ORDER[index]; // Use the correct column name
 
     filtered = filtered.filter(row =>
-      String(Object.values(row)[index])
+      String(row[col] ?? "")
         .toLowerCase()
         .includes(input.value.toLowerCase())
     );
   });
 
-    // Date range filter (assumes boughtTimestamp column)
-    if (dateFrom || dateTo) {
-        const fromDate = dateFrom ? new Date(dateFrom) : null;
-        const toDate = dateTo ? new Date(dateTo) : null;
+  // Date range filter
+  if (dateFrom || dateTo) {
+    const fromDate = dateFrom ? new Date(dateFrom) : null;
+    const toDate = dateTo ? new Date(dateTo) : null;
 
-        filtered = filtered.filter(row => {
-            const rowDate = row.boughtTimestamp; // Already a Date object
+    filtered = filtered.filter(row => {
+      const rowDate = row.boughtTimestamp; // Already a Date object
 
-            if (fromDate && rowDate < fromDate) return false;
-            if (toDate && rowDate > toDate) return false;
+      if (fromDate && rowDate < fromDate) return false;
+      if (toDate && rowDate > toDate) return false;
 
-            return true;
-        });
-    }
+      return true;
+    });
+  }
 
-  buildRows(filtered);
+  buildRows(filtered, COLUMN_ORDER);
 }
+
 
 
 //Format PnL for it to be financial
