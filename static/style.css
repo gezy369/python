@@ -136,3 +136,46 @@ button {
 #table-container tr:nth-child(even) {
   background: #fafafa;
 }
+
+.table-wrapper {
+  margin-top: 30px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 12px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+}
+
+th {
+  background: #f3f4f6;
+  vertical-align: top;
+}
+
+th input {
+  width: 95%;
+  margin-top: 5px;
+  padding: 3px;
+  font-size: 11px;
+}
+
+.sortable {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.sortable:hover {
+  text-decoration: underline;
+}
+
+tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
