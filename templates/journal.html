@@ -26,19 +26,19 @@
 let originalData = [];
 let currentSort = { column: null, direction: null };
 
-// Columns labels
-//const COLUMN_LABELS = {
- // id: "ID",
- // symbol: "Symbol",
- // side: "Side",
- // qty: "Qty",
- // buyPrice: "Buy Price",
- // sellPrice: "Sell Price",
- // pnl: "PnL ($)",
- // boughtTimestamp: "Bought At",
- // soldTimestamp: "Sold At",
- // duration: "Duration"
-//};
+// Mapping for display names
+const COLUMN_NAMES = {
+  id: "ID",
+  symbol: "Symbol",
+  boughtTimestamp: "Bought",
+  soldTimestamp: "Sold",
+  duration: "Duration",
+  side: "Side",
+  qty: "Qty",
+  buyPrice: "Buy Price",
+  sellPrice: "Sell Price",
+  pnl: "PnL"
+};
 
 
 //Trade table columns order
@@ -58,10 +58,17 @@ const COLUMN_ORDER = [
 fetch("/api/trades")
   .then(res => res.json())
   .then(data => {
-    originalData = [...data];
+    // Convert boughtTimestamp and soldTimestamp to Date objects
+    originalData = data.map(row => ({
+      ...row,
+      boughtTimestamp: new Date(row.boughtTimestamp),
+      soldTimestamp: new Date(row.soldTimestamp)
+    }));
+
     buildHeaders(COLUMN_ORDER);         // headers in correct order
-    buildRows(data, COLUMN_ORDER);      // rows in correct order
+    buildRows(originalData, COLUMN_ORDER);      // rows in correct order
   });
+
 
 
 
@@ -73,23 +80,28 @@ function buildHeaders(columns) {
   columns.forEach(col => {
     const th = document.createElement("th");
 
+    // Header label (clickable for sorting)
     const label = document.createElement("span");
-    label.textContent = col;
+    label.textContent = COLUMN_NAMES[col] || col; // Use friendly name if exists
     label.className = "sortable";
     label.onclick = () => sortTable(col, label);
 
+    // Filter input
     const input = document.createElement("input");
     input.placeholder = "Filter";
     input.onkeyup = filterTable;
-    input.onclick = e => e.stopPropagation();
-    input.onmousedown = e => e.stopPropagation();
+    input.onclick = e => e.stopPropagation();       // prevent sorting when typing
+    input.onmousedown = e => e.stopPropagation();   // prevent sorting on click
 
     th.appendChild(label);
     th.appendChild(document.createElement("br"));
     th.appendChild(input);
+
     thead.appendChild(th);
   });
 }
+
+
 
 function buildRows(data, columnsOrder) {
     const tbody = document.querySelector("#tradeTable tbody");
@@ -220,28 +232,24 @@ function filterTable() {
 
     // Date range filter (assumes boughtTimestamp column)
     if (dateFrom || dateTo) {
-    const fromDate = dateFrom ? new Date(dateFrom) : null;
-    const toDate = dateTo ? new Date(dateTo) : null;
+        const fromDate = dateFrom ? new Date(dateFrom) : null;
+        const toDate = dateTo ? new Date(dateTo) : null;
 
-  filtered = filtered.filter(row => {
-    const rowDate = new Date(row.boughtTimestamp); // Convert string to Date
+        filtered = filtered.filter(row => {
+            const rowDate = row.boughtTimestamp; // Already a Date object
 
-    rowDate.setHours(0, 0, 0, 0);
+            if (fromDate && rowDate < fromDate) return false;
+            if (toDate && rowDate > toDate) return false;
 
-    if (fromDate) fromDate.setHours(0, 0, 0, 0);
-    if (toDate) toDate.setHours(0, 0, 0, 0);
-
-    if (fromDate && rowDate < fromDate) return false;
-    if (toDate && rowDate > toDate) return false;
-
-    return true;
-  });
-}
-
+            return true;
+        });
+    }
 
   buildRows(filtered);
 }
 
+
+//Format PnL for it to be financial
 function formatPnL(value) {
   const num = Number(value);
   if (isNaN(num)) return "";
