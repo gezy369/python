@@ -72,7 +72,11 @@ function buildRows(data) {
 
     columns.forEach(col => {
       const td = document.createElement("td");
-      td.textContent = row[col];
+        if (col === "pnl") {
+        td.textContent = formatPnL(row[col]);
+        } else {
+        td.textContent = row[col];
+        }
 
       if (col.toLowerCase() === "pnl") {
         td.className = Number(row[col]) >= 0
@@ -143,9 +147,23 @@ function sortTable(column, label) {
 // Reset sorting
 function resetSort() {
   currentSort = { column: null, direction: null };
-  document.querySelectorAll(".sortable").forEach(h => h.classList.remove("active"));
-  buildTable(originalData);
+
+  // Remove active sort highlight
+  document.querySelectorAll(".sortable")
+    .forEach(h => h.classList.remove("active"));
+
+  // Clear column filters
+  document.querySelectorAll("th input")
+    .forEach(input => input.value = "");
+
+  // Clear date filters
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+
+  // Restore original data
+  buildRows(originalData);
 }
+
 
 // Filtering
 function filterTable() {
@@ -169,15 +187,30 @@ function filterTable() {
   // Date range filter (assumes boughtTimestamp column)
   if (dateFrom || dateTo) {
     filtered = filtered.filter(row => {
-      const d = new Date(row.boughtTimestamp);
-      if (dateFrom && d < new Date(dateFrom)) return false;
-      if (dateTo && d > new Date(dateTo)) return false;
+      const rowDate = row.boughtTimestamp.slice(0, 10); // YYYY-MM-DD
+
+        if (dateFrom && rowDate < dateFrom) return false;
+        if (dateTo && rowDate > dateTo) return false;
+
       return true;
     });
   }
 
   buildRows(filtered);
 }
+
+function formatPnL(value) {
+  const num = Number(value);
+  if (isNaN(num)) return "";
+
+  const formatted = Math.abs(num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  return num < 0 ? `($${formatted})` : `$${formatted}`;
+}
+
 
 </script>
 
