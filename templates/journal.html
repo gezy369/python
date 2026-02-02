@@ -26,13 +26,26 @@
 let originalData = [];
 let currentSort = { column: null, direction: null };
 
+//Trade table columns order
+const COLUMN_ORDER = [
+  "symbol",
+  "boughtTimestamp",
+  "soldTimestamp",
+  "duration",
+  "side",
+  "qty",
+  "buyPrice",
+  "sellPrice",
+  "pnl"
+];
+
 // Fetch trades
 fetch("/api/trades")
   .then(res => res.json())
   .then(data => {
     originalData = [...data];
-    buildHeaders(Object.keys(data[0]));
-    buildRows(data);
+    buildHeaders(COLUMN_ORDER);
+    buildRows(data, COLUMN_ORDER);
   });
 
 
