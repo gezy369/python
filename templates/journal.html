@@ -192,7 +192,20 @@ function resetSort(){
 
 /* ---------- Charts ---------- */
 const chartsConfig=[
-  {id:"pnlChart",type:"line",label:"PnL over time",dataFunc:data=>({labels:data.map(d=>formatDateTime(d.boughtTimestamp)),datasets:[{label:"PnL",data:data.map(d=>d.pnl),borderColor:"green",backgroundColor:"rgba(0,255,0,0.2)",fill:true,tension:0.2}]}),options:{responsive:true,plugins:{legend:{display:false}}}},
+  {id:"pnlChart", type:"line", label:"PnL over time", dataFunc:data=>{
+  // Sort data by boughtTimestamp
+  const sorted = [...data].sort((a,b)=>a.boughtTimestamp-b.boughtTimestamp);
+  let cumulative = 0;
+  const labels = [];
+  const values = [];
+  sorted.forEach(d=>{
+    cumulative += Number(d.pnl) || 0;
+    labels.push(formatDateTime(d.boughtTimestamp));
+    values.push(cumulative);
+  });
+  return {labels, datasets:[{label:"Cumulative PnL", data:values, borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", fill:true, tension:0.2}]};
+}, options:{responsive:true, plugins:{legend:{display:false}}}},
+
   {id:"winRateChart",type:"doughnut",label:"Win/Loss Rate",dataFunc:data=>{const w=data.filter(d=>d.pnl>0).length,l=data.filter(d=>d.pnl<=0).length;return {labels:["Wins","Losses"],datasets:[{data:[w,l],backgroundColor:["green","red"]}]};},options:{responsive:true}},
   {id:"winRateSymbolChart",type:"bar",label:"Win Rate per Symbol",dataFunc:data=>{const s={};data.forEach(d=>{s[d.symbol]??={win:0,total:0};if(d.pnl>0)s[d.symbol].win++;s[d.symbol].total++;});return {labels:Object.keys(s),datasets:[{label:"Win %",data:Object.values(s).map(v=>v.win/v.total*100),backgroundColor:"blue"}]};},options:{responsive:true,scales:{y:{beginAtZero:true,max:100}}}},
   {id:"biggestTradeChart",type:"bar",label:"Biggest Win/Loss",dataFunc:data=>{const max=Math.max(...data.map(d=>d.pnl)),min=Math.min(...data.map(d=>d.pnl));return {labels:["Biggest Win","Biggest Loss"],datasets:[{label:"PnL",data:[max,min],backgroundColor:["green","red"]}]};},options:{responsive:true,scales:{y:{beginAtZero:false}}}},
