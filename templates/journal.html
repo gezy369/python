@@ -8,6 +8,7 @@
 
 <button id="resetSort" onclick="resetSort()">Reset sorting</button>
 
+<!-- dates -->
 <div style="margin-bottom: 10px;">
   From:
   <input type="date" id="dateFrom">
@@ -15,6 +16,16 @@
   <input type="date" id="dateTo">
 </div>
 
+<!-- dates button -->
+<div style="margin-bottom: 10px;">
+  From:
+  <input type="date" id="dateFrom">
+  To:
+  <input type="date" id="dateTo">
+  <button onclick="applyDateFilter()">Apply</button>
+</div>
+
+<!-- table -->
 <table id="tradeTable">
   <thead>
     <tr id="headerRow"></tr>
@@ -70,6 +81,9 @@ fetch("/api/trades")
   });
 
 
+function applyDateFilter() {
+  filterTable();
+}
 
 
 
@@ -187,7 +201,8 @@ function sortTable(column, label) {
       : String(b[column]).localeCompare(String(a[column]));
   });
 
-  buildRows(sorted);
+  buildRows(sorted, COLUMN_ORDER);
+
 }
 
 // Reset sorting
@@ -207,7 +222,8 @@ function resetSort() {
   document.getElementById("dateTo").value = "";
 
   // Restore original data
-  buildRows(originalData);
+  buildRows(originalData, COLUMN_ORDER);
+
 }
 
 
