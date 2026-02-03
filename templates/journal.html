@@ -30,7 +30,112 @@
   <tbody></tbody>
 </table>
 
-<!-- include the external JS file -->
-<script type="module" src="{{ url_for('static', filename='js/journal.table.js') }}"></script>
+<script>
+// Global chart instances
+let charts = {};
+
+// Chart definitions
+const chartsConfig = [
+  {
+    id: "pnlChart",
+    type: "line",
+    label: "PnL over time",
+    dataFunc: data => ({
+      labels: data.map(d => formatDateTime(d.boughtTimestamp)),
+      datasets: [{
+        label: "PnL",
+        data: data.map(d => d.pnl),
+        borderColor: "green",
+        backgroundColor: "rgba(0,255,0,0.2)",
+        fill: true,
+        tension: 0.2
+      }]
+    }),
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } }
+    }
+  },
+  {
+    id: "winRateChart",
+    type: "doughnut",
+    label: "Win / Loss Rate",
+    dataFunc: data => {
+      const wins = data.filter(d => d.pnl > 0).length;
+      const losses = data.filter(d => d.pnl <= 0).length;
+      return {
+        labels: ["Wins", "Losses"],
+        datasets: [{ data: [wins, losses], backgroundColor: ["green", "red"] }]
+      };
+    },
+    options: { responsive: true }
+  },
+  {
+    id: "winRateSymbolChart",
+    type: "bar",
+    label: "Win Rate per Symbol",
+    dataFunc: data => {
+      const symbols = {};
+      data.forEach(d => {
+        symbols[d.symbol] ??= { win: 0, total: 0 };
+        if (d.pnl > 0) symbols[d.symbol].win++;
+        symbols[d.symbol].total++;
+      });
+      return {
+        labels: Object.keys(symbols),
+        datasets: [{
+          label: "Win Rate %",
+          data: Object.values(symbols).map(v => (v.win / v.total) * 100),
+          backgroundColor: "blue"
+        }]
+      };
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+  },
+  {
+    id: "biggestTradeChart",
+    type: "bar",
+    label: "Biggest Win / Loss",
+    dataFunc: data => {
+      const biggestWin = Math.max(...data.map(d => d.pnl));
+      const biggestLoss = Math.min(...data.map(d => d.pnl));
+      return {
+        labels: ["Biggest Win", "Biggest Loss"],
+        datasets: [{ label: "PnL", data: [biggestWin, biggestLoss], backgroundColor: ["green", "red"] }]
+      };
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: false } } }
+  },
+  {
+    id: "drawdownChart",
+    type: "bar",
+    label: "Max Drawdown",
+    dataFunc: data => {
+      let peak = 0, drawdowns = [];
+      data.forEach(d => { peak = Math.max(peak, d.pnl); drawdowns.push(peak - d.pnl); });
+      const maxDrawdown = Math.max(...drawdowns);
+      return {
+        labels: ["Max Drawdown"],
+        datasets: [{ label: "PnL", data: [maxDrawdown], backgroundColor: "orange" }]
+      };
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  }
+];
+
+// Update or create all charts
+function updateCharts(data) {
+  chartsConfig.forEach(cfg => {
+    if (charts[cfg.id]) charts[cfg.id].destroy();
+    const ctx = document.getElementById(cfg.id);
+    charts[cfg.id] = new Chart(ctx, {
+      type: cfg.type,
+      data: cfg.dataFunc(data),
+      options: cfg.options
+    });
+  });
+}
+</script>
+
 
 {% endblock %}
