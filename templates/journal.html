@@ -1,3 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Journal{% endblock %}
+
+{% block content %}
+
+<h2>Trade Journal</h2>
+
+<button id="resetSort" onclick="resetSort()">Reset sorting</button>
+
+<!-- dates button -->
+<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+  <label>
+    From:
+    <input type="date" id="dateFrom">
+  </label>
+
+  <label>
+    To:
+    <input type="date" id="dateTo">
+  </label>
+
+  <button id="date-btn" onclick="applyDateFilter()">Apply Dates</button>
+</div>
+
+
+<!-- table -->
+<table id="tradeTable">
+  <thead>
+    <tr id="headerRow"></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
 <script>
 let originalData = [];
 let currentSort = { column: null, direction: null };
