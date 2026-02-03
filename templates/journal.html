@@ -6,9 +6,6 @@
 
 <h2>Trade Journal</h2>
 
-<button id="resetSort">Reset sorting</button>
-
-<!-- Date filters -->
 <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
   <label>
     From:
@@ -20,29 +17,20 @@
     <input type="date" id="dateTo">
   </label>
 
-  <button id="date-btn">Apply Dates</button>
+  <button id="date-btn" class="date-btn">Apply Dates</button>
+  <button id="resetSort" class="reset-btn">Reset Filter/Sorting</button>
 </div>
 
-<!-- Layout -->
-<div style="display: flex; gap: 20px; align-items: flex-start;">
 
-  <!-- TABLE -->
-  <table id="tradeTable">
-    <thead>
-      <tr id="headerRow"></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<!-- table -->
+<table id="tradeTable">
+  <thead>
+    <tr id="headerRow"></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-  <!-- CHARTS -->
-  <div id="charts" style="min-width: 350px;"></div>
-
-</div>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Your JS modules -->
+<!-- include the external JS file -->
 <script type="module" src="{{ url_for('static', filename='js/journal.table.js') }}"></script>
 
 {% endblock %}
