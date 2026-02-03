@@ -8,22 +8,21 @@
 
 <button id="resetSort" onclick="resetSort()">Reset sorting</button>
 
-<!-- dates -->
-<div style="margin-bottom: 10px;">
-  From:
-  <input type="date" id="dateFrom">
-  To:
-  <input type="date" id="dateTo">
+<!-- dates button -->
+<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+  <label>
+    From:
+    <input type="date" id="dateFrom">
+  </label>
+
+  <label>
+    To:
+    <input type="date" id="dateTo">
+  </label>
+
+  <button class="date-btn" onclick="applyDateFilter()">Apply</button>
 </div>
 
-<!-- dates button -->
-<div style="margin-bottom: 10px;">
-  From:
-  <input type="date" id="dateFrom">
-  To:
-  <input type="date" id="dateTo">
-  <button onclick="applyDateFilter()">Apply</button>
-</div>
 
 <!-- table -->
 <table id="tradeTable">
@@ -80,6 +79,24 @@ fetch("/api/trades")
     buildRows(originalData, COLUMN_ORDER);      // rows in correct order
   });
 
+function formatDateTime(value) {
+  if (!value) return "";
+
+  const d = new Date(value);
+  if (isNaN(d)) return value;
+
+  const pad = n => String(n).padStart(2, "0");
+
+  return (
+    d.getFullYear() + "/" +
+    pad(d.getMonth() + 1) + "/" +
+    pad(d.getDate()) + " " +
+    pad(d.getHours()) + ":" +
+    pad(d.getMinutes()) + ":" +
+    pad(d.getSeconds())
+  );
+}
+
 
 function applyDateFilter() {
   filterTable();
@@ -134,7 +151,14 @@ function buildRows(data, columnsOrder) {
         if (col === "pnl") {
             td.textContent = formatPnL(row[col]);
         } else {
-            td.textContent = row[col] ?? "";  // fallback to empty string if undefined
+            if (col === "boughtTimestamp" || col === "soldTimestamp") {
+            td.textContent = formatDateTime(row[col]);
+            } else if (col === "pnl") {
+            td.textContent = formatPnL(row[col]);
+            } else {
+            td.textContent = row[col] ?? "";
+            }
+
         }
 
         // Add coloring for PnL
