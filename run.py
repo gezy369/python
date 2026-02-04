@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from utils.functions import csv_handler, plot_trade_candlestick
+from utils.functions import csv_handler
 import os
 import io
 import pandas as pd
