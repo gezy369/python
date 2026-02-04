@@ -1,31 +1,31 @@
 {% extends "base.html" %}
-
 {% block title %}Journal{% endblock %}
-
 {% block content %}
 
 <h2>Trade Journal</h2>
 
-<!-- Top controls: date range + buttons -->
+<!-- Top controls -->
 <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
   <button onclick="applyDateFilter()">Apply Dates</button>
-  <button onclick="resetSort()">Reset Sorting/Filters</button>
+  <button onclick="resetFilters()">Reset</button>
 </div>
 
-<!-- Container for table + charts -->
+<!-- Layout -->
 <div style="display: flex; gap: 20px; align-items: flex-start;">
-  
-  <!-- Left: table -->
+
+  <!-- Table -->
   <div style="flex: 2;">
     <table id="tradeTable">
-      <thead><tr id="headerRow"></tr></thead>
+      <thead>
+        <tr id="headerRow"></tr>
+      </thead>
       <tbody></tbody>
     </table>
   </div>
-  
-  <!-- Right: charts -->
+
+  <!-- Charts -->
   <div style="flex: 1; display: flex; flex-direction: column; gap: 30px;">
     <canvas id="pnlChart" height="200"></canvas>
     <canvas id="winRateChart" height="200"></canvas>
@@ -35,287 +35,283 @@
   </div>
 </div>
 
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 let originalData = [];
-let currentSort = { column: null, direction: null };
 let charts = {};
 
-// Column display names
+// Columns
 const COLUMN_NAMES = {
-  id: "ID", symbol: "Symbol", boughtTimestamp: "Bought",
-  soldTimestamp: "Sold", duration: "Duration", side: "Side",
-  qty: "Qty", buyPrice: "Buy Price", sellPrice: "Sell Price", pnl: "PnL"
+  id: "ID",
+  symbol: "Symbol",
+  boughtTimestamp: "Bought",
+  soldTimestamp: "Sold",
+  duration: "Duration",
+  side: "Side",
+  qty: "Qty",
+  buyPrice: "Buy Price",
+  sellPrice: "Sell Price",
+  pnl: "PnL"
 };
 
-// Column order
-const COLUMN_ORDER = ["id","symbol","boughtTimestamp","soldTimestamp","duration","side","qty","buyPrice","sellPrice","pnl"];
+const COLUMN_ORDER = [
+  "id","symbol","boughtTimestamp","soldTimestamp",
+  "duration","side","qty","buyPrice","sellPrice","pnl"
+];
 
-// Fetch trades
+// Fetch data
 fetch("/api/trades")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
-    // Convert timestamps to Date
-    originalData = data.map(r => ({
-      ...r,
-      boughtTimestamp: new Date(r.boughtTimestamp),
-      soldTimestamp: new Date(r.soldTimestamp)
+    originalData = data.map(t => ({
+      ...t,
+      boughtTimestamp: new Date(t.boughtTimestamp),
+      soldTimestamp: new Date(t.soldTimestamp)
     }));
-
-    buildHeaders(COLUMN_ORDER);
-    buildRows(originalData, COLUMN_ORDER);
-    updateCharts(originalData);
+    buildHeaders();
+    applyFiltersAndRender();
   });
 
 /* ---------- Formatting ---------- */
+const pad = n => String(n).padStart(2, "0");
+
 function formatDateTime(d) {
-  if (!(d instanceof Date) || isNaN(d)) return "";
-  const pad = n => String(n).padStart(2,"0");
+  if (!(d instanceof Date)) return "";
   return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-function formatPnL(value) {
-  const num = Number(value);
-  if (isNaN(num)) return "";
-  const formatted = Math.abs(num).toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
-  return num < 0 ? `($${formatted})` : `$${formatted}`;
+function formatPnL(v) {
+  const n = Number(v);
+  if (isNaN(n)) return "";
+  const f = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+  return n < 0 ? `($${f})` : `$${f}`;
 }
 
 /* ---------- Table ---------- */
-function buildHeaders(columns) {
-  const thead = document.getElementById("headerRow");
-  thead.innerHTML = "";
+function buildHeaders() {
+  const tr = document.getElementById("headerRow");
+  tr.innerHTML = "";
 
-  columns.forEach(col => {
+  COLUMN_ORDER.forEach(col => {
     const th = document.createElement("th");
-
-    const label = document.createElement("span");
-    label.textContent = COLUMN_NAMES[col] || col;
-    label.className = "sortable";
-    label.onclick = () => sortTable(col, label);
+    th.textContent = COLUMN_NAMES[col];
 
     const input = document.createElement("input");
     input.placeholder = "Filter";
-    input.onkeyup = filterTable;
-    input.onclick = input.onmousedown = e => e.stopPropagation();
+    input.onkeyup = applyFiltersAndRender;
 
-    th.append(label, document.createElement("br"), input);
-    thead.appendChild(th);
+    th.append(document.createElement("br"), input);
+    tr.appendChild(th);
   });
-
-  // ➕ Chart column header
-  const chartTh = document.createElement("th");
-  chartTh.textContent = "Chart";
-  thead.appendChild(chartTh);
 }
 
-
-function buildRows(data, columns) {
+function buildRows(data) {
   const tbody = document.querySelector("#tradeTable tbody");
   tbody.innerHTML = "";
 
   data.forEach(row => {
     const tr = document.createElement("tr");
 
-    columns.forEach(col => {
+    // ✅ double-click opens TradingView
+    tr.ondblclick = () => openTradeInTradingView(row);
+
+    COLUMN_ORDER.forEach(col => {
       const td = document.createElement("td");
 
       if (col === "pnl") {
         td.textContent = formatPnL(row[col]);
-        td.className = Number(row[col]) >= 0
-          ? "pnl-positive"
-          : "pnl-negative";
-      } else if (col === "boughtTimestamp" || col === "soldTimestamp") {
+        td.className = Number(row[col]) >= 0 ? "pnl-positive" : "pnl-negative";
+      }
+      else if (col === "boughtTimestamp" || col === "soldTimestamp") {
         td.textContent = formatDateTime(row[col]);
-      } else {
+      }
+      else {
         td.textContent = row[col] ?? "";
       }
 
       tr.appendChild(td);
     });
 
-    // ➕ TradingView button column
-    const chartTd = document.createElement("td");
-    const btn = document.createElement("button");
-    btn.className = "trade-chart-btn";
-    btn.innerHTML = "📈";
-    btn.title = "Open in TradingView";
-    btn.onclick = () => openTradeInTradingView(row);
-
-chartTd.appendChild(btn);
-
-    chartTd.appendChild(btn);
-    tr.appendChild(chartTd);
-
     tbody.appendChild(tr);
   });
 }
 
-
-/* ---------- Sorting ---------- */
-function sortTable(column,label){
-  document.querySelectorAll(".sortable").forEach(h=>h.classList.remove("active"));
-  label.classList.add("active");
-  const direction = currentSort.column===column && currentSort.direction==="asc"?"desc":"asc";
-  currentSort={column,direction};
-
-  const sorted = [...originalData].sort((a,b)=>{
-    if(a[column]==null)return 1;
-    if(b[column]==null)return -1;
-
-    if(a[column] instanceof Date) return direction==="asc"?a[column]-b[column]:b[column]-a[column];
-    if(!isNaN(a[column])) return direction==="asc"?a[column]-b[column]:b[column]-a[column];
-    return direction==="asc"?String(a[column]).localeCompare(String(b[column])):String(b[column]).localeCompare(String(a[column]));
-  });
-
-  buildRows(sorted,COLUMN_ORDER);
-  updateCharts(sorted);
+/* ---------- Filters ---------- */
+function applyDateFilter() {
+  applyFiltersAndRender();
 }
 
-/* ---------- Filtering ---------- */
-function applyDateFilter(){ filterTable(); }
-
-function filterTable(){
+function applyFiltersAndRender() {
   const inputs = document.querySelectorAll("th input");
-  const dateFrom = document.getElementById("dateFrom").value;
-  const dateTo = document.getElementById("dateTo").value;
-  let filtered = [...originalData];
+  const fromVal = dateFrom.value;
+  const toVal = dateTo.value;
 
-  // Date filter
-  if(dateFrom||dateTo){
-    const from=dateFrom?new Date(dateFrom):null;
-    const to=dateTo?new Date(dateTo):null;
-    filtered = filtered.filter(d=>{
-      const dt=d.boughtTimestamp;
-      if(from && dt<from) return false;
-      if(to && dt>to) return false;
+  let data = [...originalData];
+
+  // Date range
+  if (fromVal || toVal) {
+    const from = fromVal ? new Date(fromVal) : null;
+    const to = toVal ? new Date(toVal) : null;
+
+    data = data.filter(t => {
+      const d = t.boughtTimestamp;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
       return true;
     });
   }
 
   // Column filters
-  inputs.forEach((input,index)=>{
-    if(!input.value) return;
-    const col=COLUMN_ORDER[index];
-    filtered = filtered.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
+  inputs.forEach((i, idx) => {
+    if (!i.value) return;
+    const col = COLUMN_ORDER[idx];
+    data = data.filter(r =>
+      String(r[col] ?? "").toLowerCase().includes(i.value.toLowerCase())
+    );
   });
 
-  buildRows(filtered,COLUMN_ORDER);
-  updateCharts(filtered);
+  buildRows(data);
+  updateCharts(data);
 }
 
-/* ---------- Reset ---------- */
-function resetSort(){
-  currentSort={column:null,direction:null};
-  document.querySelectorAll(".sortable").forEach(h=>h.classList.remove("active"));
-  document.querySelectorAll("th input").forEach(i=>i.value="");
-  document.getElementById("dateFrom").value="";
-  document.getElementById("dateTo").value="";
-  buildRows(originalData,COLUMN_ORDER);
+function resetFilters() {
+  document.querySelectorAll("th input").forEach(i => i.value = "");
+  dateFrom.value = "";
+  dateTo.value = "";
+  buildRows(originalData);
   updateCharts(originalData);
 }
 
 /* ---------- Charts ---------- */
-const chartsConfig=[
-  {id:"pnlChart", type:"line", label:"PnL over time", dataFunc: data => {
-  // --- group pnl by day ---
-  const daily = {};
+const chartsConfig = [
+  {
+    id: "pnlChart",
+    type: "line",
+    dataFunc: data => {
+      const daily = {};
+      data.forEach(d => {
+        const day =
+          d.boughtTimestamp.getFullYear() + "/" +
+          pad(d.boughtTimestamp.getMonth() + 1) + "/" +
+          pad(d.boughtTimestamp.getDate());
+        daily[day] = (daily[day] || 0) + (Number(d.pnl) || 0);
+      });
 
-  data.forEach(d => {
-    const day =
-      d.boughtTimestamp.getFullYear() + "/" +
-      String(d.boughtTimestamp.getMonth() + 1).padStart(2, "0") + "/" +
-      String(d.boughtTimestamp.getDate()).padStart(2, "0");
+      let cumulative = 0;
+      const labels = [];
+      const values = [];
 
-    daily[day] = (daily[day] || 0) + (Number(d.pnl) || 0);
-  });
+      Object.keys(daily).sort().forEach(day => {
+        cumulative += daily[day];
+        labels.push(day);
+        values.push(cumulative);
+      });
 
-  // --- cumulative ---
-  let cumulative = 0;
-  const labels = [];
-  const values = [];
+      return {
+        labels,
+        datasets: [{
+          label: "Cumulative PnL",
+          data: values,
+          borderColor: "green",
+          backgroundColor: "rgba(0,255,0,0.2)",
+          fill: true,
+          tension: 0.2
+        }]
+      };
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  },
 
-  Object.keys(daily).sort().forEach(day => {
-    cumulative += daily[day];
-    labels.push(day);      // ✅ date only
-    values.push(cumulative);
-  });
+  {
+    id: "winRateChart",
+    type: "doughnut",
+    dataFunc: data => {
+      const w = data.filter(d => d.pnl > 0).length;
+      const l = data.length - w;
+      return {
+        labels: ["Wins", "Losses"],
+        datasets: [{ data: [w, l], backgroundColor: ["green", "red"] }]
+      };
+    }
+  },
 
-  return {
-    labels,
-    datasets: [{
-      label: "Cumulative PnL",
-      data: values,
-      borderColor: "green",
-      backgroundColor: "rgba(0,255,0,0.2)",
-      fill: true,          // ⬅️ unchanged
-      tension: 0.2         // ⬅️ unchanged
-    }]
-  };
-}
-, 
-options:{responsive:true, plugins:{legend:{display:false}}}},
+  {
+    id: "winRateSymbolChart",
+    type: "bar",
+    dataFunc: data => {
+      const s = {};
+      data.forEach(d => {
+        s[d.symbol] ??= { w: 0, t: 0 };
+        if (d.pnl > 0) s[d.symbol].w++;
+        s[d.symbol].t++;
+      });
+      return {
+        labels: Object.keys(s),
+        datasets: [{
+          label: "Win %",
+          data: Object.values(s).map(v => v.w / v.t * 100),
+          backgroundColor: "blue"
+        }]
+      };
+    },
+    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+  },
 
-  {id:"winRateChart",type:"doughnut",label:"Win/Loss Rate",dataFunc:data=>{const w=data.filter(d=>d.pnl>0).length,l=data.filter(d=>d.pnl<=0).length;return {labels:["Wins","Losses"],datasets:[{data:[w,l],backgroundColor:["green","red"]}]};},options:{responsive:true}},
-  {id:"winRateSymbolChart",type:"bar",label:"Win Rate per Symbol",dataFunc:data=>{const s={};data.forEach(d=>{s[d.symbol]??={win:0,total:0};if(d.pnl>0)s[d.symbol].win++;s[d.symbol].total++;});return {labels:Object.keys(s),datasets:[{label:"Win %",data:Object.values(s).map(v=>v.win/v.total*100),backgroundColor:"blue"}]};},options:{responsive:true,scales:{y:{beginAtZero:true,max:100}}}},
-  {id:"biggestTradeChart",type:"bar",label:"Biggest Win/Loss",dataFunc:data=>{const max=Math.max(...data.map(d=>d.pnl)),min=Math.min(...data.map(d=>d.pnl));return {labels:["Biggest Win","Biggest Loss"],datasets:[{label:"PnL",data:[max,min],backgroundColor:["green","red"]}]};},options:{responsive:true,scales:{y:{beginAtZero:false}}}},
-  {id:"drawdownChart",type:"bar",label:"Max Drawdown",dataFunc:data=>{let peak=0,drawdowns=[];data.forEach(d=>{peak=Math.max(peak,d.pnl);drawdowns.push(peak-d.pnl);});return {labels:["Max Drawdown"],datasets:[{label:"PnL",data:[Math.max(...drawdowns)],backgroundColor:"orange"}]};},options:{responsive:true,scales:{y:{beginAtZero:true}}}}
+  {
+    id: "biggestTradeChart",
+    type: "bar",
+    dataFunc: data => ({
+      labels: ["Biggest Win", "Biggest Loss"],
+      datasets: [{
+        data: [Math.max(...data.map(d => d.pnl)), Math.min(...data.map(d => d.pnl))],
+        backgroundColor: ["green", "red"]
+      }]
+    })
+  },
+
+  {
+    id: "drawdownChart",
+    type: "bar",
+    dataFunc: data => {
+      let peak = 0, maxDD = 0;
+      data.forEach(d => {
+        peak = Math.max(peak, d.pnl);
+        maxDD = Math.max(maxDD, peak - d.pnl);
+      });
+      return { labels: ["Max Drawdown"], datasets: [{ data: [maxDD], backgroundColor: "orange" }] };
+    }
+  }
 ];
 
-function updateCharts(data){
-  chartsConfig.forEach(cfg=>{
-    if(charts[cfg.id]) charts[cfg.id].destroy();
-    const ctx=document.getElementById(cfg.id);
-    charts[cfg.id]=new Chart(ctx,{type:cfg.type,data:cfg.dataFunc(data),options:cfg.options});
+function updateCharts(data) {
+  chartsConfig.forEach(cfg => {
+    charts[cfg.id]?.destroy();
+    charts[cfg.id] = new Chart(
+      document.getElementById(cfg.id),
+      { type: cfg.type, data: cfg.dataFunc(data), options: cfg.options }
+    );
   });
 }
 
-//---------------------------------------------
-// Goes to TradingView chart
-//---------------------------------------------
-//Format symbols to TV format
+/* ---------- TradingView ---------- */
 function toTradingViewSymbol(symbol) {
-    // Futures examples — extend as needed
-    const map = {
-      "MNQ": "CME:MNQ1!",
-      "NQ": "CME:NQ1!",
-      "ES": "CME:ES1!",
-      "MES": "CME_MINI:MES1!"
-    };
-
-    // Exact match (preferred)
-    if (map[symbol]) return map[symbol];
-
-    // Fallback: assume CME contract
-    // MGCG6 → CME:MGCG6
-    if (/^[A-Z]+[A-Z]\d$/.test(symbol)) {
-      return `CME:${symbol}`;
-    }
-
-    // Last resort: raw symbol
-    return symbol;
-  }
-
-  function openTradeInTradingView(trade, timeframe = 5) {
-    if (!trade?.symbol || !trade?.boughtTimestamp) {
-      console.warn("Invalid trade data", trade);
-      return;
-    }
-
-    const tvSymbol = toTradingViewSymbol(trade.symbol);
-    const timestamp = trade.boughtTimestamp.getTime(); // UTC ms
-
-    const url =
-      `https://www.tradingview.com/chart/?` +
-      `symbol=${encodeURIComponent(tvSymbol)}` +
-      `&interval=${timeframe}` +
-      `&timestamp=${timestamp}`;
-
-    window.open(url, "_blank");
+  const map = {
+    MNQ: "CME:MNQ1!",
+    NQ: "CME:NQ1!",
+    ES: "CME:ES1!",
+    MES: "CME_MINI:MES1!"
+  };
+  return map[symbol] || `CME:${symbol}`;
 }
 
+function openTradeInTradingView(trade, timeframe = 5) {
+  const url =
+    `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(toTradingViewSymbol(trade.symbol))}` +
+    `&interval=${timeframe}` +
+    `&timestamp=${trade.boughtTimestamp.getTime()}`;
+  window.open(url, "_blank");
+}
 </script>
 
 {% endblock %}
