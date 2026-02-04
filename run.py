@@ -60,10 +60,10 @@ def api_trades():
 
 @app.route("/charts")
 def journal():
-    
+
     # Example usage
     plot_trade_candlestick(
-    symbol='AAPL',
+    symbol='MNQ=F',
     bought_ts=datetime(2025,12,16,15,33),
     sold_ts=datetime(2025,12,16,15,50)
 )
