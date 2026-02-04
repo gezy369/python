@@ -87,6 +87,7 @@ function formatPnL(value) {
 function buildHeaders(columns) {
   const thead = document.getElementById("headerRow");
   thead.innerHTML = "";
+
   columns.forEach(col => {
     const th = document.createElement("th");
 
@@ -103,7 +104,13 @@ function buildHeaders(columns) {
     th.append(label, document.createElement("br"), input);
     thead.appendChild(th);
   });
+
+  // ➕ Chart column header
+  const chartTh = document.createElement("th");
+  chartTh.textContent = "Chart";
+  thead.appendChild(chartTh);
 }
+
 
 function buildRows(data, columns) {
   const tbody = document.querySelector("#tradeTable tbody");
@@ -111,21 +118,37 @@ function buildRows(data, columns) {
 
   data.forEach(row => {
     const tr = document.createElement("tr");
+
     columns.forEach(col => {
       const td = document.createElement("td");
 
       if (col === "pnl") {
         td.textContent = formatPnL(row[col]);
-        td.className = Number(row[col])>=0 ? "pnl-positive" : "pnl-negative";
-      } else if (col==="boughtTimestamp" || col==="soldTimestamp") {
+        td.className = Number(row[col]) >= 0
+          ? "pnl-positive"
+          : "pnl-negative";
+      } else if (col === "boughtTimestamp" || col === "soldTimestamp") {
         td.textContent = formatDateTime(row[col]);
-      } else td.textContent = row[col] ?? "";
+      } else {
+        td.textContent = row[col] ?? "";
+      }
 
       tr.appendChild(td);
     });
+
+    // ➕ TradingView button column
+    const chartTd = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.textContent = "📈";
+    btn.title = "Open in TradingView";
+    btn.onclick = () => openTradeInTradingView(row);
+    chartTd.appendChild(btn);
+    tr.appendChild(chartTd);
+
     tbody.appendChild(tr);
   });
 }
+
 
 /* ---------- Sorting ---------- */
 function sortTable(column,label){
@@ -219,6 +242,51 @@ function updateCharts(data){
     charts[cfg.id]=new Chart(ctx,{type:cfg.type,data:cfg.dataFunc(data),options:cfg.options});
   });
 }
+
+//---------------------------------------------
+// Goes to TradingView chart
+//---------------------------------------------
+//Format symbols to TV format
+function toTradingViewSymbol(symbol) {
+    // Futures examples — extend as needed
+    const map = {
+      "MNQ": "CME_MINI:MNQ1!",
+      "NQ": "CME:NQ1!",
+      "ES": "CME_MINI:ES1!",
+      "MES": "CME_MINI:MES1!"
+    };
+
+    // Exact match (preferred)
+    if (map[symbol]) return map[symbol];
+
+    // Fallback: assume CME contract
+    // MGCG6 → CME:MGCG6
+    if (/^[A-Z]+[A-Z]\d$/.test(symbol)) {
+      return `CME:${symbol}`;
+    }
+
+    // Last resort: raw symbol
+    return symbol;
+  }
+
+  function openTradeInTradingView(trade, timeframe = 5) {
+    if (!trade?.symbol || !trade?.boughtTimestamp) {
+      console.warn("Invalid trade data", trade);
+      return;
+    }
+
+    const tvSymbol = toTradingViewSymbol(trade.symbol);
+    const timestamp = trade.boughtTimestamp.getTime(); // UTC ms
+
+    const url =
+      `https://www.tradingview.com/chart/?` +
+      `symbol=${encodeURIComponent(tvSymbol)}` +
+      `&interval=${timeframe}` +
+      `&timestamp=${timestamp}`;
+
+    window.open(url, "_blank");
+}
+
 </script>
 
 {% endblock %}
