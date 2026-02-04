@@ -139,9 +139,13 @@ function buildRows(data, columns) {
     // ➕ TradingView button column
     const chartTd = document.createElement("td");
     const btn = document.createElement("button");
-    btn.textContent = "📈";
+    btn.className = "trade-chart-btn";
+    btn.innerHTML = "📈";
     btn.title = "Open in TradingView";
     btn.onclick = () => openTradeInTradingView(row);
+
+chartTd.appendChild(btn);
+
     chartTd.appendChild(btn);
     tr.appendChild(chartTd);
 
@@ -250,9 +254,9 @@ function updateCharts(data){
 function toTradingViewSymbol(symbol) {
     // Futures examples — extend as needed
     const map = {
-      "MNQ": "CME_MINI:MNQ1!",
+      "MNQ": "CME:MNQ1!",
       "NQ": "CME:NQ1!",
-      "ES": "CME_MINI:ES1!",
+      "ES": "CME:ES1!",
       "MES": "CME_MINI:MES1!"
     };
 
