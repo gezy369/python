@@ -2,3 +2,5 @@ gunicorn
 flask
 pandas
 supabase
+yfinance
+mplfinance

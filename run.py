@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from utils.functions import csv_handler
+from utils.functions import csv_handler, plot_trade_candlestick
 import os
 import io
 import pandas as pd
@@ -58,7 +58,17 @@ def api_trades():
         print("Supabase API error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route("/charts")
+def journal():
+    
+    # Example usage
+    plot_trade_candlestick(
+    symbol='AAPL',
+    bought_ts=datetime(2025,12,16,15,33),
+    sold_ts=datetime(2025,12,16,15,50)
+)
 
+    return render_template("charts.html")
 
 # ===== TRADES UPLOAD =====
 @app.route("/upload", methods=["GET", "POST"])
