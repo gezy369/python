@@ -184,44 +184,83 @@ function resetFilters() {
 }
 
 /* ---------- Charts ---------- */
+
+function getGlobalPnLRange(data) {
+  let cumulative = 0;
+  let min = 0;
+  let max = 0;
+
+  const daily = {};
+  data.forEach(d => {
+    const day =
+      d.boughtTimestamp.getFullYear() + "/" +
+      String(d.boughtTimestamp.getMonth() + 1).padStart(2, "0") + "/" +
+      String(d.boughtTimestamp.getDate()).padStart(2, "0");
+
+    daily[day] = (daily[day] || 0) + (Number(d.pnl) || 0);
+  });
+
+  Object.keys(daily).sort().forEach(day => {
+    cumulative += daily[day];
+    min = Math.min(min, cumulative);
+    max = Math.max(max, cumulative);
+  });
+
+  return { min, max };
+}
+
 const chartsConfig = [
   {
-    id: "pnlChart",
-    type: "line",
-    dataFunc: data => {
-      const daily = {};
-      data.forEach(d => {
-        const day =
-          d.boughtTimestamp.getFullYear() + "/" +
-          pad(d.boughtTimestamp.getMonth() + 1) + "/" +
-          pad(d.boughtTimestamp.getDate());
-        daily[day] = (daily[day] || 0) + (Number(d.pnl) || 0);
-      });
+  id: "pnlChart",
+  type: "line",
+  dataFunc: data => {
+    const daily = {};
+    data.forEach(d => {
+      const day =
+        d.boughtTimestamp.getFullYear() + "/" +
+        String(d.boughtTimestamp.getMonth() + 1).padStart(2, "0") + "/" +
+        String(d.boughtTimestamp.getDate()).padStart(2, "0");
 
-      let cumulative = 0;
-      const labels = [];
-      const values = [];
+      daily[day] = (daily[day] || 0) + (Number(d.pnl) || 0);
+    });
 
-      Object.keys(daily).sort().forEach(day => {
-        cumulative += daily[day];
-        labels.push(day);
-        values.push(cumulative);
-      });
+    let cumulative = 0;
+    const labels = [];
+    const values = [];
 
-      return {
-        labels,
-        datasets: [{
-          label: "Cumulative PnL",
-          data: values,
-          borderColor: "green",
-          backgroundColor: "rgba(0,255,0,0.2)",
-          fill: true,
-          tension: 0.2
-        }]
-      };
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    Object.keys(daily).sort().forEach(day => {
+      cumulative += daily[day];
+      labels.push(day);
+      values.push(cumulative);
+    });
+
+    return {
+      labels,
+      datasets: [{
+        label: "Cumulative PnL",
+        data: values,
+        borderColor: "green",
+        backgroundColor: "rgba(0,255,0,0.2)",
+        fill: true,
+        tension: 0.2
+      }]
+    };
   },
+  options: (() => {
+    const range = getGlobalPnLRange(originalData);
+    return {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          min: range.min,
+          max: range.max
+        }
+      }
+    };
+  })()
+}
+,
 
   {
     id: "winRateChart",
@@ -297,10 +336,10 @@ function updateCharts(data) {
 /* ---------- TradingView ---------- */
 function toTradingViewSymbol(symbol) {
   const map = {
-    MNQ: "CME:MNQ1!",
+    MNQH6: "CME:MNQ1!",
     NQ: "CME:NQ1!",
     ES: "CME:ES1!",
-    MES: "CME_MINI:MES1!"
+    MES: "CME:MES1!"
   };
   return map[symbol] || `CME:${symbol}`;
 }
