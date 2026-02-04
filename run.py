@@ -59,14 +59,14 @@ def api_trades():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/charts")
-def journal():
+def charts():
 
     # Example usage
     plot_trade_candlestick(
     symbol='MNQ=F',
     bought_ts=datetime(2025,12,16,15,33),
     sold_ts=datetime(2025,12,16,15,50)
-)
+    )
 
     return render_template("charts.html")
 
