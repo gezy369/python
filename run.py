@@ -61,13 +61,6 @@ def api_trades():
 @app.route("/charts")
 def charts():
 
-    # Example usage
-    plot_trade_candlestick(
-    symbol='MNQ=F',
-    bought_ts=datetime(2025,12,16,15,33),
-    sold_ts=datetime(2025,12,16,15,50)
-    )
-
     return render_template("charts.html")
 
 # ===== TRADES UPLOAD =====
