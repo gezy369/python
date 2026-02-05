@@ -4,40 +4,30 @@
 
 <h2>Trade Journal</h2>
 
-<!-- Top controls -->
-<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+<!-- Controls -->
+<div style="margin-bottom:10px; display:flex; gap:8px;">
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
   <button onclick="applyDateFilter()">Apply Dates</button>
   <button onclick="resetFilters()">Reset</button>
 </div>
 
-<button onclick="deleteSelected()" style="margin-bottom:8px;">
-  🗑️ Delete selected
-</button>
+<button onclick="deleteSelected()">🗑️ Delete selected</button>
 
-<!-- Layout -->
-<div style="display: flex; gap: 20px; align-items: flex-start;">
+<div style="display:flex; gap:20px; align-items:flex-start;">
 
-  <!-- Table -->
-  <div style="flex: 2;">
+  <!-- TABLE -->
+  <div style="flex:2;">
     <table id="tradeTable">
-      <thead>
-        <tr id="headerRow"></tr>
-      </thead>
+      <thead><tr id="headerRow"></tr></thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- Charts -->
-  <div style="flex: 1; display: flex; flex-direction: column; gap: 30px;">
-    <div style="height:220px;">
-      <canvas id="pnlChart"></canvas>
-    </div>
+  <!-- CHARTS -->
+  <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
+    <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
     <canvas id="winRateChart" height="200"></canvas>
-    <canvas id="winRateSymbolChart" height="200"></canvas>
-    <canvas id="biggestTradeChart" height="200"></canvas>
-    <canvas id="drawdownChart" height="200"></canvas>
   </div>
 </div>
 
@@ -47,148 +37,137 @@
 let originalData = [];
 let charts = {};
 
-/* ------------------ Columns ------------------ */
-const COLUMN_NAMES = {
-  select: "",
-  id: "ID",
-  symbol: "Symbol",
-  boughtTimestamp: "Bought",
-  soldTimestamp: "Sold",
-  duration: "Duration",
-  side: "Side",
-  qty: "Qty",
-  buyPrice: "Buy Price",
-  sellPrice: "Sell Price",
-  pnl: "PnL"
-};
-
+/* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
-  "select",
-  "id",
-  "symbol",
-  "boughtTimestamp",
-  "soldTimestamp",
-  "duration",
-  "side",
-  "qty",
-  "buyPrice",
-  "sellPrice",
-  "pnl"
+  "select","id","symbol","boughtTimestamp","soldTimestamp",
+  "duration","side","qty","buyPrice","sellPrice","pnl"
 ];
 
-/* ------------------ Fetch data ------------------ */
+const COLUMN_NAMES = {
+  select:"",
+  id:"ID",
+  symbol:"Symbol",
+  boughtTimestamp:"Bought",
+  soldTimestamp:"Sold",
+  duration:"Duration",
+  side:"Side",
+  qty:"Qty",
+  buyPrice:"Buy Price",
+  sellPrice:"Sell Price",
+  pnl:"PnL"
+};
+
+/* ---------------- FETCH ---------------- */
 fetch("/api/trades")
-  .then(r => r.json())
-  .then(data => {
-    originalData = data.map(t => ({
+  .then(r=>r.json())
+  .then(data=>{
+    originalData = data.map(t=>({
       ...t,
-      boughtTimestamp: new Date(t.boughtTimestamp),
-      soldTimestamp: new Date(t.soldTimestamp)
+      boughtTimestamp:new Date(t.boughtTimestamp),
+      soldTimestamp:new Date(t.soldTimestamp)
     }));
-    buildHeaders(COLUMN_ORDER);
+    buildHeaders();
     applyFiltersAndRender();
   });
 
-/* ------------------ Formatting ------------------ */
-const pad = n => String(n).padStart(2, "0");
+/* ---------------- FORMAT ---------------- */
+const pad=n=>String(n).padStart(2,"0");
 
-function formatDateTime(d) {
-  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+function formatDate(d){
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
+          ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function formatPnL(v){
+  const n=Number(v);
+  const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
+  return n<0?`($${f})`:`$${f}`;
 }
 
-function formatPnL(v) {
-  const n = Number(v);
-  if (isNaN(n)) return "";
-  const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
-  return n < 0 ? `($${f})` : `$${f}`;
-}
+/* ---------------- HEADERS ---------------- */
+function buildHeaders(){
+  const tr=document.getElementById("headerRow");
+  tr.innerHTML="";
 
-/* ------------------ Table ------------------ */
-function buildHeaders(columns) {
-  const tr = document.getElementById("headerRow");
-  tr.innerHTML = "";
+  COLUMN_ORDER.forEach(col=>{
+    const th=document.createElement("th");
 
-  columns.forEach(col => {
-    const th = document.createElement("th");
-
-    if (col === "select") {
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.onclick = e =>
+    if(col==="select"){
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.onclick=e=>{
         document.querySelectorAll(".row-select")
-          .forEach(x => x.checked = e.target.checked);
+          .forEach(x=>x.checked=e.target.checked);
+      };
       th.appendChild(cb);
     } else {
-      th.textContent = COLUMN_NAMES[col];
-      const input = document.createElement("input");
-      input.placeholder = "Filter";
-      input.onkeyup = applyFiltersAndRender;
-      th.append(document.createElement("br"), input);
+      th.textContent=COLUMN_NAMES[col];
+      const input=document.createElement("input");
+      input.placeholder="Filter";
+      input.dataset.col=col;           // ✅ KEY FIX
+      input.onkeyup=applyFiltersAndRender;
+      th.append(document.createElement("br"),input);
     }
     tr.appendChild(th);
   });
 }
 
-function buildRows(data) {
-  const tbody = document.querySelector("#tradeTable tbody");
-  tbody.innerHTML = "";
+/* ---------------- ROWS ---------------- */
+function buildRows(data){
+  const tbody=document.querySelector("#tradeTable tbody");
+  tbody.innerHTML="";
 
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-    tr.ondblclick = () => openTradeInTradingView(row);
+  data.forEach(row=>{
+    const tr=document.createElement("tr");
+    tr.ondblclick=()=>openTradeInTradingView(row);
 
-    COLUMN_ORDER.forEach(col => {
-      const td = document.createElement("td");
+    COLUMN_ORDER.forEach(col=>{
+      const td=document.createElement("td");
 
-      if (col === "select") {
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.className = "row-select";
-        cb.dataset.id = row.id;
+      if(col==="select"){
+        const cb=document.createElement("input");
+        cb.type="checkbox";
+        cb.className="row-select";
+        cb.dataset.id=row.id;
         td.appendChild(cb);
       }
-      else if (col === "pnl") {
-        td.textContent = formatPnL(row[col]);
-        td.className = row[col] >= 0 ? "pnl-positive" : "pnl-negative";
+      else if(col==="pnl"){
+        td.textContent=formatPnL(row.pnl);
       }
-      else if (col === "boughtTimestamp" || col === "soldTimestamp") {
-        td.textContent = formatDateTime(row[col]);
+      else if(col.includes("Timestamp")){
+        td.textContent=formatDate(row[col]);
       }
-      else {
-        td.textContent = row[col] ?? "";
+      else{
+        td.textContent=row[col]??"";
       }
       tr.appendChild(td);
     });
-
     tbody.appendChild(tr);
   });
 }
 
-/* ------------------ Filters ------------------ */
-function applyDateFilter() {
-  applyFiltersAndRender();
-}
+/* ---------------- FILTERS ---------------- */
+function applyDateFilter(){ applyFiltersAndRender(); }
 
-function applyFiltersAndRender() {
-  const inputs = document.querySelectorAll("th input");
-  let data = [...originalData];
+function applyFiltersAndRender(){
+  let data=[...originalData];
 
-  const from = dateFrom.value ? new Date(dateFrom.value) : null;
-  const to = dateTo.value ? new Date(dateTo.value) : null;
+  const from=dateFrom.value?new Date(dateFrom.value):null;
+  const to=dateTo.value?new Date(dateTo.value):null;
 
-  if (from || to) {
-    data = data.filter(t => {
-      if (from && t.boughtTimestamp < from) return false;
-      if (to && t.boughtTimestamp > to) return false;
+  if(from||to){
+    data=data.filter(t=>{
+      if(from&&t.boughtTimestamp<from) return false;
+      if(to&&t.boughtTimestamp>to) return false;
       return true;
     });
   }
 
-  inputs.forEach((i, idx) => {
-    if (!i.value) return;
-    const col = COLUMN_ORDER[idx];
-    data = data.filter(r =>
-      String(r[col] ?? "").toLowerCase().includes(i.value.toLowerCase())
+  document.querySelectorAll("th input[data-col]").forEach(input=>{
+    if(!input.value) return;
+    const col=input.dataset.col;
+    data=data.filter(r=>
+      String(r[col]??"").toLowerCase()
+        .includes(input.value.toLowerCase())
     );
   });
 
@@ -196,91 +175,64 @@ function applyFiltersAndRender() {
   updateCharts(data);
 }
 
-function resetFilters() {
-  document.querySelectorAll("th input").forEach(i => i.value = "");
-  dateFrom.value = "";
-  dateTo.value = "";
+function resetFilters(){
+  document.querySelectorAll("th input").forEach(i=>i.value="");
+  dateFrom.value=""; dateTo.value="";
   buildRows(originalData);
   updateCharts(originalData);
 }
 
-/* ------------------ Bulk delete ------------------ */
-function deleteSelected() {
-  const ids = [...document.querySelectorAll(".row-select:checked")]
-    .map(cb => Number(cb.dataset.id));
+/* ---------------- DELETE ---------------- */
+function deleteSelected(){
+  const ids=[...document.querySelectorAll(".row-select:checked")]
+    .map(cb=>Number(cb.dataset.id));
 
-  if (!ids.length) return alert("No trades selected");
-  if (!confirm(`Delete ${ids.length} trade(s)?`)) return;
+  if(!ids.length) return alert("No selection");
 
-  fetch("/api/trades", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids })
-  })
-  .then(() => {
-    originalData = originalData.filter(t => !ids.includes(t.id));
+  fetch("/api/trades",{
+    method:"DELETE",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ids})
+  }).then(()=>{
+    originalData=originalData.filter(t=>!ids.includes(t.id));
     applyFiltersAndRender();
   });
 }
 
-/* ------------------ Charts ------------------ */
-function updateCharts(data) {
-  Object.values(charts).forEach(c => c.destroy());
-  charts = {};
+/* ---------------- CHART ---------------- */
+function updateCharts(data){
+  charts.pnl?.destroy();
 
-  // --- Daily cumulative PnL (stable height) ---
-  const daily = {};
-  data.forEach(d => {
-    const day = `${d.boughtTimestamp.getFullYear()}/${pad(d.boughtTimestamp.getMonth()+1)}/${pad(d.boughtTimestamp.getDate())}`;
-    daily[day] = (daily[day] || 0) + Number(d.pnl || 0);
+  const daily={};
+  data.forEach(d=>{
+    const day=`${d.boughtTimestamp.getFullYear()}/${pad(d.boughtTimestamp.getMonth()+1)}/${pad(d.boughtTimestamp.getDate())}`;
+    daily[day]=(daily[day]||0)+Number(d.pnl||0);
   });
 
-  let cum = 0;
-  const labels = [];
-  const values = [];
-  Object.keys(daily).sort().forEach(day => {
-    cum += daily[day];
-    labels.push(day);
+  let cum=0, labels=[], values=[];
+  Object.keys(daily).sort().forEach(d=>{
+    cum+=daily[d];
+    labels.push(d);
     values.push(cum);
   });
 
-  charts.pnl = new Chart(pnlChart, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        borderColor: "green",
-        backgroundColor: "rgba(0,255,0,0.2)",
-        fill: true,
-        tension: 0.2
-      }]
-    },
-    options: {
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } }
-    }
-  });
-
-  // Win rate
-  charts.win = new Chart(winRateChart,{
-    type:"doughnut",
-    data:{
-      labels:["Wins","Losses"],
-      datasets:[{data:[
-        data.filter(d=>d.pnl>0).length,
-        data.filter(d=>d.pnl<=0).length
-      ]}]
-    }
+  charts.pnl=new Chart(pnlChart,{
+    type:"line",
+    data:{labels,datasets:[{
+      data:values,
+      borderColor:"green",
+      backgroundColor:"rgba(0,255,0,0.2)",
+      fill:true,
+      tension:0.2
+    }]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}
   });
 }
 
-/* ------------------ TradingView ------------------ */
-function openTradeInTradingView(trade, tf=5){
-  const symbol = `CME:${trade.symbol}1!`;
-  const ts = trade.boughtTimestamp.getTime();
+/* ---------------- TV ---------------- */
+function openTradeInTradingView(trade){
   window.open(
-    `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}&interval=${tf}&timestamp=${ts}`,
+    `https://www.tradingview.com/chart/?symbol=CME:${trade.symbol}1!&interval=5&timestamp=${trade.boughtTimestamp.getTime()}`,
     "_blank"
   );
 }
