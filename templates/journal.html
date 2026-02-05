@@ -4,13 +4,25 @@
 
 <h2>Trade Journal</h2>
 
-<!-- Controls -->
-<div style="margin-bottom:10px; display:flex; gap:8px;">
+<!-- Top controls -->
+<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+
+  <!-- LEFT SIDE -->
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
   <button onclick="applyDateFilter()">Apply Dates</button>
-  <button onclick="resetFilters()">Reset</button>
+  <button onclick="resetFilters()">Reset filters</button>
+
+  <!-- RIGHT SIDE -->
+  <button
+    onclick="deleteSelected()"
+    style="margin-left: auto;"
+  >
+    Delete selected
+  </button>
+
 </div>
+
 
 <button onclick="deleteSelected()">🗑️ Delete selected</button>
 
@@ -131,7 +143,9 @@ function buildRows(data){
         td.appendChild(cb);
       }
       else if(col==="pnl"){
-        td.textContent=formatPnL(row.pnl);
+          const value = Number(row[col]) || 0;
+          td.textContent = formatPnL(value);
+          td.className = value >= 0 ? "pnl-positive" : "pnl-negative";
       }
       else if(col.includes("Timestamp")){
         td.textContent=formatDate(row[col]);
