@@ -90,8 +90,8 @@ def upload_file():
 
         # Insert into Supabase
         # Convert timestamps to strings for JSON / Supabase
-        df_imported_trades["boughtTimestamp"] = df_imported_trades["boughtTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-        df_imported_trades["soldTimestamp"] = df_imported_trades["soldTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+        df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+        df_imported_trades["exitTimestamp"] = df_imported_trades["exitTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
         # Convert DataFrame to list of dicts
         records = df_imported_trades.to_dict(orient="records")
 

@@ -24,8 +24,6 @@
 </div>
 
 
-<button onclick="deleteSelected()">🗑️ Delete selected</button>
-
 <div style="display:flex; gap:20px; align-items:flex-start;">
 
   <!-- TABLE -->
@@ -51,7 +49,7 @@ let charts = {};
 
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
-  "select","id","symbol","boughtTimestamp","soldTimestamp",
+  "select","id","symbol","entryTimestamp","exitTimestamp",
   "duration","side","qty","buyPrice","sellPrice","pnl"
 ];
 
@@ -59,8 +57,8 @@ const COLUMN_NAMES = {
   select:"",
   id:"ID",
   symbol:"Symbol",
-  boughtTimestamp:"Bought",
-  soldTimestamp:"Sold",
+  entryTimestamp:"Entry",
+  exitTimestamp:"Exit",
   duration:"Duration",
   side:"Side",
   qty:"Qty",
@@ -75,8 +73,8 @@ fetch("/api/trades")
   .then(data=>{
     originalData = data.map(t=>({
       ...t,
-      boughtTimestamp:new Date(t.boughtTimestamp),
-      soldTimestamp:new Date(t.soldTimestamp)
+      entryTimestamp:new Date(t.entryTimestamp),
+      exitTimestamp:new Date(t.exitTimestamp)
     }));
     buildHeaders();
     applyFiltersAndRender();
@@ -170,8 +168,8 @@ function applyFiltersAndRender(){
 
   if(from||to){
     data=data.filter(t=>{
-      if(from&&t.boughtTimestamp<from) return false;
-      if(to&&t.boughtTimestamp>to) return false;
+      if(from&&t.entryTimestamp<from) return false;
+      if(to&&t.entryTimestamp>to) return false;
       return true;
     });
   }
@@ -219,7 +217,7 @@ function updateCharts(data){
 
   const daily={};
   data.forEach(d=>{
-    const day=`${d.boughtTimestamp.getFullYear()}/${pad(d.boughtTimestamp.getMonth()+1)}/${pad(d.boughtTimestamp.getDate())}`;
+    const day=`${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
     daily[day]=(daily[day]||0)+Number(d.pnl||0);
   });
 
@@ -245,11 +243,16 @@ function updateCharts(data){
 
 /* ---------------- TV ---------------- */
 function openTradeInTradingView(trade){
+  const symbol = trade.symbol.includes(":")
+    ? trade.symbol
+    : `CME:${trade.symbol}1!`;
+
   window.open(
-    `https://www.tradingview.com/chart/?symbol=CME:${trade.symbol}1!&interval=5&timestamp=${trade.boughtTimestamp.getTime()}`,
+    `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}&interval=5&timestamp=${trade.entryTimestamp.getTime()}`,
     "_blank"
   );
 }
+
 </script>
 
 {% endblock %}

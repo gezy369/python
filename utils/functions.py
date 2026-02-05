@@ -60,7 +60,7 @@ def csv_handler(df_trade):
     )
 
     # Reorder columns
-    df_trades = df_trades[[symbol],[entryTimestamp],[soldTimestamp],[buyPrice],[sellPrice],[duration],[side],[qty],[pnl]]
+    df_trades = df_trades[[symbol],[entryTimestamp],[exitTimestamp],[buyPrice],[sellPrice],[duration],[side],[qty],[pnl]]
 
     # Print results
     #print("=== Reconstructed Trades ===")
