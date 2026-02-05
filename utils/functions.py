@@ -1,74 +1,289 @@
-import pandas as pd # <- used for dataframe
-import numpy as np # <- used for dataframe
+{% extends "base.html" %}
+{% block title %}Journal{% endblock %}
+{% block content %}
 
-#csv_file = r"imported_data\Performance.csv"
+<h2>Trade Journal</h2>
 
-# ================================================================================
-# CSV HANDLER
-# This function allows to handle the CSV format before pushing in the DB
-# ================================================================================
+<!-- Top controls -->
+<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+  <label>From: <input type="date" id="dateFrom"></label>
+  <label>To: <input type="date" id="dateTo"></label>
+  <button onclick="applyDateFilter()">Apply Dates</button>
+  <button onclick="resetFilters()">Reset</button>
+</div>
 
-def csv_handler(df_trade):
-    # Read the CSV
-    # df_trade = pd.read_csv(csv_file)
+<button onclick="deleteSelected()" style="margin-bottom:8px;">
+  🗑️ Delete selected
+</button>
 
+<!-- Layout -->
+<div style="display: flex; gap: 20px; align-items: flex-start;">
 
-    # Clean the PnL column
-    df_trade["pnl"] = (
-        df_trade["pnl"]
-        .str.replace("$", "", regex=False)
-        .str.replace("(", "-", regex=False)
-        .str.replace(")", "", regex=False)
-        .astype(float)
-    )
+  <!-- Table -->
+  <div style="flex: 2;">
+    <table id="tradeTable">
+      <thead>
+        <tr id="headerRow"></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    # Convert timestamps to datetime
-    df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
-    df_trade["soldTimestamp"] = pd.to_datetime(df_trade["soldTimestamp"], format="%m/%d/%Y %H:%M:%S")
+  <!-- Charts -->
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 30px;">
+    <div style="height:220px;">
+      <canvas id="pnlChart"></canvas>
+    </div>
+    <canvas id="winRateChart" height="200"></canvas>
+    <canvas id="winRateSymbolChart" height="200"></canvas>
+    <canvas id="biggestTradeChart" height="200"></canvas>
+    <canvas id="drawdownChart" height="200"></canvas>
+  </div>
+</div>
 
-    # Group partial fills into full trades
-    trade_cols = ["symbol", "boughtTimestamp", "buyPrice", "sellPrice"]
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    df_trades = (
-        df_trade
-        .groupby(trade_cols, as_index=False)
-        .agg(
-            qty=("qty", "sum"),
-            pnl=("pnl", "sum"),
-            duration=("duration", "first"),
-            soldTimestamp=("soldTimestamp", "first")
-        )
-    )
+<script>
+let originalData = [];
+let charts = {};
 
-    # Adds the side of the trade
-    df_trades["side"] = np.where(
-        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
-        "short",
-        "long"
-    )
-    # Adds entry columns
-    df_trades["entryTimestamp"] = np.where(
-        df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
-        df_trades["boughtTimestamp"],
-        df_trades["soldTimestamp"]
-    )
-        # Adds exit columns
-    df_trades["exitTimestamp"] = np.where(
-        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
-        df_trades["boughtTimestamp"],
-        df_trades["soldTimestamp"]
-    )
+/* ------------------ Columns ------------------ */
+const COLUMN_NAMES = {
+  select: "",
+  id: "ID",
+  symbol: "Symbol",
+  boughtTimestamp: "Bought",
+  soldTimestamp: "Sold",
+  duration: "Duration",
+  side: "Side",
+  qty: "Qty",
+  buyPrice: "Buy Price",
+  sellPrice: "Sell Price",
+  pnl: "PnL"
+};
 
-    # Reorder columns
-    df_trades = df_trades[[symbol],[entryTimestamp],[exitTimestamp],[buyPrice],[sellPrice],[duration],[side],[qty],[pnl]]
+const COLUMN_ORDER = [
+  "select",
+  "id",
+  "symbol",
+  "boughtTimestamp",
+  "soldTimestamp",
+  "duration",
+  "side",
+  "qty",
+  "buyPrice",
+  "sellPrice",
+  "pnl"
+];
 
-    # Print results
-    #print("=== Reconstructed Trades ===")
-    #print(df_trades)
+/* ------------------ Fetch data ------------------ */
+fetch("/api/trades")
+  .then(r => r.json())
+  .then(data => {
+    originalData = data.map(t => ({
+      ...t,
+      boughtTimestamp: new Date(t.boughtTimestamp),
+      soldTimestamp: new Date(t.soldTimestamp)
+    }));
+    buildHeaders(COLUMN_ORDER);
+    applyFiltersAndRender();
+  });
 
-    return df_trades
+/* ------------------ Formatting ------------------ */
+const pad = n => String(n).padStart(2, "0");
 
-#csv_handler(csv_file)
+function formatDateTime(d) {
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
+function formatPnL(v) {
+  const n = Number(v);
+  if (isNaN(n)) return "";
+  const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
+  return n < 0 ? `($${f})` : `$${f}`;
+}
 
+/* ------------------ Table ------------------ */
+function buildHeaders(columns) {
+  const tr = document.getElementById("headerRow");
+  tr.innerHTML = "";
 
+  columns.forEach(col => {
+    const th = document.createElement("th");
+
+    if (col === "select") {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.onclick = e =>
+        document.querySelectorAll(".row-select")
+          .forEach(x => x.checked = e.target.checked);
+      th.appendChild(cb);
+    } else {
+      th.textContent = COLUMN_NAMES[col];
+      const input = document.createElement("input");
+      input.placeholder = "Filter";
+      input.onkeyup = applyFiltersAndRender;
+      th.append(document.createElement("br"), input);
+    }
+    tr.appendChild(th);
+  });
+}
+
+function buildRows(data) {
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.ondblclick = () => openTradeInTradingView(row);
+
+    COLUMN_ORDER.forEach(col => {
+      const td = document.createElement("td");
+
+      if (col === "select") {
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "row-select";
+        cb.dataset.id = row.id;
+        td.appendChild(cb);
+      }
+      else if (col === "pnl") {
+        td.textContent = formatPnL(row[col]);
+        td.className = row[col] >= 0 ? "pnl-positive" : "pnl-negative";
+      }
+      else if (col === "boughtTimestamp" || col === "soldTimestamp") {
+        td.textContent = formatDateTime(row[col]);
+      }
+      else {
+        td.textContent = row[col] ?? "";
+      }
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* ------------------ Filters ------------------ */
+function applyDateFilter() {
+  applyFiltersAndRender();
+}
+
+function applyFiltersAndRender() {
+  const inputs = document.querySelectorAll("th input");
+  let data = [...originalData];
+
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to = dateTo.value ? new Date(dateTo.value) : null;
+
+  if (from || to) {
+    data = data.filter(t => {
+      if (from && t.boughtTimestamp < from) return false;
+      if (to && t.boughtTimestamp > to) return false;
+      return true;
+    });
+  }
+
+  inputs.forEach((i, idx) => {
+    if (!i.value) return;
+    const col = COLUMN_ORDER[idx];
+    data = data.filter(r =>
+      String(r[col] ?? "").toLowerCase().includes(i.value.toLowerCase())
+    );
+  });
+
+  buildRows(data);
+  updateCharts(data);
+}
+
+function resetFilters() {
+  document.querySelectorAll("th input").forEach(i => i.value = "");
+  dateFrom.value = "";
+  dateTo.value = "";
+  buildRows(originalData);
+  updateCharts(originalData);
+}
+
+/* ------------------ Bulk delete ------------------ */
+function deleteSelected() {
+  const ids = [...document.querySelectorAll(".row-select:checked")]
+    .map(cb => Number(cb.dataset.id));
+
+  if (!ids.length) return alert("No trades selected");
+  if (!confirm(`Delete ${ids.length} trade(s)?`)) return;
+
+  fetch("/api/trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
+  })
+  .then(() => {
+    originalData = originalData.filter(t => !ids.includes(t.id));
+    applyFiltersAndRender();
+  });
+}
+
+/* ------------------ Charts ------------------ */
+function updateCharts(data) {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  // --- Daily cumulative PnL (stable height) ---
+  const daily = {};
+  data.forEach(d => {
+    const day = `${d.boughtTimestamp.getFullYear()}/${pad(d.boughtTimestamp.getMonth()+1)}/${pad(d.boughtTimestamp.getDate())}`;
+    daily[day] = (daily[day] || 0) + Number(d.pnl || 0);
+  });
+
+  let cum = 0;
+  const labels = [];
+  const values = [];
+  Object.keys(daily).sort().forEach(day => {
+    cum += daily[day];
+    labels.push(day);
+    values.push(cum);
+  });
+
+  charts.pnl = new Chart(pnlChart, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: "green",
+        backgroundColor: "rgba(0,255,0,0.2)",
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Win rate
+  charts.win = new Chart(winRateChart,{
+    type:"doughnut",
+    data:{
+      labels:["Wins","Losses"],
+      datasets:[{data:[
+        data.filter(d=>d.pnl>0).length,
+        data.filter(d=>d.pnl<=0).length
+      ]}]
+    }
+  });
+}
+
+/* ------------------ TradingView ------------------ */
+function openTradeInTradingView(trade, tf=5){
+  const symbol = `CME:${trade.symbol}1!`;
+  const ts = trade.boughtTimestamp.getTime();
+  window.open(
+    `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}&interval=${tf}&timestamp=${ts}`,
+    "_blank"
+  );
+}
+</script>
+
+{% endblock %}
