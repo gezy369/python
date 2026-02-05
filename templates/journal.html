@@ -7,21 +7,25 @@
 <!-- Top controls -->
 <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
 
-  <!-- LEFT SIDE -->
+  <!-- LEFT SIDE: Apply/Reset buttons -->
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
   <button onclick="applyDateFilter()">Apply Dates</button>
   <button onclick="resetFilters()">Reset filters</button>
 
-  <!-- RIGHT SIDE -->
+  <!-- SEPARATOR -->
+  <div style="width:20px;"></div> <!-- Just empty space -->
+
+  <!-- DELETE BUTTON -->
   <button
     onclick="deleteSelected()"
-    style="margin-left:auto; background:#c0392b; color:white;"
+    style="background:#c0392b; color:white;"
   >
     Delete selected
   </button>
 
 </div>
+
 
 
 <div style="display:flex; gap:20px; align-items:flex-start;">
@@ -49,13 +53,13 @@ let charts = {};
 
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
-  "select","id","symbol","entryTimestamp","exitTimestamp",
+  "select","symbol","entryTimestamp","exitTimestamp",
   "duration","side","qty","buyPrice","sellPrice","pnl"
 ];
 
 const COLUMN_NAMES = {
   select:"",
-  id:"ID",
+  //id:"ID",
   symbol:"Symbol",
   entryTimestamp:"Entry",
   exitTimestamp:"Exit",
@@ -182,6 +186,10 @@ function applyFiltersAndRender(){
         .includes(input.value.toLowerCase())
     );
   });
+
+  // Sort by entryTimestamp (oldest → newest)
+  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+
 
   buildRows(data);
   updateCharts(data);
