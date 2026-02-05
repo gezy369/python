@@ -15,6 +15,10 @@
 <!-- Layout -->
 <div style="display: flex; gap: 20px; align-items: flex-start;">
 
+  <button onclick="deleteSelected()" style="margin-bottom:8px;">
+  🗑️ Delete selected
+</button>
+
   <!-- Table -->
   <div style="flex: 2;">
     <table id="tradeTable">
@@ -56,9 +60,19 @@ const COLUMN_NAMES = {
 };
 
 const COLUMN_ORDER = [
-  "id","symbol","boughtTimestamp","soldTimestamp",
-  "duration","side","qty","buyPrice","sellPrice","pnl"
+  "select", // 👈 virtual column
+  "id",
+  "symbol",
+  "boughtTimestamp",
+  "soldTimestamp",
+  "duration",
+  "side",
+  "qty",
+  "buyPrice",
+  "sellPrice",
+  "pnl"
 ];
+
 
 // Fetch data
 fetch("/api/trades")
@@ -73,7 +87,50 @@ fetch("/api/trades")
     applyFiltersAndRender();
   });
 
-/* ---------- Formatting ---------- */
+ /*----------- select for bulk actions ------------*/
+function toggleSelectAll(e) {
+  document.querySelectorAll(".row-select")
+    .forEach(cb => cb.checked = e.target.checked);
+}
+function getSelectedIds() {
+  return [...document.querySelectorAll(".row-select:checked")]
+    .map(cb => Number(cb.dataset.id));
+}
+// Bulk delete
+function deleteSelected() {
+  const ids = getSelectedIds();
+
+  if (!ids.length) {
+    alert("No trades selected");
+    return;
+  }
+
+  if (!confirm(`Delete ${ids.length} trade(s)? This cannot be undone.`)) {
+    return;
+  }
+
+  fetch("/api/trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Delete failed");
+    return res.json();
+  })
+  .then(() => {
+    // Remove locally
+    originalData = originalData.filter(t => !ids.includes(t.id));
+    filterTable(); // re-render table + charts
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error deleting trades");
+  });
+}
+
+
+  /* ---------- Formatting ---------- */
 const pad = n => String(n).padStart(2, "0");
 
 function formatDateTime(d) {
@@ -89,37 +146,53 @@ function formatPnL(v) {
 }
 
 /* ---------- Table ---------- */
-function buildHeaders() {
-  const tr = document.getElementById("headerRow");
-  tr.innerHTML = "";
+function buildHeaders(columns) {
+  const thead = document.getElementById("headerRow");
+  thead.innerHTML = "";
 
-  COLUMN_ORDER.forEach(col => {
+  columns.forEach(col => {
     const th = document.createElement("th");
-    th.textContent = COLUMN_NAMES[col];
 
-    const input = document.createElement("input");
-    input.placeholder = "Filter";
-    input.onkeyup = applyFiltersAndRender;
+    if (col === "select") {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.title = "Select all";
+      cb.onclick = toggleSelectAll;
+      th.appendChild(cb);
+    } else {
+      th.textContent = COLUMN_NAMES[col] || col;
 
-    th.append(document.createElement("br"), input);
-    tr.appendChild(th);
+      const input = document.createElement("input");
+      input.placeholder = "Filter";
+      input.onkeyup = filterTable;
+      th.append(document.createElement("br"), input);
+    }
+
+    thead.appendChild(th);
   });
 }
 
-function buildRows(data) {
+
+function buildRows(data, columns) {
   const tbody = document.querySelector("#tradeTable tbody");
   tbody.innerHTML = "";
 
   data.forEach(row => {
     const tr = document.createElement("tr");
 
-    // ✅ double-click opens TradingView
     tr.ondblclick = () => openTradeInTradingView(row);
 
-    COLUMN_ORDER.forEach(col => {
+    columns.forEach(col => {
       const td = document.createElement("td");
 
-      if (col === "pnl") {
+      if (col === "select") {
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "row-select";
+        cb.dataset.id = row.id;
+        td.appendChild(cb);
+      }
+      else if (col === "pnl") {
         td.textContent = formatPnL(row[col]);
         td.className = Number(row[col]) >= 0 ? "pnl-positive" : "pnl-negative";
       }
@@ -136,6 +209,7 @@ function buildRows(data) {
     tbody.appendChild(tr);
   });
 }
+
 
 /* ---------- Filters ---------- */
 function applyDateFilter() {

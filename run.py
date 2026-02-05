@@ -108,6 +108,19 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+# ===== TRADES DELETE =====
+@app.delete("/api/trades")
+def delete_trades():
+    data = request.json
+    ids = data.get("ids", [])
+
+    if not ids:
+        return {"error": "No IDs provided"}, 400
+
+    Trade.query.filter(Trade.id.in_(ids)).delete(synchronize_session=False)
+    db.session.commit()
+
+    return {"deleted": len(ids)}
 
 
 # ===== ENTRY POINT =====

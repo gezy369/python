@@ -46,9 +46,21 @@ def csv_handler(df_trade):
         "short",
         "long"
     )
+    # Adds entry columns
+    df_trades["entryTimestamp"] = np.where(
+        df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
+        df_trades["boughtTimestamp"],
+        df_trades["soldTimestamp"]
+    )
+        # Adds exit columns
+    df_trades["exitTimestamp"] = np.where(
+        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
+        df_trades["boughtTimestamp"],
+        df_trades["soldTimestamp"]
+    )
 
     # Reorder columns
-    df_trades = df_trades[[symbol],[boughtTimestamp],[soldTimestamp],[buyPrice],[sellPrice],[duration],[side],[qty],[pnl]]
+    df_trades = df_trades[[symbol],[entryTimestamp],[exitTimestamp],[buyPrice],[sellPrice],[duration],[side],[qty],[pnl]]
 
     # Print results
     #print("=== Reconstructed Trades ===")
