@@ -86,6 +86,40 @@ loadAccounts();
 /* ================= ACCOUNT MANAGEMENT ================= */
 
 <script>
+/* ================= LOAD ================= */
+function loadAccounts() {
+  fetch("/api/accounts")
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById("accountsBody");
+      tbody.innerHTML = "";
+
+      data.forEach(acc => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>
+            <input value="${acc.name || ""}"
+                   onchange="updateAccount('${acc.id}','name',this.value)">
+          </td>
+          <td></td>
+          <td></td>
+          <td>
+            <button class="danger-btn"
+                    onclick="deleteAccount('${acc.id}')">
+              Delete
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+loadAccounts();
+
+/* ================= ADD ACCOUNT ================= */
 function addAccountRow() {
   const tbody = document.getElementById("accountsBody");
 
@@ -94,88 +128,52 @@ function addAccountRow() {
 
   tr.innerHTML = `
     <td><input placeholder="Account name"></td>
-    <td><input placeholder="Broker"></td>
-    <td><input placeholder="Account #"></td>
+    <td></td>
+    <td></td>
     <td></td>
   `;
 
   tbody.appendChild(tr);
 
-  const inputs = [...tr.querySelectorAll("input")];
-  const [nameInput, brokerInput, numberInput] = inputs;
-
-  nameInput.focus();
+  const input = tr.querySelector("input");
+  input.focus();
 
   let saved = false;
 
-  function cleanupIfEmpty() {
-    if (!nameInput.value.trim()) {
-      tr.remove();
-    }
+  function cleanup() {
+    if (!input.value.trim()) tr.remove();
   }
 
-  function saveAccount() {
+  function save() {
     if (saved) return;
 
-    const payload = {
-      name: nameInput.value.trim(),
-      broker: brokerInput.value.trim(),
-      account_number: numberInput.value.trim()
-    };
-
-    if (!payload.name) {
-      cleanupIfEmpty();
-      return;
-    }
+    const name = input.value.trim();
+    if (!name) return cleanup();
 
     saved = true;
-
-    // Optimistic UI: mark as saving
     tr.style.opacity = "0.6";
 
     fetch("/api/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ name })
     })
     .then(() => {
       tr.style.opacity = "1";
-      tr.classList.remove("new-account-row");
+      loadAccounts();
     })
-    .catch(() => {
-      tr.remove();
-      alert("Failed to save account");
-    });
+    .catch(() => tr.remove());
   }
 
-  inputs.forEach(input => {
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        saveAccount();
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        cleanupIfEmpty();
-      }
-    });
-
-    input.addEventListener("blur", saveAccount);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") save();
+    if (e.key === "Escape") cleanup();
   });
+
+  input.addEventListener("blur", save);
 }
 
-function addAccount() {
-  fetch("/api/accounts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: "",
-      broker: "",
-      account_number: ""
-    })
-  }).then(loadAccounts);
-}
-
+/* ================= UPDATE ================= */
 function updateAccount(id, field, value) {
   fetch(`/api/accounts/${id}`, {
     method: "PATCH",
@@ -184,11 +182,14 @@ function updateAccount(id, field, value) {
   });
 }
 
+/* ================= DELETE ================= */
 function deleteAccount(id) {
   if (!confirm("Delete this account?")) return;
+
   fetch(`/api/accounts/${id}`, { method: "DELETE" })
     .then(loadAccounts);
 }
 </script>
+
 
 {% endblock %}

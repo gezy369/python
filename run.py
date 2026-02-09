@@ -154,6 +154,15 @@ def update_account(id):
         .execute()
     return {"ok": True}
 
+@app.delete("/api/accounts/<id>")
+def delete_account(id):
+    supabase.table("trading_accounts") \
+        .delete() \
+        .eq("id", id) \
+        .execute()
+    return {"ok": True}
+
+
 
 
 # ===== ENTRY POINT =====
