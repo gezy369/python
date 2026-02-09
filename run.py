@@ -123,11 +123,6 @@ def delete_trades():
     return {"deleted": len(ids)}
 
 
-# ===== ENTRY POINT =====
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
 # ===== SETTINGS =====
 @app.route("/accounts")
 def settings():
@@ -152,3 +147,9 @@ def update_account(id):
         .eq("id", id) \
         .execute()
     return {"ok": True}
+
+
+
+# ===== ENTRY POINT =====
+if __name__ == "__main__":
+    app.run(debug=True)
