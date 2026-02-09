@@ -253,7 +253,7 @@ function updateCharts(data){
 function openTradeInTradingView(trade){
   const symbol = trade.symbol.includes(":")
     ? trade.symbol
-    : `CME:${trade.symbol}1!`;
+    : `{trade.symbol}1!`;
 
   window.open(
     `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}&interval=5&timestamp=${trade.entryTimestamp.getTime()}`,
