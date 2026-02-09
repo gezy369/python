@@ -215,3 +215,78 @@ button {
   font-size: 12px;
   width: 150px;
 }
+
+/* ===== GRID ===== */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* ===== TILE ===== */
+.settings-tile {
+  background: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 220px;
+}
+
+.settings-tile h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #ddd;
+}
+
+/* ===== ACCOUNTS ===== */
+.account-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.account-row input {
+  background: #000;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.account-row button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}
+
+.account-row button:hover {
+  color: #e74c3c;
+}
+
+/* ===== ADD ACCOUNT ===== */
+.account-add {
+  border: 2px dashed #444;
+  border-radius: 6px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  color: #777;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.account-add:hover {
+  border-color: #777;
+  color: #aaa;
+}
+
+.plus {
+  font-size: 20px;
+  font-weight: bold;
+}

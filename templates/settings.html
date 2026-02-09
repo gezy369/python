@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+
+<h2>Settings</h2>
+
+<div class="settings-grid">
+
+  <!-- PROFILE TILE -->
+  <div class="settings-tile">
+    <h3>Profile</h3>
+    <p style="color:#666;">Coming soon</p>
+  </div>
+
+  <!-- TRADING ACCOUNTS TILE -->
+  <div class="settings-tile">
+    <h3>Trading Accounts</h3>
+
+    <div id="accounts-list"></div>
+
+    <div class="account-add" onclick="addAccount()">
+      <span class="plus">+</span>
+      <span>Add trading account</span>
+    </div>
+  </div>
+
+  <!-- JOURNAL TILE -->
+  <div class="settings-tile">
+    <h3>Journal</h3>
+    <p style="color:#666;">Coming soon</p>
+  </div>
+
+</div>
+
+<script>
+/* ================= LOAD ACCOUNTS ================= */
+function loadAccounts() {
+  fetch("/api/accounts")
+    .then(r => r.json())
+    .then(accounts => {
+      const container = document.getElementById("accounts-list");
+      container.innerHTML = "";
+
+      accounts.forEach(acc => {
+        const row = document.createElement("div");
+        row.className = "account-row";
+
+        row.innerHTML = `
+          <input placeholder="Name"
+                 value="${acc.name || ""}"
+                 onchange="updateAccount('${acc.id}','name',this.value)">
+
+          <input placeholder="Broker"
+                 value="${acc.broker || ""}"
+                 onchange="updateAccount('${acc.id}','broker',this.value)">
+
+          <input placeholder="Account #"
+                 value="${acc.account_number || ""}"
+                 onchange="updateAccount('${acc.id}','account_number',this.value)">
+
+          <button onclick="deleteAccount('${acc.id}')">✕</button>
+        `;
+
+        container.appendChild(row);
+      });
+    });
+}
+
+loadAccounts();
+
+/* ================= ADD ACCOUNT ================= */
+function addAccount() {
+  fetch("/api/accounts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "",
+      broker: "",
+      account_number: ""
+    })
+  }).then(loadAccounts);
+}
+
+/* ================= UPDATE FIELD ================= */
+function updateAccount(id, field, value) {
+  fetch(`/api/accounts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ [field]: value })
+  });
+}
+
+/* ================= DELETE ================= */
+function deleteAccount(id) {
+  if (!confirm("Delete this account?")) return;
+
+  fetch(`/api/accounts/${id}`, { method: "DELETE" })
+    .then(loadAccounts);
+}
+</script>
+
+{% endblock %}

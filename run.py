@@ -126,3 +126,24 @@ def delete_trades():
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+# ===== SETTINGS =====
+@app.get("/api/accounts")
+def get_accounts():
+    response = supabase.table("trading_accounts").select("*").execute()
+    return jsonify(response.data or [])
+
+@app.post("/api/accounts")
+def add_account():
+    data = request.json
+    supabase.table("trading_accounts").insert(data).execute()
+    return {"ok": True}
+
+@app.patch("/api/accounts/<id>")
+def update_account(id):
+    supabase.table("trading_accounts") \
+        .update(request.json) \
+        .eq("id", id) \
+        .execute()
+    return {"ok": True}
