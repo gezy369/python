@@ -129,6 +129,11 @@ if __name__ == "__main__":
 
 
 # ===== SETTINGS =====
+@app.route("/charts")
+def charts():
+
+    return render_template("settings.html")
+
 @app.get("/api/accounts")
 def get_accounts():
     response = supabase.table("trading_accounts").select("*").execute()
