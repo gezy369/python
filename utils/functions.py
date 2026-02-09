@@ -52,12 +52,14 @@ def csv_handler(df_trade):
         df_trades["boughtTimestamp"],
         df_trades["soldTimestamp"]
     )
-        # Adds exit columns
+    # Adds exit columns
     df_trades["exitTimestamp"] = np.where(
         df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
         df_trades["boughtTimestamp"],
         df_trades["soldTimestamp"]
     )
+    # Formats symbols
+    df_trades["symbol"] = df_trades["symbol"].str[:-2] 
 
     # Reorder columns
     df_trades = df_trades[[
