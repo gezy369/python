@@ -129,8 +129,8 @@ if __name__ == "__main__":
 
 
 # ===== SETTINGS =====
-@app.route("/charts")
-def charts():
+@app.route("/accounts")
+def settings():
 
     return render_template("settings.html")
 
