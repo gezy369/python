@@ -263,3 +263,8 @@ button {
 .muted {
   opacity: 0.6;
 }
+
+.new-account-row input {
+  border: 1px dashed #aaa;
+  background: transparent;
+}

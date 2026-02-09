@@ -89,7 +89,6 @@ loadAccounts();
 function addAccountRow() {
   const tbody = document.getElementById("accountsBody");
 
-  // Create temp row
   const tr = document.createElement("tr");
   tr.classList.add("new-account-row");
 
@@ -102,31 +101,68 @@ function addAccountRow() {
 
   tbody.appendChild(tr);
 
-  const inputs = tr.querySelectorAll("input");
+  const inputs = [...tr.querySelectorAll("input")];
+  const [nameInput, brokerInput, numberInput] = inputs;
 
-  // Focus first input
-  inputs[0].focus();
+  nameInput.focus();
 
-  // Save on first edit
+  let saved = false;
+
+  function cleanupIfEmpty() {
+    if (!nameInput.value.trim()) {
+      tr.remove();
+    }
+  }
+
+  function saveAccount() {
+    if (saved) return;
+
+    const payload = {
+      name: nameInput.value.trim(),
+      broker: brokerInput.value.trim(),
+      account_number: numberInput.value.trim()
+    };
+
+    if (!payload.name) {
+      cleanupIfEmpty();
+      return;
+    }
+
+    saved = true;
+
+    // Optimistic UI: mark as saving
+    tr.style.opacity = "0.6";
+
+    fetch("/api/accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      tr.style.opacity = "1";
+      tr.classList.remove("new-account-row");
+    })
+    .catch(() => {
+      tr.remove();
+      alert("Failed to save account");
+    });
+  }
+
   inputs.forEach(input => {
-    input.addEventListener("blur", () => {
-      const name = inputs[0].value.trim();
-      if (!name) return;
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveAccount();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cleanupIfEmpty();
+      }
+    });
 
-      fetch("/api/accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: inputs[0].value,
-          broker: inputs[1].value,
-          account_number: inputs[2].value
-        })
-      }).then(loadAccounts);
-    }, { once: true });
+    input.addEventListener("blur", saveAccount);
   });
 }
-</script>
-
 
 function addAccount() {
   fetch("/api/accounts", {
