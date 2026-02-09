@@ -131,7 +131,13 @@ def settings():
 
 @app.get("/api/accounts")
 def get_accounts():
-    response = supabase.table("trading_accounts").select("*").execute()
+    response = (
+        supabase
+        .table("trading_accounts")
+        .select("id, name")
+        .order("created_at")
+        .execute()
+    )
     return jsonify(response.data or [])
 
 @app.post("/api/accounts")
