@@ -4,71 +4,130 @@
 
 <h2>Settings</h2>
 
-<div class="settings-grid">
+<div class="settings-container">
 
-  <!-- PROFILE TILE -->
-  <div class="settings-tile">
+  <!-- PROFILE -->
+  <div class="settings-block">
     <h3>Profile</h3>
-    <p style="color:#666;">Coming soon</p>
+    <p class="muted">Coming soon</p>
   </div>
 
-  <!-- TRADING ACCOUNTS TILE -->
-  <div class="settings-tile">
+  <!-- TRADING ACCOUNTS -->
+  <div class="settings-block">
     <h3>Trading Accounts</h3>
 
-    <div id="accounts-list"></div>
+    <table class="settings-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Broker</th>
+          <th>Account #</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="accountsBody"></tbody>
+    </table>
 
-    <div class="account-add" onclick="addAccount()">
-      <span class="plus">+</span>
-      <span>Add trading account</span>
+    <!-- ADD ACCOUNT -->
+    <div class="account-add-row" onclick="addAccountRow()">
+    + Add trading account
     </div>
+
   </div>
 
-  <!-- JOURNAL TILE -->
-  <div class="settings-tile">
+  <!-- JOURNAL -->
+  <div class="settings-block">
     <h3>Journal</h3>
-    <p style="color:#666;">Coming soon</p>
+    <p class="muted">Coming soon</p>
   </div>
 
 </div>
 
 <script>
-/* ================= LOAD ACCOUNTS ================= */
+/* ================= LOAD ================= */
 function loadAccounts() {
   fetch("/api/accounts")
     .then(r => r.json())
-    .then(accounts => {
-      const container = document.getElementById("accounts-list");
-      container.innerHTML = "";
+    .then(data => {
+      const tbody = document.getElementById("accountsBody");
+      tbody.innerHTML = "";
 
-      accounts.forEach(acc => {
-        const row = document.createElement("div");
-        row.className = "account-row";
+      data.forEach(acc => {
+        const tr = document.createElement("tr");
 
-        row.innerHTML = `
-          <input placeholder="Name"
-                 value="${acc.name || ""}"
-                 onchange="updateAccount('${acc.id}','name',this.value)">
-
-          <input placeholder="Broker"
-                 value="${acc.broker || ""}"
-                 onchange="updateAccount('${acc.id}','broker',this.value)">
-
-          <input placeholder="Account #"
-                 value="${acc.account_number || ""}"
-                 onchange="updateAccount('${acc.id}','account_number',this.value)">
-
-          <button onclick="deleteAccount('${acc.id}')">✕</button>
+        tr.innerHTML = `
+          <td>
+            <input value="${acc.name || ""}"
+                   onchange="updateAccount('${acc.id}','name',this.value)">
+          </td>
+          <td>
+            <input value="${acc.broker || ""}"
+                   onchange="updateAccount('${acc.id}','broker',this.value)">
+          </td>
+          <td>
+            <input value="${acc.account_number || ""}"
+                   onchange="updateAccount('${acc.id}','account_number',this.value)">
+          </td>
+          <td>
+            <button class="danger-btn"
+                    onclick="deleteAccount('${acc.id}')">
+              Delete
+            </button>
+          </td>
         `;
 
-        container.appendChild(row);
+        tbody.appendChild(tr);
       });
     });
 }
 
 loadAccounts();
 
-/* ================= ADD ACCOUNT ================= */
+/* ================= ACCOUNT MANAGEMENT ================= */
+
+<script>
+function addAccountRow() {
+  const tbody = document.getElementById("accountsBody");
+
+  // Create temp row
+  const tr = document.createElement("tr");
+  tr.classList.add("new-account-row");
+
+  tr.innerHTML = `
+    <td><input placeholder="Account name"></td>
+    <td><input placeholder="Broker"></td>
+    <td><input placeholder="Account #"></td>
+    <td></td>
+  `;
+
+  tbody.appendChild(tr);
+
+  const inputs = tr.querySelectorAll("input");
+
+  // Focus first input
+  inputs[0].focus();
+
+  // Save on first edit
+  inputs.forEach(input => {
+    input.addEventListener("blur", () => {
+      const name = inputs[0].value.trim();
+      if (!name) return;
+
+      fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: inputs[0].value,
+          broker: inputs[1].value,
+          account_number: inputs[2].value
+        })
+      }).then(loadAccounts);
+    }, { once: true });
+  });
+}
+</script>
+
+
 function addAccount() {
   fetch("/api/accounts", {
     method: "POST",
@@ -81,7 +140,6 @@ function addAccount() {
   }).then(loadAccounts);
 }
 
-/* ================= UPDATE FIELD ================= */
 function updateAccount(id, field, value) {
   fetch(`/api/accounts/${id}`, {
     method: "PATCH",
@@ -90,10 +148,8 @@ function updateAccount(id, field, value) {
   });
 }
 
-/* ================= DELETE ================= */
 function deleteAccount(id) {
   if (!confirm("Delete this account?")) return;
-
   fetch(`/api/accounts/${id}`, { method: "DELETE" })
     .then(loadAccounts);
 }
