@@ -186,6 +186,19 @@ def get_strategies():
         print("Supabase /api/strategies error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.get("/api/setups")
+def get_setups():
+    try:
+        response = (
+            supabase.table("setups")
+            .select("id, setup_name, color")
+            .order("setup_name")
+            .execute()
+        )
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/setups error:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 
