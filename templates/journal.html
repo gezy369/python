@@ -34,15 +34,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+
 let originalData = [];
 let charts = {};
 let openRow = null;
 
 let STRATEGIES = [];
-
-fetch("/api/strategies")
-  .then(r => r.json())
-  .then(data => STRATEGIES = data);
 
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
@@ -64,17 +61,22 @@ const COLUMN_NAMES = {
 };
 
 /* ---------------- FETCH ---------------- */
-fetch("/api/trades")
-  .then(r=>r.json())
-  .then(data=>{
-    originalData = data.map(t=>({
-      ...t,
-      entryTimestamp:new Date(t.entryTimestamp),
-      exitTimestamp:new Date(t.exitTimestamp)
-    }));
-    buildHeaders();
-    applyFiltersAndRender();
-  });
+
+Promise.all([
+  fetch("/api/strategies").then(r => r.json()),
+  fetch("/api/trades").then(r => r.json())
+]).then(([strategies, trades]) => {
+  STRATEGIES = strategies;
+
+  originalData = trades.map(t => ({
+    ...t,
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp: new Date(t.exitTimestamp)
+  }));
+
+  buildHeaders();
+  applyFiltersAndRender();
+});
 
 /* ---------------- FORMAT ---------------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -246,13 +248,16 @@ function toggleTradeDetails(tr, trade){
 
       try {
         await fetch(`/api/trades/${trade.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notes: notesInput.value }),
-          signal: abortController.signal
-        });
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: notesInput.value }),
+        signal: abortController.signal
+      });
 
-        notesStatus.textContent = "Saved";
+      // 🔑 keep local state in sync
+      trade.notes = notesInput.value;
+
+      notesStatus.textContent = "Saved";
       } catch (err) {
         if(err.name !== "AbortError"){
           notesStatus.textContent = "Save failed";
