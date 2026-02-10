@@ -4,57 +4,6 @@
 
 <h2>Trade Journal</h2>
 
-<!-- ================= STYLES ================= -->
-<style>
-/* ---- ROW HOVER / EXPANDED ---- */
-tr.trade-row {
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-tr.trade-row:hover {
-  background: #f6f8fa;
-}
-tr.trade-row.expanded {
-  background: #eef6ff;
-}
-
-/* ---- DETAILS ROW ---- */
-tr.trade-details-row td {
-  padding: 0;
-  border-top: none;
-}
-
-.trade-details {
-  overflow: hidden;
-  max-height: 0;
-  padding: 0 16px;
-  transition: max-height 0.25s ease, padding 0.25s ease;
-  background: #f9fbff;
-}
-
-.trade-details.open {
-  max-height: 400px;
-  padding: 16px;
-}
-
-/* ---- CONTENT GRID ---- */
-.trade-details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.trade-details h4 {
-  margin: 0 0 8px;
-  font-size: 13px;
-  text-transform: uppercase;
-  color: #666;
-}
-
-.pnl-positive { color: #27ae60; font-weight: 600; }
-.pnl-negative { color: #c0392b; font-weight: 600; }
-</style>
-
 <!-- ================= CONTROLS ================= -->
 <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
   <label>From: <input type="date" id="dateFrom"></label>
@@ -198,7 +147,7 @@ function buildRows(data){
 
 /* ---------------- EXPAND / COLLAPSE ---------------- */
 function toggleTradeDetails(tr, trade){
-  if(openRow && openRow.tr===tr){
+  if(openRow && openRow.tr === tr){
     closeDetails();
     return;
   }
@@ -206,44 +155,131 @@ function toggleTradeDetails(tr, trade){
   closeDetails();
   tr.classList.add("expanded");
 
-  const detailsTr=document.createElement("tr");
-  detailsTr.className="trade-details-row";
+  const detailsTr = document.createElement("tr");
+  detailsTr.className = "trade-details-row";
 
-  const td=document.createElement("td");
-  td.colSpan=COLUMN_ORDER.length;
+  const td = document.createElement("td");
+  td.colSpan = COLUMN_ORDER.length;
 
-  td.innerHTML=`
-    <div class="trade-details open">
-      <div class="trade-details-grid">
-        <div>
-          <h4>Trade</h4>
-          <div><strong>Symbol:</strong> ${trade.symbol}</div>
-          <div><strong>Side:</strong> ${trade.side}</div>
-          <div><strong>Qty:</strong> ${trade.qty}</div>
-          <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
-          <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
-          <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+  td.innerHTML = `
+  <div class="trade-details">
+    <div class="trade-details-grid">
+      <div>
+        <h4>Trade</h4>
+        <div><strong>Symbol:</strong> ${trade.symbol}</div>
+        <div><strong>Side:</strong> ${trade.side}</div>
+        <div><strong>Qty:</strong> ${trade.qty}</div>
+        <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
+        <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
+        <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+
+        <div style="margin-top:10px;">
+          <label><strong>Notes:</strong></label><br>
+          <textarea class="trade-notes" style="width:100%;" rows="4">${trade.notes ?? ""}</textarea>
         </div>
-        <div>
-          <h4>Strategy</h4>
-          <div class="muted">No strategy data yet</div>
+
+        <div style="margin-top:10px;">
+          <label><strong>Screenshot:</strong></label><br>
+          <input type="file" class="trade-chart" accept="image/*">
+          <div class="chart-preview" style="margin-top:5px;">
+            ${trade.chart ? `<img src="${trade.chart}" style="max-width:100%; max-height:150px;">` : ''}
+          </div>
         </div>
       </div>
+
+      <div>
+        <h4>Strategy</h4>
+        <div class="muted">No strategy data yet</div>
+      </div>
     </div>
-  `;
+  </div>
+`;
 
   detailsTr.appendChild(td);
   tr.after(detailsTr);
 
-  openRow={tr,detailsTr};
+  const panel = td.querySelector(".trade-details");
+
+  // 🔑 Force reflow so transition works
+  panel.offsetHeight;
+
+  // 🔑 Animate open on next frame
+  requestAnimationFrame(() => panel.classList.add("open"));
+
+  // ---------------- AUTOSAVE NOTES ----------------
+  const notesInput = td.querySelector(".trade-notes");
+  let saveTimeout;
+  notesInput.addEventListener("input", () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      fetch(`/api/trades/${trade.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: notesInput.value })
+      });
+    }, 500); // debounce 0.5s
+  });
+
+  // ---------------- SCREENSHOT UPLOAD ----------------
+  const chartInput = td.querySelector(".trade-chart");
+  const chartPreview = td.querySelector(".chart-preview");
+
+  chartInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const filename = `charts/${trade.id}_${Date.now()}_${file.name}`;
+
+    try {
+      // Upload to Supabase Storage (bucket: 'charts')
+      const { data: uploadData, error } = await supabase.storage
+        .from("charts")
+        .upload(filename, file);
+
+      if(error) throw error;
+
+      // Get public URL
+      const { data: publicData, error: urlError } = supabase.storage
+        .from("charts")
+        .getPublicUrl(filename);
+
+      if(urlError) throw urlError;
+
+      const chartUrl = publicData.publicUrl;
+
+      // Update chart column in DB
+      await fetch(`/api/trades/${trade.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chart: chartUrl })
+      });
+
+      // Show preview
+      chartPreview.innerHTML = `<img src="${chartUrl}" style="max-width:100%; max-height:150px;">`;
+
+    } catch(err) {
+      alert("Failed to upload screenshot: " + err.message);
+    }
+  });
+
+  openRow = { tr, detailsTr, panel };
 }
+
+
 
 function closeDetails(){
   if(!openRow) return;
+
   openRow.tr.classList.remove("expanded");
-  openRow.detailsTr.remove();
-  openRow=null;
+  openRow.panel.classList.remove("open");
+
+  // Wait for animation to finish before removing row
+  setTimeout(() => {
+    openRow.detailsTr.remove();
+    openRow = null;
+  }, 250); // must match CSS transition duration
 }
+
 
 /* ---------------- FILTERS ---------------- */
 function applyDateFilter(){ applyFiltersAndRender(); }
