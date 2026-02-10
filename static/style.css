@@ -352,3 +352,18 @@ tr.trade-details-row td {
   text-transform: uppercase;
   color: #666;
 }
+
+.strategy-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1;
+}
+
+.strategy-tag.muted {
+  background: #e0e0e0;
+  color: #666;
+}

@@ -78,6 +78,16 @@ Promise.all([
   applyFiltersAndRender();
 });
 
+fetch(`/api/trades/${trade.id}`, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key_strategies_id: value })
+});
+
+// keep local state in sync
+trade.key_strategies_id = value ? Number(value) : null;
+
+
 /* ---------------- FORMAT ---------------- */
 const pad=n=>String(n).padStart(2,"0");
 const formatDate=d=>`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
@@ -87,6 +97,22 @@ const formatPnL=v=>{
   const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
   return n<0?`($${f})`:`$${f}`;
 };
+
+function renderStrategyTag(strategyId){
+  if(!strategyId) {
+    return `<span class="strategy-tag muted">No strategy</span>`;
+  }
+
+  const s = STRATEGIES.find(x => x.id === strategyId);
+  if(!s) return "";
+
+  return `
+    <span class="strategy-tag"
+          style="background:${s.color};">
+      ${s.strategy_name}
+    </span>
+  `;
+}
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
@@ -208,9 +234,10 @@ function toggleTradeDetails(tr, trade){
             ${strategyOptions}
           </select>
 
-          <div class="muted strategy-status" style="font-size:12px;margin-top:4px;">
-            ${trade.key_strategies_id ? "" : "No strategy"}
+          <div class="strategy-tag-container" style="margin-top:6px;">
+            ${renderStrategyTag(trade.key_strategies_id)}
           </div>
+
 
           <div style="margin-top:10px;">
             <label><strong>Notes:</strong></label><br>
@@ -271,18 +298,20 @@ function toggleTradeDetails(tr, trade){
   const strategyStatus = td.querySelector(".strategy-status");
 
   strategySelect.addEventListener("change", () => {
-    const value = strategySelect.value || null;
+  const value = strategySelect.value || null;
 
-    fetch(`/api/trades/${trade.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key_strategies_id: value })
-    });
-
-    strategyStatus.textContent = value ? "Saved" : "No strategy";
-    strategyStatus.classList.remove("muted");
-    setTimeout(() => strategyStatus.classList.add("muted"), 600);
+  fetch(`/api/trades/${trade.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key_strategies_id: value })
   });
+
+  trade.key_strategies_id = value ? Number(value) : null;
+
+  td.querySelector(".strategy-tag-container").innerHTML =
+    renderStrategyTag(trade.key_strategies_id);
+});
+
 
   /* ---------- SCREENSHOT UPLOAD ---------- */
   const chartInput = td.querySelector(".trade-chart");
