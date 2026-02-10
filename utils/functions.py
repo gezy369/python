@@ -46,18 +46,32 @@ def csv_handler(df_trade):
         "short",
         "long"
     )
-    # Adds entry columns
+    # Adds entry time columns
     df_trades["entryTimestamp"] = np.where(
         df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
         df_trades["boughtTimestamp"],
         df_trades["soldTimestamp"]
     )
-    # Adds exit columns
+    # Adds exit time columns
     df_trades["exitTimestamp"] = np.where(
         df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
         df_trades["boughtTimestamp"],
         df_trades["soldTimestamp"]
     )
+
+    # Adds entry price columns
+    df_trades["entryPrice"] = np.where(
+        df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
+        df_trades["buyPrice"],
+        df_trades["sellPrice"]
+    )
+    # Adds exit price columns
+    df_trades["exitPrice"] = np.where(
+        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
+        df_trades["buyPrice"],
+        df_trades["sellPrice"]
+    )
+
     # Formats symbols
     df_trades["symbol"] = df_trades["symbol"].str[:-2] 
 
@@ -66,8 +80,8 @@ def csv_handler(df_trade):
         "symbol",
         "entryTimestamp",
         "exitTimestamp",
-        "buyPrice",
-        "sellPrice",
+        "entryPrice",
+        "exitPrice",
         "duration",
         "side",
         "qty",

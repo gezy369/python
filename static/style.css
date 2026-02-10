@@ -302,3 +302,53 @@ button {
   text-transform: uppercase;
   color: #555;
 }
+
+/* ================= ROW EXPANSION ================= */
+
+tr.trade-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+tr.trade-row:hover {
+  background: #f6f8fa;
+}
+
+tr.trade-row.expanded {
+  background: #eef6ff;
+}
+
+/* Detail panel row */
+tr.trade-details-row td {
+  padding: 0;
+  border-top: none;
+}
+
+/* Animated container */
+.trade-details {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+  padding: 0 16px;
+  background: #f9fbff;
+}
+
+/* When open */
+.trade-details.open {
+  max-height: 300px; /* large enough */
+  padding: 16px;
+}
+
+/* Layout */
+.trade-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.trade-details h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: #666;
+}
