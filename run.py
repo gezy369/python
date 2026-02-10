@@ -148,10 +148,8 @@ def add_account():
 
 @app.patch("/api/trades/<id>")
 def update_trade(id):
-    data = request.json
-    supabase.table("trades").update(data).eq("id", id).execute()
+    supabase.table("trades").update(request.json).eq("id", id).execute()
     return {"ok": True}
-
 
 @app.delete("/api/accounts/<id>")
 def delete_account(id):

@@ -26,8 +26,40 @@ def csv_handler(df_trade):
     df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
     df_trade["soldTimestamp"] = pd.to_datetime(df_trade["soldTimestamp"], format="%m/%d/%Y %H:%M:%S")
 
-    # Group partial fills into full trades
-    trade_cols = ["symbol", "boughtTimestamp", "buyPrice", "sellPrice"]
+    # Adds the side of the trade
+    df_trade["side"] = np.where(
+        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+        "short",
+        "long"
+    )
+    # Adds entry time columns
+    df_trade["entryTimestamp"] = np.where(
+        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
+        df_trade["boughtTimestamp"],
+        df_trade["soldTimestamp"]
+    )
+    # Adds exit time columns
+    df_trade["exitTimestamp"] = np.where(
+        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+        df_trade["boughtTimestamp"],
+        df_trade["soldTimestamp"]
+    )
+
+    # Adds entry price columns
+    df_trade["entryPrice"] = np.where(
+        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
+        df_trade["buyPrice"],
+        df_trade["sellPrice"]
+    )
+    # Adds exit price columns
+    df_trade["exitPrice"] = np.where(
+        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+        df_trade["buyPrice"],
+        df_trade["sellPrice"]
+    )
+
+        # Group partial fills into full trades
+    trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
 
     df_trades = (
         df_trade
@@ -38,38 +70,6 @@ def csv_handler(df_trade):
             duration=("duration", "first"),
             soldTimestamp=("soldTimestamp", "first")
         )
-    )
-
-    # Adds the side of the trade
-    df_trades["side"] = np.where(
-        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
-        "short",
-        "long"
-    )
-    # Adds entry time columns
-    df_trades["entryTimestamp"] = np.where(
-        df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
-        df_trades["boughtTimestamp"],
-        df_trades["soldTimestamp"]
-    )
-    # Adds exit time columns
-    df_trades["exitTimestamp"] = np.where(
-        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
-        df_trades["boughtTimestamp"],
-        df_trades["soldTimestamp"]
-    )
-
-    # Adds entry price columns
-    df_trades["entryPrice"] = np.where(
-        df_trades["boughtTimestamp"] < df_trades["soldTimestamp"],
-        df_trades["buyPrice"],
-        df_trades["sellPrice"]
-    )
-    # Adds exit price columns
-    df_trades["exitPrice"] = np.where(
-        df_trades["boughtTimestamp"] > df_trades["soldTimestamp"],
-        df_trades["buyPrice"],
-        df_trades["sellPrice"]
     )
 
     # Formats symbols

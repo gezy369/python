@@ -4,12 +4,85 @@
 
 <h2>Trade Journal</h2>
 
-<!-- ================= CONTROLS ================= -->
-<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+<style>
+/* ===== TABLE ===== */
+#tradeTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+#tradeTable th, #tradeTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
+}
+
+/* ===== ROW STATES ===== */
+tr.trade-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+tr.trade-row:hover {
+  background: #f6f8fa;
+}
+tr.trade-row.expanded {
+  background: #eef6ff;
+}
+
+/* ===== DETAILS ROW ===== */
+tr.trade-details-row td {
+  padding: 0;
+  border: none;
+}
+
+.trade-details {
+  overflow: hidden;
+  max-height: 0;
+  padding: 0 16px;
+  background: #f9fbff;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+}
+
+.trade-details.open {
+  max-height: 500px;
+  padding: 16px;
+}
+
+/* ===== GRID ===== */
+.trade-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.trade-details h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.trade-notes {
+  width: 100%;
+  resize: vertical;
+}
+
+.chart-preview img {
+  max-width: 100%;
+  max-height: 150px;
+  border: 1px solid #ddd;
+  margin-top: 6px;
+}
+
+.pnl-positive { color: green; }
+.pnl-negative { color: red; }
+</style>
+
+<!-- ===== CONTROLS ===== -->
+<div style="margin-bottom:10px; display:flex; gap:8px; align-items:center;">
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
-  <button onclick="applyDateFilter()">Apply Dates</button>
-  <button onclick="resetFilters()">Reset filters</button>
+  <button onclick="applyFiltersAndRender()">Apply Dates</button>
+  <button onclick="resetFilters()">Reset</button>
 
   <div style="width:20px;"></div>
 
@@ -18,7 +91,7 @@
   </button>
 </div>
 
-<div style="display:flex; gap:20px; align-items:flex-start;">
+<div style="display:flex; gap:20px;">
   <div style="flex:2;">
     <table id="tradeTable">
       <thead><tr id="headerRow"></tr></thead>
@@ -26,8 +99,8 @@
     </table>
   </div>
 
-  <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
-    <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
+  <div style="flex:1;">
+    <canvas id="pnlChart" height="220"></canvas>
   </div>
 </div>
 
@@ -35,10 +108,10 @@
 
 <script>
 let originalData = [];
-let charts = {};
 let openRow = null;
+let charts = {};
 
-/* ---------------- COLUMNS ---------------- */
+/* ===== COLUMNS ===== */
 const COLUMN_ORDER = [
   "select","symbol","entryTimestamp","exitTimestamp",
   "duration","side","qty","entryPrice","exitPrice","pnl"
@@ -57,20 +130,7 @@ const COLUMN_NAMES = {
   pnl:"PnL"
 };
 
-/* ---------------- FETCH ---------------- */
-fetch("/api/trades")
-  .then(r=>r.json())
-  .then(data=>{
-    originalData = data.map(t=>({
-      ...t,
-      entryTimestamp:new Date(t.entryTimestamp),
-      exitTimestamp:new Date(t.exitTimestamp)
-    }));
-    buildHeaders();
-    applyFiltersAndRender();
-  });
-
-/* ---------------- FORMAT ---------------- */
+/* ===== HELPERS ===== */
 const pad=n=>String(n).padStart(2,"0");
 const formatDate=d=>`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
  ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -80,7 +140,28 @@ const formatPnL=v=>{
   return n<0?`($${f})`:`$${f}`;
 };
 
-/* ---------------- HEADERS ---------------- */
+function debounce(fn, delay=600){
+  let t;
+  return (...args)=>{
+    clearTimeout(t);
+    t=setTimeout(()=>fn(...args),delay);
+  };
+}
+
+/* ===== FETCH ===== */
+fetch("/api/trades")
+  .then(r=>r.json())
+  .then(data=>{
+    originalData=data.map(t=>({
+      ...t,
+      entryTimestamp:new Date(t.entryTimestamp),
+      exitTimestamp:new Date(t.exitTimestamp)
+    }));
+    buildHeaders();
+    applyFiltersAndRender();
+  });
+
+/* ===== HEADERS ===== */
 function buildHeaders(){
   const tr=document.getElementById("headerRow");
   tr.innerHTML="";
@@ -96,25 +177,26 @@ function buildHeaders(){
       th.appendChild(cb);
     } else {
       th.textContent=COLUMN_NAMES[col];
-      const input=document.createElement("input");
-      input.placeholder="Filter";
-      input.dataset.col=col;
-      input.onkeyup=applyFiltersAndRender;
-      th.append(document.createElement("br"),input);
+      const i=document.createElement("input");
+      i.placeholder="Filter";
+      i.dataset.col=col;
+      i.onkeyup=applyFiltersAndRender;
+      th.append(document.createElement("br"),i);
     }
     tr.appendChild(th);
   });
 }
 
-/* ---------------- ROWS ---------------- */
+/* ===== ROWS ===== */
 function buildRows(data){
   const tbody=document.querySelector("#tradeTable tbody");
   tbody.innerHTML="";
+  closeDetails();
 
-  data.forEach(row=>{
+  data.forEach(trade=>{
     const tr=document.createElement("tr");
     tr.className="trade-row";
-    tr.onclick=()=>toggleTradeDetails(tr,row);
+    tr.onclick=()=>toggleTradeDetails(tr,trade);
 
     COLUMN_ORDER.forEach(col=>{
       const td=document.createElement("td");
@@ -123,21 +205,20 @@ function buildRows(data){
         const cb=document.createElement("input");
         cb.type="checkbox";
         cb.className="row-select";
-        cb.dataset.id=row.id;
-        cb.addEventListener("click",e=>e.stopPropagation());
+        cb.dataset.id=trade.id;
+        cb.onclick=e=>e.stopPropagation();
         td.appendChild(cb);
       }
       else if(col==="pnl"){
-        const v=Number(row[col])||0;
+        const v=Number(trade[col])||0;
         td.textContent=formatPnL(v);
         td.className=v>=0?"pnl-positive":"pnl-negative";
       }
       else if(col.includes("Timestamp")){
-        td.textContent=formatDate(row[col]);
+        td.textContent=formatDate(trade[col]);
       }
-      else{
-        td.textContent=row[col]??"";
-      }
+      else td.textContent=trade[col]??"";
+
       tr.appendChild(td);
     });
 
@@ -145,9 +226,9 @@ function buildRows(data){
   });
 }
 
-/* ---------------- EXPAND / COLLAPSE ---------------- */
+/* ===== DETAILS ===== */
 function toggleTradeDetails(tr, trade){
-  if(openRow && openRow.tr === tr){
+  if(openRow && openRow.tr===tr){
     closeDetails();
     return;
   }
@@ -155,177 +236,112 @@ function toggleTradeDetails(tr, trade){
   closeDetails();
   tr.classList.add("expanded");
 
-  const detailsTr = document.createElement("tr");
-  detailsTr.className = "trade-details-row";
+  const detailsTr=document.createElement("tr");
+  detailsTr.className="trade-details-row";
 
-  const td = document.createElement("td");
-  td.colSpan = COLUMN_ORDER.length;
+  const td=document.createElement("td");
+  td.colSpan=COLUMN_ORDER.length;
 
-  td.innerHTML = `
-  <div class="trade-details">
-    <div class="trade-details-grid">
-      <div>
-        <h4>Trade</h4>
-        <div><strong>Symbol:</strong> ${trade.symbol}</div>
-        <div><strong>Side:</strong> ${trade.side}</div>
-        <div><strong>Qty:</strong> ${trade.qty}</div>
-        <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
-        <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
-        <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+  td.innerHTML=`
+    <div class="trade-details">
+      <div class="trade-details-grid">
+        <div>
+          <h4>Trade</h4>
+          <div><strong>Symbol:</strong> ${trade.symbol}</div>
+          <div><strong>Side:</strong> ${trade.side}</div>
+          <div><strong>Qty:</strong> ${trade.qty}</div>
+          <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
+          <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
+          <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
 
-        <div style="margin-top:10px;">
-          <label><strong>Notes:</strong></label><br>
-          <textarea class="trade-notes" style="width:100%;" rows="4">${trade.notes ?? ""}</textarea>
-        </div>
+          <div style="margin-top:10px;">
+            <strong>Notes</strong><br>
+            <textarea class="trade-notes" rows="4">${trade.notes??""}</textarea>
+          </div>
 
-        <div style="margin-top:10px;">
-          <label><strong>Screenshot:</strong></label><br>
-          <input type="file" class="trade-chart" accept="image/*">
-          <div class="chart-preview" style="margin-top:5px;">
-            ${trade.chart ? `<img src="${trade.chart}" style="max-width:100%; max-height:150px;">` : ''}
+          <div style="margin-top:10px;">
+            <strong>Screenshot</strong><br>
+            <input type="file" class="trade-chart" accept="image/*">
+            <div class="chart-preview">
+              ${trade.chart?`<img src="${trade.chart}">`:""}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div>
-        <h4>Strategy</h4>
-        <div class="muted">No strategy data yet</div>
+        <div>
+          <h4>Strategy</h4>
+          <div class="muted">Coming soon</div>
+        </div>
       </div>
     </div>
-  </div>
-`;
+  `;
 
   detailsTr.appendChild(td);
   tr.after(detailsTr);
 
-  const panel = td.querySelector(".trade-details");
-
-  // 🔑 Force reflow so transition works
+  const panel=td.querySelector(".trade-details");
   panel.offsetHeight;
+  requestAnimationFrame(()=>panel.classList.add("open"));
 
-  // 🔑 Animate open on next frame
-  requestAnimationFrame(() => panel.classList.add("open"));
-
-  // ---------------- AUTOSAVE NOTES ----------------
-  const notesInput = td.querySelector(".trade-notes");
-  let saveTimeout;
-  notesInput.addEventListener("input", () => {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      fetch(`/api/trades/${trade.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: notesInput.value })
-      });
-    }, 500); // debounce 0.5s
+  /* autosave notes */
+  const notes=td.querySelector(".trade-notes");
+  const saveNotes=debounce(v=>{
+    fetch(`/api/trades/${trade.id}`,{
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({notes:v})
+    });
   });
 
-  // ---------------- SCREENSHOT UPLOAD ----------------
-  const chartInput = td.querySelector(".trade-chart");
-  const chartPreview = td.querySelector(".chart-preview");
+  notes.oninput=e=>saveNotes(e.target.value);
 
-  chartInput.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
+  /* upload screenshot */
+  const fileInput=td.querySelector(".trade-chart");
+  const preview=td.querySelector(".chart-preview");
 
-    const filename = `charts/${trade.id}_${Date.now()}_${file.name}`;
+  fileInput.onchange=()=>{
+    const f=fileInput.files[0];
+    if(!f) return;
 
-    try {
-      // Upload to Supabase Storage (bucket: 'charts')
-      const { data: uploadData, error } = await supabase.storage
-        .from("charts")
-        .upload(filename, file);
+    const fd=new FormData();
+    fd.append("file",f);
 
-      if(error) throw error;
-
-      // Get public URL
-      const { data: publicData, error: urlError } = supabase.storage
-        .from("charts")
-        .getPublicUrl(filename);
-
-      if(urlError) throw urlError;
-
-      const chartUrl = publicData.publicUrl;
-
-      // Update chart column in DB
-      await fetch(`/api/trades/${trade.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chart: chartUrl })
+    fetch(`/api/trades/${trade.id}/chart`,{method:"POST",body:fd})
+      .then(r=>r.json())
+      .then(d=>{
+        preview.innerHTML=`<img src="${d.url}">`;
       });
+  };
 
-      // Show preview
-      chartPreview.innerHTML = `<img src="${chartUrl}" style="max-width:100%; max-height:150px;">`;
-
-    } catch(err) {
-      alert("Failed to upload screenshot: " + err.message);
-    }
-  });
-
-  openRow = { tr, detailsTr, panel };
+  openRow={tr,detailsTr,panel};
 }
-
-
 
 function closeDetails(){
   if(!openRow) return;
-
-  openRow.tr.classList.remove("expanded");
   openRow.panel.classList.remove("open");
-
-  // Wait for animation to finish before removing row
-  setTimeout(() => {
-    openRow.detailsTr.remove();
-    openRow = null;
-  }, 250); // must match CSS transition duration
+  openRow.tr.classList.remove("expanded");
+  setTimeout(()=>openRow.detailsTr.remove(),250);
+  openRow=null;
 }
 
-
-/* ---------------- FILTERS ---------------- */
-function applyDateFilter(){ applyFiltersAndRender(); }
-
+/* ===== FILTERS ===== */
 function applyFiltersAndRender(){
   let data=[...originalData];
-
-  const from=dateFrom.value?new Date(dateFrom.value):null;
-  const to=dateTo.value?new Date(dateTo.value):null;
-
-  if(from||to){
-    data=data.filter(t=>{
-      if(from&&t.entryTimestamp<from) return false;
-      if(to&&t.entryTimestamp>to) return false;
-      return true;
-    });
-  }
-
-  document.querySelectorAll("th input[data-col]").forEach(input=>{
-    if(!input.value) return;
-    const col=input.dataset.col;
-    data=data.filter(r=>
-      String(r[col]??"").toLowerCase()
-        .includes(input.value.toLowerCase())
-    );
-  });
-
-  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-
   buildRows(data);
-  updateCharts(data);
+  updateChart(data);
 }
 
 function resetFilters(){
   document.querySelectorAll("th input").forEach(i=>i.value="");
-  dateFrom.value=""; dateTo.value="";
   buildRows(originalData);
-  updateCharts(originalData);
+  updateChart(originalData);
 }
 
-/* ---------------- DELETE ---------------- */
+/* ===== DELETE ===== */
 function deleteSelected(){
   const ids=[...document.querySelectorAll(".row-select:checked")]
     .map(cb=>Number(cb.dataset.id));
-
-  if(!ids.length) return alert("No selection");
+  if(!ids.length) return;
 
   fetch("/api/trades",{
     method:"DELETE",
@@ -337,33 +353,19 @@ function deleteSelected(){
   });
 }
 
-/* ---------------- CHART ---------------- */
-function updateCharts(data){
+/* ===== CHART ===== */
+function updateChart(data){
   charts.pnl?.destroy();
-
-  const daily={};
+  let cum=0,labels=[],values=[];
   data.forEach(d=>{
-    const day=`${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
-    daily[day]=(daily[day]||0)+Number(d.pnl||0);
-  });
-
-  let cum=0, labels=[], values=[];
-  Object.keys(daily).sort().forEach(d=>{
-    cum+=daily[d];
-    labels.push(d);
+    cum+=Number(d.pnl||0);
+    labels.push(formatDate(d.entryTimestamp).split(" ")[0]);
     values.push(cum);
   });
-
   charts.pnl=new Chart(pnlChart,{
     type:"line",
-    data:{labels,datasets:[{
-      data:values,
-      borderColor:"green",
-      backgroundColor:"rgba(0,255,0,0.2)",
-      fill:true,
-      tension:0.2
-    }]},
-    options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}
+    data:{labels,datasets:[{data:values,fill:true}]},
+    options:{plugins:{legend:{display:false}}}
   });
 }
 </script>
