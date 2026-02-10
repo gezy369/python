@@ -4,33 +4,72 @@
 
 <h2>Trade Journal</h2>
 
-<!-- Top controls -->
-<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+<!-- ================= STYLES ================= -->
+<style>
+/* ---- ROW HOVER / EXPANDED ---- */
+tr.trade-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+tr.trade-row:hover {
+  background: #f6f8fa;
+}
+tr.trade-row.expanded {
+  background: #eef6ff;
+}
 
-  <!-- LEFT SIDE: Apply/Reset buttons -->
+/* ---- DETAILS ROW ---- */
+tr.trade-details-row td {
+  padding: 0;
+  border-top: none;
+}
+
+.trade-details {
+  overflow: hidden;
+  max-height: 0;
+  padding: 0 16px;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+  background: #f9fbff;
+}
+
+.trade-details.open {
+  max-height: 400px;
+  padding: 16px;
+}
+
+/* ---- CONTENT GRID ---- */
+.trade-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.trade-details h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.pnl-positive { color: #27ae60; font-weight: 600; }
+.pnl-negative { color: #c0392b; font-weight: 600; }
+</style>
+
+<!-- ================= CONTROLS ================= -->
+<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
   <label>From: <input type="date" id="dateFrom"></label>
   <label>To: <input type="date" id="dateTo"></label>
   <button onclick="applyDateFilter()">Apply Dates</button>
   <button onclick="resetFilters()">Reset filters</button>
 
-  <!-- SEPARATOR -->
-  <div style="width:20px;"></div> <!-- Just empty space -->
+  <div style="width:20px;"></div>
 
-  <!-- DELETE BUTTON -->
-  <button
-    onclick="deleteSelected()"
-    style="background:#c0392b; color:white;"
-  >
+  <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
     Delete selected
   </button>
-
 </div>
 
-
-
 <div style="display:flex; gap:20px; align-items:flex-start;">
-
-  <!-- TABLE -->
   <div style="flex:2;">
     <table id="tradeTable">
       <thead><tr id="headerRow"></tr></thead>
@@ -38,10 +77,8 @@
     </table>
   </div>
 
-  <!-- CHARTS -->
   <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
     <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
-    <canvas id="winRateChart" height="200"></canvas>
   </div>
 </div>
 
@@ -50,6 +87,7 @@
 <script>
 let originalData = [];
 let charts = {};
+let openRow = null;
 
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
@@ -59,15 +97,14 @@ const COLUMN_ORDER = [
 
 const COLUMN_NAMES = {
   select:"",
-  //id:"ID",
   symbol:"Symbol",
-  entryTimestamp:"Entry Time",
-  exitTimestamp:"Exit Time",
+  entryTimestamp:"Entry",
+  exitTimestamp:"Exit",
   duration:"Duration",
   side:"Side",
   qty:"Qty",
-  entryPrice:"Entry Price",
-  exitPrice:"Exit Price",
+  entryPrice:"Entry",
+  exitPrice:"Exit",
   pnl:"PnL"
 };
 
@@ -86,25 +123,20 @@ fetch("/api/trades")
 
 /* ---------------- FORMAT ---------------- */
 const pad=n=>String(n).padStart(2,"0");
-
-function formatDate(d){
-  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
-          ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-function formatPnL(v){
-  const n=Number(v);
+const formatDate=d=>`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
+ ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatPnL=v=>{
+  const n=Number(v)||0;
   const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
   return n<0?`($${f})`:`$${f}`;
-}
+};
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
   const tr=document.getElementById("headerRow");
   tr.innerHTML="";
-
   COLUMN_ORDER.forEach(col=>{
     const th=document.createElement("th");
-
     if(col==="select"){
       const cb=document.createElement("input");
       cb.type="checkbox";
@@ -117,7 +149,7 @@ function buildHeaders(){
       th.textContent=COLUMN_NAMES[col];
       const input=document.createElement("input");
       input.placeholder="Filter";
-      input.dataset.col=col;           // ✅ KEY FIX
+      input.dataset.col=col;
       input.onkeyup=applyFiltersAndRender;
       th.append(document.createElement("br"),input);
     }
@@ -132,27 +164,24 @@ function buildRows(data){
 
   data.forEach(row=>{
     const tr=document.createElement("tr");
-    tr.onclick = () => toggleTradeDetails(tr, row);
+    tr.className="trade-row";
+    tr.onclick=()=>toggleTradeDetails(tr,row);
 
     COLUMN_ORDER.forEach(col=>{
       const td=document.createElement("td");
 
-      if (col === "select") {
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.className = "row-select";
-      cb.dataset.id = row.id;
-
-  // 🔑 Prevent row click
-  cb.addEventListener("click", e => e.stopPropagation());
-
-  td.appendChild(cb);
-}
-
+      if(col==="select"){
+        const cb=document.createElement("input");
+        cb.type="checkbox";
+        cb.className="row-select";
+        cb.dataset.id=row.id;
+        cb.addEventListener("click",e=>e.stopPropagation());
+        td.appendChild(cb);
+      }
       else if(col==="pnl"){
-          const value = Number(row[col]) || 0;
-          td.textContent = formatPnL(value);
-          td.className = value >= 0 ? "pnl-positive" : "pnl-negative";
+        const v=Number(row[col])||0;
+        td.textContent=formatPnL(v);
+        td.className=v>=0?"pnl-positive":"pnl-negative";
       }
       else if(col.includes("Timestamp")){
         td.textContent=formatDate(row[col]);
@@ -162,8 +191,58 @@ function buildRows(data){
       }
       tr.appendChild(td);
     });
+
     tbody.appendChild(tr);
   });
+}
+
+/* ---------------- EXPAND / COLLAPSE ---------------- */
+function toggleTradeDetails(tr, trade){
+  if(openRow && openRow.tr===tr){
+    closeDetails();
+    return;
+  }
+
+  closeDetails();
+  tr.classList.add("expanded");
+
+  const detailsTr=document.createElement("tr");
+  detailsTr.className="trade-details-row";
+
+  const td=document.createElement("td");
+  td.colSpan=COLUMN_ORDER.length;
+
+  td.innerHTML=`
+    <div class="trade-details open">
+      <div class="trade-details-grid">
+        <div>
+          <h4>Trade</h4>
+          <div><strong>Symbol:</strong> ${trade.symbol}</div>
+          <div><strong>Side:</strong> ${trade.side}</div>
+          <div><strong>Qty:</strong> ${trade.qty}</div>
+          <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
+          <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
+          <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+        </div>
+        <div>
+          <h4>Strategy</h4>
+          <div class="muted">No strategy data yet</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  detailsTr.appendChild(td);
+  tr.after(detailsTr);
+
+  openRow={tr,detailsTr};
+}
+
+function closeDetails(){
+  if(!openRow) return;
+  openRow.tr.classList.remove("expanded");
+  openRow.detailsTr.remove();
+  openRow=null;
 }
 
 /* ---------------- FILTERS ---------------- */
@@ -192,9 +271,7 @@ function applyFiltersAndRender(){
     );
   });
 
-  // Sort by entryTimestamp (oldest → newest)
-  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
-
+  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
 
   buildRows(data);
   updateCharts(data);
@@ -253,59 +330,6 @@ function updateCharts(data){
     options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}
   });
 }
-
-/* ---------------- SLIDING PANEL ---------------- */
-
-let openDetailsRow = null;
-
-function toggleTradeDetails(tr, trade) {
-  // Close if already open
-  if (openDetailsRow && openDetailsRow.previousSibling === tr) {
-    openDetailsRow.remove();
-    openDetailsRow = null;
-    return;
-  }
-
-  // Close any other open panel
-  if (openDetailsRow) {
-    openDetailsRow.remove();
-    openDetailsRow = null;
-  }
-
-  const detailsTr = document.createElement("tr");
-  detailsTr.className = "trade-details";
-
-  const td = document.createElement("td");
-  td.colSpan = COLUMN_ORDER.length;
-
-  td.innerHTML = `
-    <div class="trade-details-content">
-      <div class="trade-details-section">
-        <h4>Trade</h4>
-        <p><strong>Symbol:</strong> ${trade.symbol}</p>
-        <p><strong>Side:</strong> ${trade.side}</p>
-        <p><strong>Quantity:</strong> ${trade.qty}</p>
-        <p><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</p>
-        <p><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</p>
-        <p><strong>PnL:</strong> ${formatPnL(trade.pnl)}</p>
-      </div>
-
-      <div class="trade-details-section">
-        <h4>Strategy</h4>
-        <p><strong>Name:</strong> ${trade.strategy_name ?? "—"}</p>
-        <p><strong>Setup:</strong> ${trade.setup ?? "—"}</p>
-        <p><strong>Notes:</strong></p>
-        <p>${trade.notes ?? "No notes"}</p>
-      </div>
-    </div>
-  `;
-
-  detailsTr.appendChild(td);
-
-  tr.after(detailsTr);
-  openDetailsRow = detailsTr;
-}
-
 </script>
 
 {% endblock %}
