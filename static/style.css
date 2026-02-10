@@ -56,8 +56,14 @@ body {
   height: 50%;
 }
 
-.upload-left {
+#upload-left {
   width: 40%;
+  background: #ffffff;
+  padding: 40px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.tile {
   background: #ffffff;
   padding: 40px;
   box-shadow: 2px 0 10px rgba(0,0,0,0.1);
@@ -223,11 +229,11 @@ button {
   gap: 20px;
 }
 
-/* ===== Blocks ===== */
+/* ===== Blocks =====
 .settings-block {
   border: 1px solid var(--border-color, #333);
   padding: 12px;
-}
+}*/
 
 /* ===== Tables ===== */
 .settings-table {
