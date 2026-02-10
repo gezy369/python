@@ -132,7 +132,7 @@ function buildRows(data){
 
   data.forEach(row=>{
     const tr=document.createElement("tr");
-    tr.ondblclick=()=>openTradeInTradingView(row);
+    tr.onclick = () => toggleTradeDetails(tr, row);
 
     COLUMN_ORDER.forEach(col=>{
       const td=document.createElement("td");
@@ -249,16 +249,56 @@ function updateCharts(data){
   });
 }
 
-/* ---------------- TV ---------------- */
-function openTradeInTradingView(trade){
-  const symbol = trade.symbol.includes(":")
-    ? trade.symbol
-    : `${trade.symbol}1!`;
+/* ---------------- SLIDING PANEL ---------------- */
 
-  window.open(
-    `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}&interval=5&timestamp=${trade.entryTimestamp.getTime()}`,
-    "_blank"
-  );
+let openDetailsRow = null;
+
+function toggleTradeDetails(tr, trade) {
+  // Close if already open
+  if (openDetailsRow && openDetailsRow.previousSibling === tr) {
+    openDetailsRow.remove();
+    openDetailsRow = null;
+    return;
+  }
+
+  // Close any other open panel
+  if (openDetailsRow) {
+    openDetailsRow.remove();
+    openDetailsRow = null;
+  }
+
+  const detailsTr = document.createElement("tr");
+  detailsTr.className = "trade-details";
+
+  const td = document.createElement("td");
+  td.colSpan = COLUMN_ORDER.length;
+
+  td.innerHTML = `
+    <div class="trade-details-content">
+      <div class="trade-details-section">
+        <h4>Trade</h4>
+        <p><strong>Symbol:</strong> ${trade.symbol}</p>
+        <p><strong>Side:</strong> ${trade.side}</p>
+        <p><strong>Quantity:</strong> ${trade.qty}</p>
+        <p><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</p>
+        <p><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</p>
+        <p><strong>PnL:</strong> ${formatPnL(trade.pnl)}</p>
+      </div>
+
+      <div class="trade-details-section">
+        <h4>Strategy</h4>
+        <p><strong>Name:</strong> ${trade.strategy_name ?? "—"}</p>
+        <p><strong>Setup:</strong> ${trade.setup ?? "—"}</p>
+        <p><strong>Notes:</strong></p>
+        <p>${trade.notes ?? "No notes"}</p>
+      </div>
+    </div>
+  `;
+
+  detailsTr.appendChild(td);
+
+  tr.after(detailsTr);
+  openDetailsRow = detailsTr;
 }
 
 </script>

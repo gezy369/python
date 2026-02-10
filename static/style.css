@@ -274,3 +274,31 @@ button {
   border: 1px dashed #aaa;
   background: transparent;
 }
+
+/* ================= TABLE SLIDING DETAILS PANEL =================== */
+
+.trade-details td {
+  background: #f8f9fa;
+  padding: 14px;
+  border-top: none;
+}
+
+.trade-details-content {
+  display: flex;
+  gap: 20px;
+}
+
+.trade-details-section {
+  flex: 1;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.trade-details-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: #555;
+}
