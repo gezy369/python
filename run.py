@@ -148,8 +148,21 @@ def add_account():
 
 @app.patch("/api/trades/<id>")
 def update_trade(id):
-    supabase.table("trades").update(request.json).eq("id", id).execute()
+    data = request.json
+
+    response = (
+        supabase
+        .table("trades")
+        .update(data)
+        .eq("id", id)
+        .execute()
+    )
+
+    if response.data is None:
+        return {"error": "Update failed"}, 400
+
     return {"ok": True}
+
 
 @app.delete("/api/accounts/<id>")
 def delete_account(id):
@@ -159,6 +172,13 @@ def delete_account(id):
         .execute()
     return {"ok": True}
 
+@app.get("/api/strategies")
+def get_strategies():
+    response = supabase.table("strategies") \
+        .select("id, strategy_name") \
+        .order("name") \
+        .execute()
+    return jsonify(response.data or [])
 
 
 

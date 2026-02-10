@@ -38,6 +38,12 @@ let originalData = [];
 let charts = {};
 let openRow = null;
 
+let STRATEGIES = [];
+
+fetch("/api/strategies")
+  .then(r => r.json())
+  .then(data => STRATEGIES = data);
+
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
   "select","symbol","entryTimestamp","exitTimestamp",
@@ -155,6 +161,16 @@ function toggleTradeDetails(tr, trade){
   closeDetails();
   tr.classList.add("expanded");
 
+  /* ---------- STRATEGY OPTIONS (FAST, NO DOM OPS) ---------- */
+  const strategyOptions = [
+    `<option value="">No strategy</option>`,
+    ...STRATEGIES.map(s =>
+      `<option value="${s.id}" ${s.id === trade.key_strategies_id ? "selected" : ""}>
+        ${s.name}
+      </option>`
+    )
+  ].join("");
+
   const detailsTr = document.createElement("tr");
   detailsTr.className = "trade-details-row";
 
@@ -164,6 +180,7 @@ function toggleTradeDetails(tr, trade){
   td.innerHTML = `
     <div class="trade-details">
       <div class="trade-details-grid">
+
         <div>
           <h4>Trade</h4>
           <div><strong>Symbol:</strong> ${trade.symbol}</div>
@@ -172,12 +189,6 @@ function toggleTradeDetails(tr, trade){
           <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
           <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
-
-          <div style="margin-top:10px;">
-            <label><strong>Notes:</strong></label><br>
-            <textarea class="trade-notes" rows="4" style="width:100%;">${trade.notes ?? ""}</textarea>
-            <div class="notes-status muted" style="font-size:12px;"></div>
-          </div>
 
           <div style="margin-top:10px;">
             <label><strong>Screenshot:</strong></label><br>
@@ -190,8 +201,22 @@ function toggleTradeDetails(tr, trade){
 
         <div>
           <h4>Strategy</h4>
-          <div class="muted">No strategy data yet</div>
+
+          <select class="trade-strategy" style="width:100%;">
+            ${strategyOptions}
+          </select>
+
+          <div class="muted strategy-status" style="font-size:12px;margin-top:4px;">
+            ${trade.key_strategies_id ? "" : "No strategy"}
+          </div>
+
+          <div style="margin-top:10px;">
+            <label><strong>Notes:</strong></label><br>
+            <textarea class="trade-notes" rows="4" style="width:100%;">${trade.notes ?? ""}</textarea>
+            <div class="notes-status muted" style="font-size:12px;"></div>
+          </div>
         </div>
+
       </div>
     </div>
   `;
@@ -199,19 +224,20 @@ function toggleTradeDetails(tr, trade){
   detailsTr.appendChild(td);
   tr.after(detailsTr);
 
+  /* ---------- SMOOTH OPEN ---------- */
   const panel = td.querySelector(".trade-details");
   panel.offsetHeight;
   requestAnimationFrame(() => panel.classList.add("open"));
 
-  /* ---------- AUTOSAVE NOTES (NO BUTTON) ---------- */
+  /* ---------- AUTOSAVE NOTES ---------- */
   const notesInput = td.querySelector(".trade-notes");
-  const statusEl = td.querySelector(".notes-status");
+  const notesStatus = td.querySelector(".notes-status");
 
   let saveTimer = null;
   let abortController = null;
 
   notesInput.addEventListener("input", () => {
-    statusEl.textContent = "Saving…";
+    notesStatus.textContent = "Saving…";
 
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
@@ -226,13 +252,31 @@ function toggleTradeDetails(tr, trade){
           signal: abortController.signal
         });
 
-        statusEl.textContent = "Saved";
+        notesStatus.textContent = "Saved";
       } catch (err) {
         if(err.name !== "AbortError"){
-          statusEl.textContent = "Save failed";
+          notesStatus.textContent = "Save failed";
         }
       }
     }, 500);
+  });
+
+  /* ---------- STRATEGY AUTOSAVE ---------- */
+  const strategySelect = td.querySelector(".trade-strategy");
+  const strategyStatus = td.querySelector(".strategy-status");
+
+  strategySelect.addEventListener("change", () => {
+    const value = strategySelect.value || null;
+
+    fetch(`/api/trades/${trade.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key_strategies_id: value })
+    });
+
+    strategyStatus.textContent = value ? "Saved" : "No strategy";
+    strategyStatus.classList.remove("muted");
+    setTimeout(() => strategyStatus.classList.add("muted"), 600);
   });
 
   /* ---------- SCREENSHOT UPLOAD ---------- */
@@ -276,8 +320,6 @@ function toggleTradeDetails(tr, trade){
 
   openRow = { tr, detailsTr, panel };
 }
-
-
 
 
 function closeDetails() {
