@@ -174,11 +174,18 @@ def delete_account(id):
 
 @app.get("/api/strategies")
 def get_strategies():
-    response = supabase.table("strategies") \
-        .select("id, strategy_name") \
-        .order("name") \
-        .execute()
-    return jsonify(response.data or [])
+    try:
+        response = (
+            supabase.table("strategies")
+            .select("id, strategy_name, color")   # include color
+            .order("strategy_name")              # correct column name
+            .execute()
+        )
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/strategies error:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 
 
