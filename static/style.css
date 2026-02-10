@@ -367,3 +367,18 @@ tr.trade-details-row td {
   background: #e0e0e0;
   color: #666;
 }
+
+.setup-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin: 2px 2px 2px 0;
+  cursor: pointer;
+}
+.setup-tag.muted {
+  background: #e0e0e0;
+  color: #666;
+}

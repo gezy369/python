@@ -38,7 +38,7 @@
 let originalData = [];
 let charts = {};
 let openRow = null;
-
+let SETUPS = [];  // loaded once at start
 let STRATEGIES = [];
 
 /* ---------------- COLUMNS ---------------- */
@@ -84,6 +84,10 @@ fetch(`/api/trades/${trade.id}`, {
   body: JSON.stringify({ key_strategies_id: value })
 });
 
+// Load setups
+fetch("/api/setups")
+  .then(r => r.json())
+  .then(data => SETUPS = data);
 // keep local state in sync
 trade.key_strategies_id = value ? Number(value) : null;
 
@@ -139,6 +143,33 @@ function buildHeaders(){
     tr.appendChild(th);
   });
 }
+
+// Render setup tags for a trade
+function renderSetupTags(tradeId, assignedSetups) {
+  if(!assignedSetups || !assignedSetups.length) return '<span class="muted">No setups</span>';
+
+  return assignedSetups.map(s => `
+    <span class="setup-tag" style="background:${s.color}" data-setup-id="${s.id}">
+      ${s.setup_name} &times;
+    </span>
+  `).join('');
+}
+
+// Add a setup to a trade
+async function addSetupToTrade(tradeId, setupId) {
+  const resp = await fetch("/api/trade_setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key_trade_id: tradeId, key_setup_id: setupId })
+  });
+  return resp.json();
+}
+
+// Remove a setup from a trade
+async function removeSetupFromTrade(tradeSetupId) {
+  await fetch(`/api/trade_setup/${tradeSetupId}`, { method: "DELETE" });
+}
+
 
 /* ---------------- ROWS ---------------- */
 function buildRows(data){
@@ -245,6 +276,16 @@ function toggleTradeDetails(tr, trade){
             <div class="notes-status muted" style="font-size:12px;"></div>
           </div>
         </div>
+        <div>
+          <h4>Setups</h4>
+          <div class="setup-container" style="margin-top:6px;">
+            <!-- tags rendered dynamically -->
+          </div>
+          <select class="setup-add" style="margin-top:4px; width:100%;">
+            <option value="">+ Add setup</option>
+            ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join('')}
+          </select>
+        </div>
 
       </div>
     </div>
@@ -311,6 +352,52 @@ function toggleTradeDetails(tr, trade){
   td.querySelector(".strategy-tag-container").innerHTML =
     renderStrategyTag(trade.key_strategies_id);
 });
+
+  const setupContainer = td.querySelector(".setup-container");
+const setupSelect = td.querySelector(".setup-add");
+
+// Initially fetch setups assigned to this trade
+fetch(`/api/trade_setup?trade_id=${trade.id}`)
+  .then(r => r.json())
+  .then(assigned => {
+    setupContainer.innerHTML = renderSetupTags(trade.id, assigned);
+    
+    // Remove on click
+    setupContainer.querySelectorAll(".setup-tag").forEach(tag => {
+      tag.addEventListener("click", async () => {
+        const setupId = tag.dataset.setupId;
+        const ts = assigned.find(a => a.id == setupId);
+        if(!ts) return;
+        await removeSetupFromTrade(ts.id);
+        tag.remove();
+      });
+    });
+  });
+
+// Add setup on select change
+setupSelect.addEventListener("change", async () => {
+  const val = setupSelect.value;
+  if(!val) return;
+  
+  const added = await addSetupToTrade(trade.id, val);
+  
+  const s = SETUPS.find(x => x.id == val);
+  const tag = document.createElement("span");
+  tag.className = "setup-tag";
+  tag.style.background = s.color;
+  tag.dataset.setupId = added.id; // or trade_setup id
+  tag.textContent = s.setup_name + " ×";
+  setupContainer.appendChild(tag);
+
+  // Remove on click
+  tag.addEventListener("click", async () => {
+    await removeSetupFromTrade(added.id);
+    tag.remove();
+  });
+
+  setupSelect.value = "";
+});
+
 
 
   /* ---------- SCREENSHOT UPLOAD ---------- */
