@@ -34,12 +34,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-
 let originalData = [];
 let charts = {};
 let openRow = null;
-let SETUPS = [];  // loaded once at start
 let STRATEGIES = [];
+let SETUPS = [];
 
 /* ---------------- COLUMNS ---------------- */
 const COLUMN_ORDER = [
@@ -60,13 +59,23 @@ const COLUMN_NAMES = {
   pnl:"PnL"
 };
 
-/* ---------------- FETCH ---------------- */
+/* ---------------- FORMAT ---------------- */
+const pad = n => String(n).padStart(2,"0");
+const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatPnL = v => {
+  const n = Number(v)||0;
+  const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
+  return n < 0 ? `($${f})` : `$${f}`;
+};
 
+/* ---------------- FETCH DATA ---------------- */
 Promise.all([
-  fetch("/api/strategies").then(r => r.json()),
-  fetch("/api/trades").then(r => r.json())
-]).then(([strategies, trades]) => {
+  fetch("/api/strategies").then(r=>r.json()),
+  fetch("/api/setups").then(r=>r.json()),
+  fetch("/api/trades").then(r=>r.json())
+]).then(([strategies, setups, trades])=>{
   STRATEGIES = strategies;
+  SETUPS = setups;
 
   originalData = trades.map(t => ({
     ...t,
@@ -78,130 +87,62 @@ Promise.all([
   applyFiltersAndRender();
 });
 
-fetch(`/api/trades/${trade.id}`, {
-  method: "PATCH",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ key_strategies_id: value })
-});
-
-// Load setups
-fetch("/api/setups")
-  .then(r => r.json())
-  .then(data => SETUPS = data);
-// keep local state in sync
-trade.key_strategies_id = value ? Number(value) : null;
-
-
-/* ---------------- FORMAT ---------------- */
-const pad=n=>String(n).padStart(2,"0");
-const formatDate=d=>`${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}
- ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatPnL=v=>{
-  const n=Number(v)||0;
-  const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
-  return n<0?`($${f})`:`$${f}`;
-};
-
-function renderStrategyTag(strategyId){
-  if(!strategyId) {
-    return `<span class="strategy-tag muted">No strategy</span>`;
-  }
-
-  const s = STRATEGIES.find(x => x.id === strategyId);
-  if(!s) return "";
-
-  return `
-    <span class="strategy-tag"
-          style="background:${s.color};">
-      ${s.strategy_name}
-    </span>
-  `;
-}
-
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
-  const tr=document.getElementById("headerRow");
-  tr.innerHTML="";
-  COLUMN_ORDER.forEach(col=>{
-    const th=document.createElement("th");
-    if(col==="select"){
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.onclick=e=>{
-        document.querySelectorAll(".row-select")
-          .forEach(x=>x.checked=e.target.checked);
+  const tr = document.getElementById("headerRow");
+  tr.innerHTML = "";
+  COLUMN_ORDER.forEach(col => {
+    const th = document.createElement("th");
+    if(col === "select"){
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.onclick = e => {
+        document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked);
       };
       th.appendChild(cb);
     } else {
-      th.textContent=COLUMN_NAMES[col];
-      const input=document.createElement("input");
-      input.placeholder="Filter";
-      input.dataset.col=col;
-      input.onkeyup=applyFiltersAndRender;
-      th.append(document.createElement("br"),input);
+      th.textContent = COLUMN_NAMES[col];
+      const input = document.createElement("input");
+      input.placeholder = "Filter";
+      input.dataset.col = col;
+      input.onkeyup = applyFiltersAndRender;
+      th.append(document.createElement("br"), input);
     }
     tr.appendChild(th);
   });
 }
 
-// Render setup tags for a trade
-function renderSetupTags(tradeId, assignedSetups) {
-  if(!assignedSetups || !assignedSetups.length) return '<span class="muted">No setups</span>';
-
-  return assignedSetups.map(s => `
-    <span class="setup-tag" style="background:${s.color}" data-setup-id="${s.id}">
-      ${s.setup_name} &times;
-    </span>
-  `).join('');
-}
-
-// Add a setup to a trade
-async function addSetupToTrade(tradeId, setupId) {
-  const resp = await fetch("/api/trade_setup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key_trade_id: tradeId, key_setup_id: setupId })
-  });
-  return resp.json();
-}
-
-// Remove a setup from a trade
-async function removeSetupFromTrade(tradeSetupId) {
-  await fetch(`/api/trade_setup/${tradeSetupId}`, { method: "DELETE" });
-}
-
-
-/* ---------------- ROWS ---------------- */
+/* ---------------- RENDER ROWS ---------------- */
 function buildRows(data){
-  const tbody=document.querySelector("#tradeTable tbody");
-  tbody.innerHTML="";
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
 
   data.forEach(row=>{
-    const tr=document.createElement("tr");
-    tr.className="trade-row";
-    tr.onclick=()=>toggleTradeDetails(tr,row);
+    const tr = document.createElement("tr");
+    tr.className = "trade-row";
+    tr.onclick = ()=>toggleTradeDetails(tr, row);
 
     COLUMN_ORDER.forEach(col=>{
-      const td=document.createElement("td");
+      const td = document.createElement("td");
 
-      if(col==="select"){
-        const cb=document.createElement("input");
-        cb.type="checkbox";
-        cb.className="row-select";
-        cb.dataset.id=row.id;
-        cb.addEventListener("click",e=>e.stopPropagation());
+      if(col === "select"){
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "row-select";
+        cb.dataset.id = row.id;
+        cb.addEventListener("click", e => e.stopPropagation());
         td.appendChild(cb);
       }
-      else if(col==="pnl"){
-        const v=Number(row[col])||0;
-        td.textContent=formatPnL(v);
-        td.className=v>=0?"pnl-positive":"pnl-negative";
+      else if(col === "pnl"){
+        const v = Number(row[col])||0;
+        td.textContent = formatPnL(v);
+        td.className = v >= 0 ? "pnl-positive" : "pnl-negative";
       }
       else if(col.includes("Timestamp")){
-        td.textContent=formatDate(row[col]);
+        td.textContent = formatDate(row[col]);
       }
       else{
-        td.textContent=row[col]??"";
+        td.textContent = row[col]??"";
       }
       tr.appendChild(td);
     });
@@ -210,7 +151,35 @@ function buildRows(data){
   });
 }
 
-/* ---------------- EXPAND / COLLAPSE ---------------- */
+/* ---------------- STRATEGY TAG ---------------- */
+function renderStrategyTag(strategyId){
+  if(!strategyId) return `<span class="strategy-tag muted">No strategy</span>`;
+  const s = STRATEGIES.find(x=>x.id===strategyId);
+  if(!s) return "";
+  return `<span class="strategy-tag" style="background:${s.color};">${s.strategy_name}</span>`;
+}
+
+/* ---------------- SETUP TAGS ---------------- */
+function renderSetupTags(assignedSetups){
+  if(!assignedSetups || !assignedSetups.length) return '<span class="muted">No setups</span>';
+  return assignedSetups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-setup-id="${s.id}">${s.setup_name} ×</span>`).join('');
+}
+
+/* ---------------- ADD / REMOVE SETUP ---------------- */
+async function addSetupToTrade(tradeId, setupId){
+  const resp = await fetch("/api/trade_setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key_trade_id: tradeId, key_setup_id: setupId })
+  });
+  return resp.json();
+}
+
+async function removeSetupFromTrade(tradeSetupId){
+  await fetch(`/api/trade_setup/${tradeSetupId}`, { method:"DELETE" });
+}
+
+/* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
   if(openRow && openRow.tr === tr){
     closeDetails();
@@ -220,19 +189,13 @@ function toggleTradeDetails(tr, trade){
   closeDetails();
   tr.classList.add("expanded");
 
-  /* ---------- STRATEGY OPTIONS (FAST, NO DOM OPS) ---------- */
   const strategyOptions = [
     `<option value="">No strategy</option>`,
-    ...STRATEGIES.map(s =>
-      `<option value="${s.id}" ${s.id === trade.key_strategies_id ? "selected" : ""}>
-        ${s.strategy_name}
-      </option>`
-    )
+    ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)
   ].join("");
 
   const detailsTr = document.createElement("tr");
   detailsTr.className = "trade-details-row";
-
   const td = document.createElement("td");
   td.colSpan = COLUMN_ORDER.length;
 
@@ -260,30 +223,24 @@ function toggleTradeDetails(tr, trade){
 
         <div>
           <h4>Strategy</h4>
-
-          <select class="trade-strategy" style="width:100%;">
-            ${strategyOptions}
-          </select>
-
+          <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
           <div class="strategy-tag-container" style="margin-top:6px;">
             ${renderStrategyTag(trade.key_strategies_id)}
           </div>
 
-
           <div style="margin-top:10px;">
             <label><strong>Notes:</strong></label><br>
-            <textarea class="trade-notes" rows="4" style="width:100%;">${trade.notes ?? ""}</textarea>
+            <textarea class="trade-notes" rows="4" style="width:100%;">${trade.notes??""}</textarea>
             <div class="notes-status muted" style="font-size:12px;"></div>
           </div>
         </div>
+
         <div>
           <h4>Setups</h4>
-          <div class="setup-container" style="margin-top:6px;">
-            <!-- tags rendered dynamically -->
-          </div>
+          <div class="setup-container" style="margin-top:6px;"></div>
           <select class="setup-add" style="margin-top:4px; width:100%;">
             <option value="">+ Add setup</option>
-            ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join('')}
+            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join('')}
           </select>
         </div>
 
@@ -297,203 +254,147 @@ function toggleTradeDetails(tr, trade){
   /* ---------- SMOOTH OPEN ---------- */
   const panel = td.querySelector(".trade-details");
   panel.offsetHeight;
-  requestAnimationFrame(() => panel.classList.add("open"));
+  requestAnimationFrame(()=>panel.classList.add("open"));
 
   /* ---------- AUTOSAVE NOTES ---------- */
   const notesInput = td.querySelector(".trade-notes");
   const notesStatus = td.querySelector(".notes-status");
-
   let saveTimer = null;
   let abortController = null;
-
-  notesInput.addEventListener("input", () => {
+  notesInput.addEventListener("input", ()=>{
     notesStatus.textContent = "Saving…";
-
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
+    saveTimer = setTimeout(async ()=>{
       if(abortController) abortController.abort();
       abortController = new AbortController();
-
-      try {
+      try{
         await fetch(`/api/trades/${trade.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: notesInput.value }),
-        signal: abortController.signal
-      });
-
-      // 🔑 keep local state in sync
-      trade.notes = notesInput.value;
-
-      notesStatus.textContent = "Saved";
-      } catch (err) {
-        if(err.name !== "AbortError"){
-          notesStatus.textContent = "Save failed";
-        }
+          method:"PATCH",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ notes: notesInput.value }),
+          signal: abortController.signal
+        });
+        trade.notes = notesInput.value; // sync local state
+        notesStatus.textContent = "Saved";
+      }catch(err){
+        if(err.name !== "AbortError") notesStatus.textContent = "Save failed";
       }
-    }, 500);
+    },500);
   });
 
   /* ---------- STRATEGY AUTOSAVE ---------- */
   const strategySelect = td.querySelector(".trade-strategy");
-  const strategyStatus = td.querySelector(".strategy-status");
-
-  strategySelect.addEventListener("change", () => {
-  const value = strategySelect.value || null;
-
-  fetch(`/api/trades/${trade.id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key_strategies_id: value })
+  const strategyContainer = td.querySelector(".strategy-tag-container");
+  strategySelect.addEventListener("change", ()=>{
+    const val = strategySelect.value || null;
+    fetch(`/api/trades/${trade.id}`,{
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ key_strategies_id: val })
+    });
+    trade.key_strategies_id = val ? Number(val) : null;
+    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
   });
 
-  trade.key_strategies_id = value ? Number(value) : null;
-
-  td.querySelector(".strategy-tag-container").innerHTML =
-    renderStrategyTag(trade.key_strategies_id);
-});
-
+  /* ---------- SETUPS ---------- */
   const setupContainer = td.querySelector(".setup-container");
-const setupSelect = td.querySelector(".setup-add");
+  const setupSelect = td.querySelector(".setup-add");
 
-// Initially fetch setups assigned to this trade
-fetch(`/api/trade_setup?trade_id=${trade.id}`)
-  .then(r => r.json())
-  .then(assigned => {
-    setupContainer.innerHTML = renderSetupTags(trade.id, assigned);
-    
-    // Remove on click
-    setupContainer.querySelectorAll(".setup-tag").forEach(tag => {
-      tag.addEventListener("click", async () => {
-        const setupId = tag.dataset.setupId;
-        const ts = assigned.find(a => a.id == setupId);
-        if(!ts) return;
-        await removeSetupFromTrade(ts.id);
-        tag.remove();
+  // Fetch assigned setups
+  fetch(`/api/trade_setup?trade_id=${trade.id}`)
+    .then(r=>r.json())
+    .then(assigned=>{
+      setupContainer.innerHTML = renderSetupTags(assigned);
+
+      // Attach remove handlers
+      setupContainer.querySelectorAll(".setup-tag").forEach(tag=>{
+        tag.addEventListener("click", async ()=>{
+          const setupId = tag.dataset.setupId;
+          const ts = assigned.find(a=>a.id==setupId);
+          if(!ts) return;
+          await removeSetupFromTrade(ts.id);
+          tag.remove();
+        });
+      });
+
+      // Add new setup
+      setupSelect.addEventListener("change", async ()=>{
+        const val = setupSelect.value;
+        if(!val) return;
+        const added = await addSetupToTrade(trade.id, val);
+        const s = SETUPS.find(x=>x.id==val);
+        const tag = document.createElement("span");
+        tag.className = "setup-tag";
+        tag.style.background = s.color;
+        tag.dataset.setupId = added.id;
+        tag.textContent = s.setup_name+" ×";
+        setupContainer.appendChild(tag);
+
+        tag.addEventListener("click", async ()=>{
+          await removeSetupFromTrade(added.id);
+          tag.remove();
+        });
+
+        setupSelect.value = "";
       });
     });
-  });
-
-// Add setup on select change
-setupSelect.addEventListener("change", async () => {
-  const val = setupSelect.value;
-  if(!val) return;
-  
-  const added = await addSetupToTrade(trade.id, val);
-  
-  const s = SETUPS.find(x => x.id == val);
-  const tag = document.createElement("span");
-  tag.className = "setup-tag";
-  tag.style.background = s.color;
-  tag.dataset.setupId = added.id; // or trade_setup id
-  tag.textContent = s.setup_name + " ×";
-  setupContainer.appendChild(tag);
-
-  // Remove on click
-  tag.addEventListener("click", async () => {
-    await removeSetupFromTrade(added.id);
-    tag.remove();
-  });
-
-  setupSelect.value = "";
-});
-
-
 
   /* ---------- SCREENSHOT UPLOAD ---------- */
   const chartInput = td.querySelector(".trade-chart");
   const chartPreview = td.querySelector(".chart-preview");
-
-  chartInput.addEventListener("change", async (e) => {
+  chartInput.addEventListener("change", async e=>{
     const file = e.target.files[0];
     if(!file) return;
-
     const filename = `charts/${trade.id}_${Date.now()}_${file.name}`;
-
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from("charts")
-        .upload(filename, file);
-
+    try{
+      const { error: uploadError } = await supabase.storage.from("charts").upload(filename, file);
       if(uploadError) throw uploadError;
-
-      const { data: publicData, error: urlError } = supabase.storage
-        .from("charts")
-        .getPublicUrl(filename);
-
+      const { data: publicData, error: urlError } = await supabase.storage.from("charts").getPublicUrl(filename);
       if(urlError) throw urlError;
-
       const chartUrl = publicData.publicUrl;
-
-      await fetch(`/api/trades/${trade.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`/api/trades/${trade.id}`,{
+        method:"PATCH",
+        headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ chart: chartUrl })
       });
-
-      chartPreview.innerHTML =
-        `<img src="${chartUrl}" style="max-width:100%; max-height:150px;">`;
-
-    } catch(err) {
-      alert("Failed to upload screenshot: " + err.message);
+      chartPreview.innerHTML = `<img src="${chartUrl}" style="max-width:100%; max-height:150px;">`;
+    }catch(err){
+      alert("Failed to upload screenshot: "+err.message);
     }
   });
 
   openRow = { tr, detailsTr, panel };
 }
 
-
-function closeDetails() {
-  if (!openRow) return;
-
+/* ---------------- CLOSE DETAILS ---------------- */
+function closeDetails(){
+  if(!openRow) return;
   const { tr, detailsTr, panel } = openRow;
-
-  // Remove highlight
   tr.classList.remove("expanded");
-
-  // Start collapse animation
   panel.classList.remove("open");
-
-  // Wait for animation to finish before removing row
-  const duration = 250; // must match CSS transition time
-
-  setTimeout(() => {
-    detailsTr.remove();
-  }, duration);
-
+  setTimeout(()=>detailsTr.remove(), 250);
   openRow = null;
 }
 
-
-
 /* ---------------- FILTERS ---------------- */
-function applyDateFilter(){ applyFiltersAndRender(); }
-
 function applyFiltersAndRender(){
-  let data=[...originalData];
+  let data = [...originalData];
 
-  const from=dateFrom.value?new Date(dateFrom.value):null;
-  const to=dateTo.value?new Date(dateTo.value):null;
-
-  if(from||to){
-    data=data.filter(t=>{
-      if(from&&t.entryTimestamp<from) return false;
-      if(to&&t.entryTimestamp>to) return false;
-      return true;
-    });
-  }
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to = dateTo.value ? new Date(dateTo.value) : null;
+  if(from || to) data = data.filter(t=>{
+    if(from && t.entryTimestamp<from) return false;
+    if(to && t.entryTimestamp>to) return false;
+    return true;
+  });
 
   document.querySelectorAll("th input[data-col]").forEach(input=>{
     if(!input.value) return;
-    const col=input.dataset.col;
-    data=data.filter(r=>
-      String(r[col]??"").toLowerCase()
-        .includes(input.value.toLowerCase())
-    );
+    const col = input.dataset.col;
+    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
   });
 
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-
   buildRows(data);
   updateCharts(data);
 }
@@ -507,17 +408,14 @@ function resetFilters(){
 
 /* ---------------- DELETE ---------------- */
 function deleteSelected(){
-  const ids=[...document.querySelectorAll(".row-select:checked")]
-    .map(cb=>Number(cb.dataset.id));
-
+  const ids = [...document.querySelectorAll(".row-select:checked")].map(cb=>Number(cb.dataset.id));
   if(!ids.length) return alert("No selection");
-
   fetch("/api/trades",{
     method:"DELETE",
     headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ids})
+    body: JSON.stringify({ids})
   }).then(()=>{
-    originalData=originalData.filter(t=>!ids.includes(t.id));
+    originalData = originalData.filter(t=>!ids.includes(t.id));
     applyFiltersAndRender();
   });
 }
@@ -525,49 +423,24 @@ function deleteSelected(){
 /* ---------------- CHART ---------------- */
 function updateCharts(data){
   charts.pnl?.destroy();
-
-  const daily={};
+  const daily = {};
   data.forEach(d=>{
-    const day=`${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
-    daily[day]=(daily[day]||0)+Number(d.pnl||0);
+    const day = `${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
+    daily[day] = (daily[day]||0)+Number(d.pnl||0);
   });
-
   let cum=0, labels=[], values=[];
   Object.keys(daily).sort().forEach(d=>{
     cum+=daily[d];
     labels.push(d);
     values.push(cum);
   });
-
-  charts.pnl=new Chart(pnlChart,{
+  charts.pnl = new Chart(pnlChart,{
     type:"line",
-    data:{labels,datasets:[{
-      data:values,
-      borderColor:"green",
-      backgroundColor:"rgba(0,255,0,0.2)",
-      fill:true,
-      tension:0.2
-    }]},
-    options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}
+    data:{ labels, datasets:[{ data: values, borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", fill:true, tension:0.2 }] },
+    options:{ maintainAspectRatio:false, plugins:{legend:{display:false}} }
   });
 }
-
-function debounce(fn, delay = 600) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
-
-function saveNotes(tradeId, notes) {
-  fetch(`/api/trades/${tradeId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notes })
-  });
-}
-
 </script>
+
 
 {% endblock %}
