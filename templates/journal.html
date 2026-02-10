@@ -166,7 +166,7 @@ function toggleTradeDetails(tr, trade){
     `<option value="">No strategy</option>`,
     ...STRATEGIES.map(s =>
       `<option value="${s.id}" ${s.id === trade.key_strategies_id ? "selected" : ""}>
-        ${s.name}
+        ${s.strategy_name}
       </option>`
     )
   ].join("");
