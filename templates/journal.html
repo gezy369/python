@@ -191,6 +191,10 @@ async function removeSetupFromTrade(tradeSetupId){
 
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
+
+    const setupContainer = td.querySelector(".setup-tag-container");
+    const setupSelect = td.querySelector(".setup-add");
+    
   if(openRow && openRow.tr === tr){
     closeDetails();
     return;
@@ -310,8 +314,6 @@ function toggleTradeDetails(tr, trade){
   });
 
   /* ---------- SETUPS ---------- */
-  const setupContainer = td.querySelector(".setup-container");
-  const setupSelect = td.querySelector(".setup-add");
 
   // Fetch assigned setups
   fetch(`/api/trade_setup?trade_id=${trade.id}`)
@@ -358,11 +360,6 @@ function toggleTradeDetails(tr, trade){
 
         setupSelect.value = "";
       });
-
-
-    
-    const setupContainer = td.querySelector(".setup-tag-container");
-    const setupSelect = td.querySelector(".setup-add");
 
     // Load assigned setups
     fetch(`/api/trade_setup?trade_id=${trade.id}`)
