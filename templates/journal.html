@@ -160,10 +160,20 @@ function renderStrategyTag(strategyId){
 }
 
 /* ---------------- SETUP TAGS ---------------- */
-function renderSetupTags(assignedSetups){
-  if(!assignedSetups || !assignedSetups.length) return '<span class="muted">No setups</span>';
-  return assignedSetups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-setup-id="${s.id}">${s.setup_name} ×</span>`).join('');
+function renderSetupTags(setups){
+  if(!setups || setups.length === 0){
+    return `<span class="muted">No setups</span>`;
+  }
+
+  return setups.map(s => `
+    <span class="setup-tag" 
+          style="background:${s.color}" 
+          data-trade-setup-id="${s.trade_setup_id}">
+      ${s.setup_name} ×
+    </span>
+  `).join("");
 }
+
 
 /* ---------------- ADD / REMOVE SETUP ---------------- */
 async function addSetupToTrade(tradeId, setupId){
@@ -237,12 +247,15 @@ function toggleTradeDetails(tr, trade){
 
         <div>
           <h4>Setups</h4>
-          <div class="setup-container" style="margin-top:6px;"></div>
-          <select class="setup-add" style="margin-top:4px; width:100%;">
+
+          <select class="setup-add" style="width:100%;">
             <option value="">+ Add setup</option>
-            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join('')}
+            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
+
+          <div class="setup-tag-container" style="margin-top:6px;"></div>
         </div>
+
 
       </div>
     </div>
@@ -318,26 +331,47 @@ function toggleTradeDetails(tr, trade){
       });
 
       // Add new setup
-      setupSelect.addEventListener("change", async ()=>{
-        const val = setupSelect.value;
-        if(!val) return;
-        const added = await addSetupToTrade(trade.id, val);
-        const s = SETUPS.find(x=>x.id==val);
-        const tag = document.createElement("span");
-        tag.className = "setup-tag";
-        tag.style.background = s.color;
-        tag.dataset.setupId = added.id;
-        tag.textContent = s.setup_name+" ×";
-        setupContainer.appendChild(tag);
+      setupSelect.addEventListener("change", async () => {
+        const setupId = setupSelect.value;
+        if(!setupId) return;
 
-        tag.addEventListener("click", async ()=>{
-          await removeSetupFromTrade(added.id);
-          tag.remove();
+        const resp = await fetch("/api/trade_setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key_trade_id: trade.id,
+            key_setup_id: setupId
+          })
         });
+
+        const inserted = await resp.json();
+        const setup = SETUPS.find(s => s.id == setupId);
+
+        trade.setups.push({
+          trade_setup_id: inserted.id,
+          setup_name: setup.setup_name,
+          color: setup.color
+        });
+
+        setupContainer.innerHTML = renderSetupTags(trade.setups);
+        attachSetupRemoveHandlers(trade, setupContainer);
 
         setupSelect.value = "";
       });
-    });
+
+
+    
+    const setupContainer = td.querySelector(".setup-tag-container");
+    const setupSelect = td.querySelector(".setup-add");
+
+    // Load assigned setups
+    fetch(`/api/trade_setup?trade_id=${trade.id}`)
+      .then(r => r.json())
+      .then(rows => {
+        trade.setups = rows; // <-- store locally
+        setupContainer.innerHTML = renderSetupTags(trade.setups);
+        attachSetupRemoveHandlers(trade, setupContainer);
+      });
 
   /* ---------- SCREENSHOT UPLOAD ---------- */
   const chartInput = td.querySelector(".trade-chart");
@@ -365,6 +399,22 @@ function toggleTradeDetails(tr, trade){
 
   openRow = { tr, detailsTr, panel };
 }
+
+/* ---------------- REMOVE SETUP ON CROSS ---------------- */
+function attachSetupRemoveHandlers(trade, container){
+  container.querySelectorAll(".setup-tag").forEach(tag => {
+    tag.addEventListener("click", async () => {
+      const id = tag.dataset.tradeSetupId;
+
+      await fetch(`/api/trade_setup/${id}`, { method: "DELETE" });
+
+      trade.setups = trade.setups.filter(s => s.trade_setup_id != id);
+      container.innerHTML = renderSetupTags(trade.setups);
+      attachSetupRemoveHandlers(trade, container);
+    });
+  });
+}
+
 
 /* ---------------- CLOSE DETAILS ---------------- */
 function closeDetails(){
