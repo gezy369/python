@@ -53,15 +53,16 @@ const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleS
 
 /* ---------------- FETCH DATA ---------------- */
 Promise.all([
-  fetch("/api/strategies").then(r=>r.json()),
-  fetch("/api/setups").then(r=>r.json()),
-  fetch("/api/trade_setups").then(r=>r.json()),
-  fetch("/api/trades").then(r=>r.json())
+  fetch("/api/strategies").then(r => r.json()),
+  fetch("/api/setups").then(r => r.json()),
+  fetch("/api/trade_setups").then(r => r.json()),
+  fetch("/api/trades").then(r => r.json())
 ]).then(([strategies, setups, tradeSetups, trades]) => {
 
   STRATEGIES = strategies;
   SETUPS = setups;
-  // ----- Populate the setup filter dropdown -----
+
+  // Populate the setup filter dropdown
   const setupFilter = document.getElementById("setupFilter");
   if (setupFilter) {
     setupFilter.innerHTML = `<option value="">All setups</option>`;
@@ -73,19 +74,20 @@ Promise.all([
     });
   }
 
-  // ----- Prepare trade data -----
+  // Attach setups to trades
   originalData = trades.map(t => ({
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp: new Date(t.exitTimestamp),
     setups: tradeSetups
       .filter(ts => ts.key_trade_id === t.id)
-      .map(ts => ts.key_setup_id) // just use setup IDs for now
+      .map(ts => ts.key_setup_id) // just IDs for now
   }));
 
   buildHeaders();
   applyFiltersAndRender();
 });
+
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
@@ -126,18 +128,23 @@ function renderStrategyTag(strategyId){
   return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
 }
 
-function renderSetupTags(trade){
-  if (!trade.setups?.length)
-    return `<span class="setup-tag muted">No setup</span>`;
+function renderSetupTags(trade) {
+  if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
 
-  return trade.setups.map(s => `
-    <span class="setup-tag" style="background:${s.color};">
-      ${s.setup_name}
-      <span class="tag-remove"
-            onclick="removeSetup(event, ${trade.id}, ${s.trade_setup_id})">✕</span>
-    </span>
-  `).join("");
+  return trade.setups.map(id => {
+    const s = SETUPS.find(x => x.id === id);
+    if (!s) return "";
+
+    return `
+      <span class="setup-tag" style="background:${s.color};">
+        ${s.setup_name}
+        <span class="tag-remove"
+              onclick="removeSetup(event, ${trade.id}, ${id})">✕</span>
+      </span>
+    `;
+  }).join("");
 }
+
 
 
 function removeSetup(e, tradeId, setupId){

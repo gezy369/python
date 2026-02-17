@@ -237,13 +237,14 @@ def add_trade_setup():
 @app.get("/api/trade_setups")
 def get_trade_setups():
     try:
+        # fetch all trade_setup links
         response = supabase.table("trade_setup").select("*").execute()
         return jsonify(response.data or [])
     except Exception as e:
         print("Supabase /api/trade_setups error:", e)
         return jsonify({"error": str(e)}), 500
 
-
+# to remove ?
     rows = []
     for r in response.data or []:
         rows.append({
