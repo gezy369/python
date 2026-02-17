@@ -152,6 +152,72 @@ function buildRows(data){
   });
 }
 
+/* ---------------- FILTERS & RENDER ---------------- */
+function applyFiltersAndRender(){
+  let data = [...originalData];
+
+  const from = document.getElementById("dateFrom").value
+    ? new Date(document.getElementById("dateFrom").value)
+    : null;
+  const to = document.getElementById("dateTo").value
+    ? new Date(document.getElementById("dateTo").value)
+    : null;
+
+  if(from || to){
+    data = data.filter(t => {
+      if(from && t.entryTimestamp < from) return false;
+      if(to && t.entryTimestamp > to) return false;
+      return true;
+    });
+  }
+
+  // Header filters
+  document.querySelectorAll("th input[data-col]").forEach(input=>{
+    if(!input.value) return;
+    const col = input.dataset.col;
+    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
+  });
+
+  // Sort by entryTimestamp
+  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
+
+  buildRows(data);
+  updateCharts(data);
+}
+
+function resetFilters(){
+  document.querySelectorAll("th input").forEach(i=>i.value="");
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  buildRows(originalData);
+  updateCharts(originalData);
+}
+
+/* ---------------- CHART ---------------- */
+function updateCharts(data){
+  charts.pnl?.destroy();
+
+  const daily = {};
+  data.forEach(d=>{
+    const day = `${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
+    daily[day] = (daily[day]||0)+Number(d.pnl||0);
+  });
+
+  let cum=0, labels=[], values=[];
+  Object.keys(daily).sort().forEach(d=>{
+    cum+=daily[d];
+    labels.push(d);
+    values.push(cum);
+  });
+
+  const ctx = document.getElementById("pnlChart");
+  charts.pnl = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets:[{ data: values, borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", fill:true, tension:0.2 }] },
+    options: { maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+}
+
 /* ---------------- STRATEGY TAG ---------------- */
 function renderStrategyTag(strategyId){
   if(!strategyId) return `<span class="strategy-tag muted">No strategy</span>`;
