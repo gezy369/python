@@ -47,16 +47,10 @@ const COLUMN_ORDER = [
 ];
 
 const COLUMN_NAMES = {
-  select:"",
-  symbol:"Symbol",
-  entryTimestamp:"Entry Time",
-  exitTimestamp:"Exit Time",
-  duration:"Duration",
-  side:"Side",
-  qty:"Qty",
-  entryPrice:"Entry Price",
-  exitPrice:"Exit Price",
-  pnl:"PnL"
+  select:"", symbol:"Symbol",
+  entryTimestamp:"Entry Time", exitTimestamp:"Exit Time",
+  duration:"Duration", side:"Side", qty:"Qty",
+  entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL"
 };
 
 /* ---------------- FORMAT ---------------- */
@@ -81,7 +75,8 @@ Promise.all([
   originalData = trades.map(t => ({
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
-    exitTimestamp: new Date(t.exitTimestamp)
+    exitTimestamp: new Date(t.exitTimestamp),
+    setups: []   // initialize setups locally
   }));
 
   buildHeaders();
@@ -125,7 +120,6 @@ function buildRows(data){
 
     COLUMN_ORDER.forEach(col=>{
       const td = document.createElement("td");
-
       if(col === "select"){
         const cb = document.createElement("input");
         cb.type = "checkbox";
@@ -152,72 +146,6 @@ function buildRows(data){
   });
 }
 
-/* ---------------- FILTERS & RENDER ---------------- */
-function applyFiltersAndRender(){
-  let data = [...originalData];
-
-  const from = document.getElementById("dateFrom").value
-    ? new Date(document.getElementById("dateFrom").value)
-    : null;
-  const to = document.getElementById("dateTo").value
-    ? new Date(document.getElementById("dateTo").value)
-    : null;
-
-  if(from || to){
-    data = data.filter(t => {
-      if(from && t.entryTimestamp < from) return false;
-      if(to && t.entryTimestamp > to) return false;
-      return true;
-    });
-  }
-
-  // Header filters
-  document.querySelectorAll("th input[data-col]").forEach(input=>{
-    if(!input.value) return;
-    const col = input.dataset.col;
-    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
-  });
-
-  // Sort by entryTimestamp
-  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-
-  buildRows(data);
-  updateCharts(data);
-}
-
-function resetFilters(){
-  document.querySelectorAll("th input").forEach(i=>i.value="");
-  document.getElementById("dateFrom").value = "";
-  document.getElementById("dateTo").value = "";
-  buildRows(originalData);
-  updateCharts(originalData);
-}
-
-/* ---------------- CHART ---------------- */
-function updateCharts(data){
-  charts.pnl?.destroy();
-
-  const daily = {};
-  data.forEach(d=>{
-    const day = `${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
-    daily[day] = (daily[day]||0)+Number(d.pnl||0);
-  });
-
-  let cum=0, labels=[], values=[];
-  Object.keys(daily).sort().forEach(d=>{
-    cum+=daily[d];
-    labels.push(d);
-    values.push(cum);
-  });
-
-  const ctx = document.getElementById("pnlChart");
-  charts.pnl = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets:[{ data: values, borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", fill:true, tension:0.2 }] },
-    options: { maintainAspectRatio:false, plugins:{legend:{display:false}} }
-  });
-}
-
 /* ---------------- STRATEGY TAG ---------------- */
 function renderStrategyTag(strategyId){
   if(!strategyId) return `<span class="strategy-tag muted">No strategy</span>`;
@@ -226,22 +154,27 @@ function renderStrategyTag(strategyId){
   return `<span class="strategy-tag" style="background:${s.color};">${s.strategy_name}</span>`;
 }
 
+/* ---------------- SETUP TAGS ---------------- */
+function renderSetupTags(setups){
+  if(!setups || setups.length === 0){
+    return `<span class="muted">No setups</span>`;
+  }
+  return setups.map(s=>`
+    <span class="setup-tag" data-trade-setup-id="${s.id}" style="background:${s.color}">
+      ${s.setup_name} ×
+    </span>
+  `).join("");
+}
+
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
-
-  if(openRow && openRow.tr === tr){
-    closeDetails();
-    return;
-  }
-
+  if(openRow && openRow.tr === tr){ closeDetails(); return; }
   closeDetails();
   tr.classList.add("expanded");
 
   const strategyOptions = [
     `<option value="">No strategy</option>`,
-    ...STRATEGIES.map(s =>
-      `<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`
-    )
+    ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)
   ].join("");
 
   const detailsTr = document.createElement("tr");
@@ -269,11 +202,16 @@ function toggleTradeDetails(tr, trade){
           <div class="strategy-tag-container" style="margin-top:6px;">
             ${renderStrategyTag(trade.key_strategies_id)}
           </div>
+        </div>
 
-          <div style="margin-top:10px;">
-            <label><strong>Notes:</strong></label><br>
-            <textarea class="trade-notes" rows="4" style="width:100%;">${trade.notes??""}</textarea>
-            <div class="notes-status muted" style="font-size:12px;"></div>
+        <div>
+          <h4>Setups</h4>
+          <select class="setup-add" style="width:100%;">
+            <option value="">+ Add setup</option>
+            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
+          </select>
+          <div class="setup-tag-container" style="margin-top:6px;">
+            ${renderSetupTags(trade.setups)}
           </div>
         </div>
 
@@ -287,8 +225,55 @@ function toggleTradeDetails(tr, trade){
   const panel = td.querySelector(".trade-details");
   panel.offsetHeight;
   requestAnimationFrame(()=>panel.classList.add("open"));
-
   openRow = { tr, detailsTr, panel };
+
+  // ---------- STRATEGY CHANGE ----------
+  const strategySelect = td.querySelector(".trade-strategy");
+  const strategyContainer = td.querySelector(".strategy-tag-container");
+  strategySelect.addEventListener("change", ()=>{
+    const val = strategySelect.value || null;
+    fetch(`/api/trades/${trade.id}`, {
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ key_strategies_id: val })
+    });
+    trade.key_strategies_id = val ? Number(val) : null;
+    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
+  });
+
+  // ---------- SETUP ADD ----------
+  const setupSelect = td.querySelector(".setup-add");
+  const setupContainer = td.querySelector(".setup-tag-container");
+  setupSelect.addEventListener("change", async ()=>{
+    const setupId = setupSelect.value;
+    if(!setupId) return;
+    const resp = await fetch("/api/trade_setup", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: setupId })
+    });
+    const inserted = await resp.json();
+    const setup = SETUPS.find(s=>s.id==setupId);
+    trade.setups.push({ id: inserted.id, setup_name: setup.setup_name, color: setup.color });
+    setupContainer.innerHTML = renderSetupTags(trade.setups);
+    setupSelect.value = "";
+    attachSetupRemoveHandlers(trade, setupContainer);
+  });
+
+  attachSetupRemoveHandlers(trade, setupContainer);
+}
+
+/* ---------------- REMOVE SETUP ---------------- */
+function attachSetupRemoveHandlers(trade, container){
+  container.querySelectorAll(".setup-tag").forEach(tag=>{
+    tag.addEventListener("click", async ()=>{
+      const id = tag.dataset.tradeSetupId;
+      await fetch(`/api/trade_setup/${id}`, { method:"DELETE" });
+      trade.setups = trade.setups.filter(s=>s.id!=id);
+      container.innerHTML = renderSetupTags(trade.setups);
+      attachSetupRemoveHandlers(trade, container);
+    });
+  });
 }
 
 /* ---------------- CLOSE DETAILS ---------------- */
@@ -300,6 +285,29 @@ function closeDetails(){
   setTimeout(()=>detailsTr.remove(), 250);
   openRow = null;
 }
+
+/* ---------------- FILTERS ---------------- */
+function applyFiltersAndRender(){
+  let data = [...originalData];
+
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to = dateTo.value ? new Date(dateTo.value) : null;
+  if(from || to) data = data.filter(t=>{
+    if(from && t.entryTimestamp<from) return false;
+    if(to && t.entryTimestamp>to) return false;
+    return true;
+  });
+
+  document.querySelectorAll("th input[data-col]").forEach(input=>{
+    if(!input.value) return;
+    const col = input.dataset.col;
+    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
+  });
+
+  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
+  buildRows(data);
+}
 </script>
+
 
 {% endblock %}
