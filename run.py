@@ -117,10 +117,10 @@ def delete_trades():
     if not ids:
         return {"error": "No IDs provided"}, 400
 
-    Trade.query.filter(Trade.id.in_(ids)).delete(synchronize_session=False)
-    db.session.commit()
+    supabase.table("trades").delete().in_("id", ids).execute()
 
     return {"deleted": len(ids)}
+
 
 
 # ===== SETTINGS =====

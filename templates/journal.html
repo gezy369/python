@@ -191,9 +191,6 @@ async function removeSetupFromTrade(tradeSetupId){
 
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
-
-    const setupContainer = td.querySelector(".setup-tag-container");
-    const setupSelect = td.querySelector(".setup-add");
     
   if(openRow && openRow.tr === tr){
     closeDetails();
@@ -265,6 +262,9 @@ function toggleTradeDetails(tr, trade){
     </div>
   `;
 
+    const setupContainer = td.querySelector(".setup-tag-container");
+    const setupSelect = td.querySelector(".setup-add");
+    
   detailsTr.appendChild(td);
   tr.after(detailsTr);
 
