@@ -61,6 +61,19 @@ Promise.all([
 
   STRATEGIES = strategies;
   SETUPS = setups;
+  // ----- Populate the setup filter dropdown -----
+  const setupFilter = document.getElementById("setupFilter");
+  if (setupFilter) {
+    setupFilter.innerHTML = `<option value="">All setups</option>`;
+    SETUPS.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.setup_name;
+      setupFilter.appendChild(opt);
+    });
+  }
+
+  // ----- Prepare trade data -----
   originalData = trades.map(t => ({ ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp: new Date(t.exitTimestamp),
@@ -157,15 +170,6 @@ function refreshOpenTrade(){
   closeDetails();
   toggleTradeDetails(tr, trade);
 }
-
-
-const setupFilter = document.getElementById("setupFilter");
-SETUPS.forEach(s => {
-  const opt = document.createElement("option");
-  opt.value = s.id;
-  opt.textContent = s.setup_name;
-  setupFilter.appendChild(opt);
-});
 
 
 /* ---------------- TOGGLE DETAILS ---------------- */

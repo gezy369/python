@@ -41,22 +41,41 @@ def journal():
     return render_template("journal.html")
 
 # Fetch all the trades in the DB
-@app.route("/api/trades")
+@app.get("/api/trades")
 def api_trades():
     try:
-        response = supabase.table("trades").select("*").execute()
-        
-        # Check if the API returned data
-        if hasattr(response, "data") and response.data is not None:
-            rows = response.data
-        else:
-            rows = []
-        
-        return jsonify(rows)
-    
+        # Fetch all trades
+        trades_res = supabase.table("trades").select("*").execute()
+        trades = trades_res.data or []
+
+        if not trades:
+            return jsonify([])
+
+        trade_ids = [t["id"] for t in trades]
+
+        # Fetch trade_setup links for all trades
+        links_res = (
+            supabase.table("trade_setup")
+            .select("key_trade_id, key_setup_id")
+            .in_("key_trade_id", trade_ids)
+            .execute()
+        )
+        links = links_res.data or []
+
+        # Attach setups to trades
+        setups_by_trade = {}
+        for l in links:
+            setups_by_trade.setdefault(l["key_trade_id"], []).append(l["key_setup_id"])
+
+        for t in trades:
+            t["setups"] = setups_by_trade.get(t["id"], [])
+
+        return jsonify(trades)
+
     except Exception as e:
-        print("Supabase API error:", e)
+        print("api/trades error:", e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/charts")
 def charts():
