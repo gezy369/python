@@ -236,13 +236,35 @@ def add_trade_setup():
 
 @app.get("/api/trade_setups")
 def get_trade_setups():
+    # Join trade_setup with setups to get name & color
     response = (
         supabase
         .table("trade_setup")
-        .select("key_trade_id, key_setup_id")
+        .select("""
+            id,                 # trade_setup id
+            key_trade_id,
+            key_setup_id,
+            setups!key_setup_id (
+                id,
+                setup_name,
+                color
+            )
+        """)
         .execute()
     )
-    return jsonify(response.data or [])
+
+    rows = []
+    for r in response.data or []:
+        rows.append({
+            "trade_setup_id": r["id"],
+            "key_trade_id": r["key_trade_id"],
+            "key_setup_id": r["key_setup_id"],
+            "setup_name": r["setups"]["setup_name"],
+            "color": r["setups"]["color"]
+        })
+
+    return jsonify(rows)
+
 
 
 @app.delete("/api/trade_setups")

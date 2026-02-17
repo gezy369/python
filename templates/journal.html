@@ -74,13 +74,20 @@ Promise.all([
   }
 
   // ----- Prepare trade data -----
-  originalData = trades.map(t => ({ ...t,
+  originalData = trades.map(t => ({
+    ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp: new Date(t.exitTimestamp),
     setups: tradeSetups
-    .filter(ts => ts.key_trade_id === t.id)
-    .map(ts => ts.key_setup_id)
-    }));
+      .filter(ts => ts.key_trade_id === t.id)
+      .map(ts => ({
+        trade_setup_id: ts.trade_setup_id,
+        id: ts.key_setup_id,
+        setup_name: ts.setup_name,
+        color: ts.color
+      }))
+  }));
+
   buildHeaders();
   applyFiltersAndRender();
 });
@@ -128,19 +135,15 @@ function renderSetupTags(trade){
   if (!trade.setups?.length)
     return `<span class="setup-tag muted">No setup</span>`;
 
-  return trade.setups.map(id => {
-    const s = SETUPS.find(x => x.id === id);
-    if (!s) return "";
-
-    return `
-      <span class="setup-tag" style="background:${s.color};">
-        ${s.setup_name}
-        <span class="tag-remove"
-              onclick="removeSetup(event, ${trade.id}, ${id})">✕</span>
-      </span>
-    `;
-  }).join("");
+  return trade.setups.map(s => `
+    <span class="setup-tag" style="background:${s.color};">
+      ${s.setup_name}
+      <span class="tag-remove"
+            onclick="removeSetup(event, ${trade.id}, ${s.trade_setup_id})">✕</span>
+    </span>
+  `).join("");
 }
+
 
 function removeSetup(e, tradeId, setupId){
   e.stopPropagation();
