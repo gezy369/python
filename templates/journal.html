@@ -40,12 +40,28 @@ let openRow = null;
 let STRATEGIES = [];
 let SETUPS = [];
 
-/* ---------------- COLUMNS & FORMAT ---------------- */
-const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
-const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
+/* ---------------- COLUMNS ---------------- */
+const COLUMN_ORDER = [
+  "select","symbol","entryTimestamp","exitTimestamp",
+  "duration","side","qty","entryPrice","exitPrice","pnl"
+];
+
+const COLUMN_NAMES = {
+  select:"", symbol:"Symbol",
+  entryTimestamp:"Entry Time", exitTimestamp:"Exit Time",
+  duration:"Duration", side:"Side", qty:"Qty",
+  entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL"
+};
+
+/* ---------------- FORMAT ---------------- */
 const pad = n => String(n).padStart(2,"0");
-const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n < 0 ? `($${f})` : `$${f}`; };
+const formatDate = d =>
+  `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatPnL = v => {
+  const n = Number(v)||0;
+  const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
+  return n < 0 ? `($${f})` : `$${f}`;
+};
 
 /* ---------------- FETCH DATA ---------------- */
 Promise.all([
@@ -55,21 +71,38 @@ Promise.all([
 ]).then(([strategies, setups, trades])=>{
   STRATEGIES = strategies;
   SETUPS = setups;
-  originalData = trades.map(t => ({ ...t, entryTimestamp: new Date(t.entryTimestamp), exitTimestamp: new Date(t.exitTimestamp), setups: [] }));
+
+  originalData = trades.map(t => ({
+    ...t,
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp: new Date(t.exitTimestamp),
+    setups: []   // initialize setups locally
+  }));
+
   buildHeaders();
   applyFiltersAndRender();
 });
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
-  const tr = document.getElementById("headerRow"); tr.innerHTML="";
-  COLUMN_ORDER.forEach(col=>{
+  const tr = document.getElementById("headerRow");
+  tr.innerHTML = "";
+  COLUMN_ORDER.forEach(col => {
     const th = document.createElement("th");
-    if(col==="select"){
-      const cb=document.createElement("input"); cb.type="checkbox"; cb.onclick=e=>{ document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked); }; th.appendChild(cb);
+    if(col === "select"){
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.onclick = e => {
+        document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked);
+      };
+      th.appendChild(cb);
     } else {
       th.textContent = COLUMN_NAMES[col] ?? col;
-      const input=document.createElement("input"); input.placeholder="Filter"; input.dataset.col=col; input.onkeyup=applyFiltersAndRender; th.append(document.createElement("br"), input);
+      const input = document.createElement("input");
+      input.placeholder = "Filter";
+      input.dataset.col = col;
+      input.onkeyup = applyFiltersAndRender;
+      th.append(document.createElement("br"), input);
     }
     tr.appendChild(th);
   });
@@ -77,45 +110,82 @@ function buildHeaders(){
 
 /* ---------------- RENDER ROWS ---------------- */
 function buildRows(data){
-  const tbody=document.querySelector("#tradeTable tbody"); tbody.innerHTML="";
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
+
   data.forEach(row=>{
-    const tr=document.createElement("tr"); tr.className="trade-row"; tr.onclick=()=>toggleTradeDetails(tr,row);
+    const tr = document.createElement("tr");
+    tr.className = "trade-row";
+    tr.onclick = ()=>toggleTradeDetails(tr, row);
+
     COLUMN_ORDER.forEach(col=>{
-      const td=document.createElement("td");
-      if(col==="select"){ const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
-      else if(col==="pnl"){ const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
-      else if(col.includes("Timestamp")) td.textContent=formatDate(row[col]);
-      else td.textContent=row[col]??"";
+      const td = document.createElement("td");
+      if(col === "select"){
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.className = "row-select";
+        cb.dataset.id = row.id;
+        cb.addEventListener("click", e => e.stopPropagation());
+        td.appendChild(cb);
+      }
+      else if(col === "pnl"){
+        const v = Number(row[col])||0;
+        td.textContent = formatPnL(v);
+        td.className = v >= 0 ? "pnl-positive" : "pnl-negative";
+      }
+      else if(col.includes("Timestamp")){
+        td.textContent = formatDate(row[col]);
+      }
+      else{
+        td.textContent = row[col] ?? "";
+      }
       tr.appendChild(td);
     });
+
     tbody.appendChild(tr);
   });
 }
 
-/* ---------------- TAGS ---------------- */
+/* ---------------- STRATEGY TAG ---------------- */
 function renderStrategyTag(strategyId){
-  if(!strategyId) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
-  const s=STRATEGIES.find(x=>x.id===strategyId); if(!s) return "";
-  return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
+  if(!strategyId) return `<span class="strategy-tag muted">No strategy</span>`;
+  const s = STRATEGIES.find(x=>x.id===strategyId);
+  if(!s) return "";
+  return `<span class="strategy-tag" style="background:${s.color};">${s.strategy_name}</span>`;
 }
 
+/* ---------------- SETUP TAGS ---------------- */
 function renderSetupTags(setups){
-  if(!setups || setups.length===0) return `<span class="muted">No setups</span>`;
-  return setups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-trade-setup-id="${s.id}">${s.setup_name} ×</span>`).join("");
+  if(!setups || setups.length === 0){
+    return `<span class="muted">No setups</span>`;
+  }
+  return setups.map(s=>`
+    <span class="setup-tag" data-trade-setup-id="${s.id}" style="background:${s.color}">
+      ${s.setup_name} ×
+    </span>
+  `).join("");
 }
 
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
-  if(openRow && openRow.tr===tr){ closeDetails(); return; }
-  closeDetails(); tr.classList.add("expanded");
+  if(openRow && openRow.tr === tr){ closeDetails(); return; }
+  closeDetails();
+  tr.classList.add("expanded");
 
-  const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
-  const detailsTr=document.createElement("tr"); detailsTr.className="trade-details-row";
-  const td=document.createElement("td"); td.colSpan=COLUMN_ORDER.length;
+  const strategyOptions = [
+    `<option value="">No strategy</option>`,
+    ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)
+  ].join("");
 
-  td.innerHTML=`
+  const detailsTr = document.createElement("tr");
+  detailsTr.className = "trade-details-row";
+  const td = document.createElement("td");
+  td.colSpan = COLUMN_ORDER.length;
+
+  td.innerHTML = `
     <div class="trade-details">
       <div class="trade-details-grid">
+
         <div>
           <h4>Trade</h4>
           <div><strong>Symbol:</strong> ${trade.symbol}</div>
@@ -129,7 +199,9 @@ function toggleTradeDetails(tr, trade){
         <div>
           <h4>Strategy</h4>
           <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
-          <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
+          <div class="strategy-tag-container" style="margin-top:6px;">
+            ${renderStrategyTag(trade.key_strategies_id)}
+          </div>
         </div>
 
         <div>
@@ -138,55 +210,57 @@ function toggleTradeDetails(tr, trade){
             <option value="">+ Add setup</option>
             ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
-          <div class="setup-tag-container" style="margin-top:6px;">${renderSetupTags(trade.setups)}</div>
+          <div class="setup-tag-container" style="margin-top:6px;">
+            ${renderSetupTags(trade.setups)}
+          </div>
         </div>
+
       </div>
     </div>
   `;
 
-  detailsTr.appendChild(td); tr.after(detailsTr);
-  const panel = td.querySelector(".trade-details"); panel.offsetHeight; requestAnimationFrame(()=>panel.classList.add("open"));
-  openRow={tr,detailsTr,panel};
+  detailsTr.appendChild(td);
+  tr.after(detailsTr);
+
+  const panel = td.querySelector(".trade-details");
+  panel.offsetHeight;
+  requestAnimationFrame(()=>panel.classList.add("open"));
+  openRow = { tr, detailsTr, panel };
 
   // ---------- STRATEGY CHANGE ----------
-  const strategySelect=td.querySelector(".trade-strategy");
-  const strategyContainer=td.querySelector(".strategy-tag-container");
+  const strategySelect = td.querySelector(".trade-strategy");
+  const strategyContainer = td.querySelector(".strategy-tag-container");
   strategySelect.addEventListener("change", ()=>{
     const val = strategySelect.value || null;
-    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_strategies_id: val }) });
+    fetch(`/api/trades/${trade.id}`, {
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ key_strategies_id: val })
+    });
     trade.key_strategies_id = val ? Number(val) : null;
     strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
-    attachStrategyRemoveHandler(trade, strategyContainer);
   });
-  attachStrategyRemoveHandler(trade, strategyContainer);
 
   // ---------- SETUP ADD ----------
   const setupSelect = td.querySelector(".setup-add");
   const setupContainer = td.querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async ()=>{
-    const setupId = setupSelect.value; if(!setupId) return;
-    const resp = await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: setupId }) });
+    const setupId = setupSelect.value;
+    if(!setupId) return;
+    const resp = await fetch("/api/trade_setup", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: setupId })
+    });
     const inserted = await resp.json();
     const setup = SETUPS.find(s=>s.id==setupId);
     trade.setups.push({ id: inserted.id, setup_name: setup.setup_name, color: setup.color });
     setupContainer.innerHTML = renderSetupTags(trade.setups);
-    setupSelect.value="";
+    setupSelect.value = "";
     attachSetupRemoveHandlers(trade, setupContainer);
   });
-  attachSetupRemoveHandlers(trade, setupContainer);
-}
 
-/* ---------------- REMOVE STRATEGY ---------------- */
-function attachStrategyRemoveHandler(trade, container){
-  const tag = container.querySelector("[data-remove-strategy]");
-  if(tag){
-    tag.addEventListener("click", ()=>{
-      fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key_strategies_id: null }) });
-      trade.key_strategies_id = null;
-      container.innerHTML = renderStrategyTag(null);
-      attachStrategyRemoveHandler(trade, container);
-    });
-  }
+  attachSetupRemoveHandlers(trade, setupContainer);
 }
 
 /* ---------------- REMOVE SETUP ---------------- */
@@ -208,22 +282,32 @@ function closeDetails(){
   const { tr, detailsTr, panel } = openRow;
   tr.classList.remove("expanded");
   panel.classList.remove("open");
-  setTimeout(()=>detailsTr.remove(),250);
-  openRow=null;
+  setTimeout(()=>detailsTr.remove(), 250);
+  openRow = null;
 }
 
 /* ---------------- FILTERS ---------------- */
 function applyFiltersAndRender(){
-  let data=[...originalData];
-  const from=dateFrom.value?new Date(dateFrom.value):null;
-  const to=dateTo.value?new Date(dateTo.value):null;
-  if(from||to) data=data.filter(t=>{ if(from&&t.entryTimestamp<from) return false; if(to&&t.entryTimestamp>to) return false; return true; });
-  document.querySelectorAll("th input[data-col]").forEach(input=>{ if(!input.value) return; const col=input.dataset.col; data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase())); });
+  let data = [...originalData];
+
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to = dateTo.value ? new Date(dateTo.value) : null;
+  if(from || to) data = data.filter(t=>{
+    if(from && t.entryTimestamp<from) return false;
+    if(to && t.entryTimestamp>to) return false;
+    return true;
+  });
+
+  document.querySelectorAll("th input[data-col]").forEach(input=>{
+    if(!input.value) return;
+    const col = input.dataset.col;
+    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
+  });
+
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
 }
 </script>
-
 
 
 {% endblock %}
