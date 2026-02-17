@@ -50,7 +50,7 @@ const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleS
 /* ---------------- FETCH DATA ---------------- */
 Promise.all([
   fetch("/api/strategies").then(r=>r.json()),
-  fetch("/api/trade_setups").then(r=>r.json()),
+  fetch("/api/setups").then(r=>r.json()),
   fetch("/api/trades").then(r=>r.json())
 ]).then(([strategies, setups, trades])=>{
   STRATEGIES = strategies;
