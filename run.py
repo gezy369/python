@@ -215,6 +215,16 @@ def add_trade_setup():
     )
     return jsonify(response.data[0])
 
+@app.get("/api/trade_setups")
+def get_trade_setups():
+    response = (
+        supabase
+        .table("trade_setup")
+        .select("key_trade_id, key_setup_id")
+        .execute()
+    )
+    return jsonify(response.data or [])
+
 
 @app.delete("/api/trade_setup/<id>")
 def delete_trade_setup(id):

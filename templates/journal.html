@@ -51,8 +51,10 @@ const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleS
 Promise.all([
   fetch("/api/strategies").then(r=>r.json()),
   fetch("/api/setups").then(r=>r.json()),
+  fetch("/api/trade_setups").then(r=>r.json()),
   fetch("/api/trades").then(r=>r.json())
-]).then(([strategies, setups, trades])=>{
+]).then(([strategies, setups, tradeSetups, trades]) => {
+
   STRATEGIES = strategies;
   SETUPS = setups;
   originalData = trades.map(t => ({ ...t, entryTimestamp: new Date(t.entryTimestamp), exitTimestamp: new Date(t.exitTimestamp), setups: [] }));
