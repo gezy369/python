@@ -80,12 +80,7 @@ Promise.all([
     exitTimestamp: new Date(t.exitTimestamp),
     setups: tradeSetups
       .filter(ts => ts.key_trade_id === t.id)
-      .map(ts => ({
-        trade_setup_id: ts.trade_setup_id,
-        id: ts.key_setup_id,
-        setup_name: ts.setup_name,
-        color: ts.color
-      }))
+      .map(ts => ts.key_setup_id) // just use setup IDs for now
   }));
 
   buildHeaders();

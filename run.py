@@ -236,22 +236,13 @@ def add_trade_setup():
 
 @app.get("/api/trade_setups")
 def get_trade_setups():
-    # Join trade_setup with setups to get name & color
-    response = (
-        supabase
-        .table("trade_setup")
-        .select("""
-            id,                 # trade_setup id
-            key_trade_id,
-            key_setup_id,
-            setups!key_setup_id (
-                id,
-                setup_name,
-                color
-            )
-        """)
-        .execute()
-    )
+    try:
+        response = supabase.table("trade_setup").select("*").execute()
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/trade_setups error:", e)
+        return jsonify({"error": str(e)}), 500
+
 
     rows = []
     for r in response.data or []:
