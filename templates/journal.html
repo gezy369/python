@@ -49,13 +49,13 @@ const COLUMN_ORDER = [
 const COLUMN_NAMES = {
   select:"",
   symbol:"Symbol",
-  entryTimestamp:"Entry",
-  exitTimestamp:"Exit",
+  entryTimestamp:"Entry Time",
+  exitTimestamp:"Exit Time",
   duration:"Duration",
   side:"Side",
   qty:"Qty",
-  entryPrice:"Entry",
-  exitPrice:"Exit",
+  entryPrice:"Entry Price",
+  exitPrice:"Exit Price",
   pnl:"PnL"
 };
 
@@ -102,7 +102,7 @@ function buildHeaders(){
       };
       th.appendChild(cb);
     } else {
-      th.textContent = COLUMN_NAMES[col];
+      th.textContent = COLUMN_NAMES[col] ?? col;
       const input = document.createElement("input");
       input.placeholder = "Filter";
       input.dataset.col = col;
