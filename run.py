@@ -191,7 +191,7 @@ def get_strategies():
 @app.get("/api/trade_setup")
 def get_trade_setups():
     trade_id = request.args.get("trade_id")
-    response = supabase.table("trade_setups").select("*").eq("trade_id", trade_id).execute()
+    response = supabase.table("trade_setup").select("*").eq("trade_id", trade_id).execute()
     return jsonify(response.data or [])
 
 @app.post("/api/trade_setup")
@@ -203,7 +203,7 @@ def add_trade_setup():
     if not trade_id or not setup_id:
         return {"error": "Missing trade_id or setup_id"}, 400
     # Insert into table
-    response = supabase.table("trade_setups").insert({
+    response = supabase.table("trade_setup").insert({
         "trade_id": trade_id,
         "setup_id": setup_id
     }).execute()
@@ -214,7 +214,7 @@ def add_trade_setup():
 
 @app.delete("/api/trade_setup/<id>")
 def delete_trade_setup(id):
-    supabase.table("trade_setups").delete().eq("id", id).execute()
+    supabase.table("trade_setup").delete().eq("id", id).execute()
     return {"ok": True}
 
 
