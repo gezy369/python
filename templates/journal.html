@@ -13,6 +13,10 @@
 
   <div style="width:20px;"></div>
 
+  <select id="setupFilter" onchange="applyFiltersAndRender()">
+    <option value="">All setups</option>
+  </select>
+
   <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
     Delete selected
   </button>
@@ -107,18 +111,61 @@ function renderStrategyTag(strategyId){
   return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
 }
 
-function renderSetupTags(setupIds = []){
-  if (!setupIds.length)
+function renderSetupTags(trade){
+  if (!trade.setups?.length)
     return `<span class="setup-tag muted">No setup</span>`;
 
-  return setupIds.map(id => {
+  return trade.setups.map(id => {
     const s = SETUPS.find(x => x.id === id);
     if (!s) return "";
-    return `<span class="setup-tag" style="background:${s.color};">
-      ${s.setup_name}
-    </span>`;
+
+    return `
+      <span class="setup-tag" style="background:${s.color};">
+        ${s.setup_name}
+        <span class="tag-remove"
+              onclick="removeSetup(event, ${trade.id}, ${id})">✕</span>
+      </span>
+    `;
   }).join("");
 }
+
+function removeSetup(e, tradeId, setupId){
+  e.stopPropagation();
+
+  fetch("/api/trade_setups", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      trade_id: tradeId,
+      setup_id: setupId
+    })
+  })
+  .then(() => {
+    const trade = originalData.find(t => t.id === tradeId);
+    trade.setups = trade.setups.filter(id => id !== setupId);
+    refreshOpenTrade();
+  });
+}
+
+function refreshOpenTrade(){
+  if (!openRow) return;
+
+  const { tr, detailsTr } = openRow;
+  const tradeId = tr.querySelector(".row-select")?.dataset.id;
+  const trade = originalData.find(t => t.id == tradeId);
+
+  closeDetails();
+  toggleTradeDetails(tr, trade);
+}
+
+
+const setupFilter = document.getElementById("setupFilter");
+SETUPS.forEach(s => {
+  const opt = document.createElement("option");
+  opt.value = s.id;
+  opt.textContent = s.setup_name;
+  setupFilter.appendChild(opt);
+});
 
 
 /* ---------------- TOGGLE DETAILS ---------------- */
@@ -241,6 +288,14 @@ function applyFiltersAndRender(){
   document.querySelectorAll("th input[data-col]").forEach(input=>{ if(!input.value) return; const col=input.dataset.col; data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase())); });
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
+
+  const setupId = document.getElementById("setupFilter")?.value;
+
+  if (setupId) {
+    filtered = filtered.filter(t =>
+      t.setups?.includes(Number(setupId))
+    );
+  }
 }
 </script>
 

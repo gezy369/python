@@ -226,10 +226,23 @@ def get_trade_setups():
     return jsonify(response.data or [])
 
 
-@app.delete("/api/trade_setup/<id>")
-def delete_trade_setup(id):
-    supabase.table("trade_setup").delete().eq("id", id).execute()
+@app.delete("/api/trade_setups")
+def delete_trade_setup():
+    data = request.json
+    trade_id = data.get("trade_id")
+    setup_id = data.get("setup_id")
+
+    if not trade_id or not setup_id:
+        return {"error": "Missing trade_id or setup_id"}, 400
+
+    supabase.table("trade_setup") \
+        .delete() \
+        .eq("key_trade_id", trade_id) \
+        .eq("key_setup_id", setup_id) \
+        .execute()
+
     return {"ok": True}
+
 
 
 
