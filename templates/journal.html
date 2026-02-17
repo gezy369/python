@@ -61,7 +61,8 @@ const COLUMN_NAMES = {
 
 /* ---------------- FORMAT ---------------- */
 const pad = n => String(n).padStart(2,"0");
-const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatDate = d =>
+  `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const formatPnL = v => {
   const n = Number(v)||0;
   const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2});
@@ -142,7 +143,7 @@ function buildRows(data){
         td.textContent = formatDate(row[col]);
       }
       else{
-        td.textContent = row[col]??"";
+        td.textContent = row[col] ?? "";
       }
       tr.appendChild(td);
     });
@@ -159,39 +160,9 @@ function renderStrategyTag(strategyId){
   return `<span class="strategy-tag" style="background:${s.color};">${s.strategy_name}</span>`;
 }
 
-/* ---------------- SETUP TAGS ---------------- */
-function renderSetupTags(setups){
-  if(!setups || setups.length === 0){
-    return `<span class="muted">No setups</span>`;
-  }
-
-  return setups.map(s => `
-    <span class="setup-tag" 
-          style="background:${s.color}" 
-          data-trade-setup-id="${s.trade_setup_id}">
-      ${s.setup_name} ×
-    </span>
-  `).join("");
-}
-
-
-/* ---------------- ADD / REMOVE SETUP ---------------- */
-async function addSetupToTrade(tradeId, setupId){
-  const resp = await fetch("/api/trade_setup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key_trade_id: tradeId, key_setup_id: setupId })
-  });
-  return resp.json();
-}
-
-async function removeSetupFromTrade(tradeSetupId){
-  await fetch(`/api/trade_setup/${tradeSetupId}`, { method:"DELETE" });
-}
-
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
-    
+
   if(openRow && openRow.tr === tr){
     closeDetails();
     return;
@@ -202,7 +173,9 @@ function toggleTradeDetails(tr, trade){
 
   const strategyOptions = [
     `<option value="">No strategy</option>`,
-    ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)
+    ...STRATEGIES.map(s =>
+      `<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`
+    )
   ].join("");
 
   const detailsTr = document.createElement("tr");
@@ -222,14 +195,6 @@ function toggleTradeDetails(tr, trade){
           <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
           <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
-
-          <div style="margin-top:10px;">
-            <label><strong>Screenshot:</strong></label><br>
-            <input type="file" class="trade-chart" accept="image/*">
-            <div class="chart-preview" style="margin-top:5px;">
-              ${trade.chart ? `<img src="${trade.chart}" style="max-width:100%; max-height:150px;">` : ""}
-            </div>
-          </div>
         </div>
 
         <div>
@@ -246,172 +211,19 @@ function toggleTradeDetails(tr, trade){
           </div>
         </div>
 
-        <div>
-          <h4>Setups</h4>
-
-          <select class="setup-add" style="width:100%;">
-            <option value="">+ Add setup</option>
-            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
-          </select>
-
-          <div class="setup-tag-container" style="margin-top:6px;"></div>
-        </div>
-
-
       </div>
     </div>
   `;
 
-    const setupContainer = td.querySelector(".setup-tag-container");
-    const setupSelect = td.querySelector(".setup-add");
-    
   detailsTr.appendChild(td);
   tr.after(detailsTr);
 
-  /* ---------- SMOOTH OPEN ---------- */
   const panel = td.querySelector(".trade-details");
   panel.offsetHeight;
   requestAnimationFrame(()=>panel.classList.add("open"));
 
-  /* ---------- AUTOSAVE NOTES ---------- */
-  const notesInput = td.querySelector(".trade-notes");
-  const notesStatus = td.querySelector(".notes-status");
-  let saveTimer = null;
-  let abortController = null;
-  notesInput.addEventListener("input", ()=>{
-    notesStatus.textContent = "Saving…";
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async ()=>{
-      if(abortController) abortController.abort();
-      abortController = new AbortController();
-      try{
-        await fetch(`/api/trades/${trade.id}`, {
-          method:"PATCH",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ notes: notesInput.value }),
-          signal: abortController.signal
-        });
-        trade.notes = notesInput.value; // sync local state
-        notesStatus.textContent = "Saved";
-      }catch(err){
-        if(err.name !== "AbortError") notesStatus.textContent = "Save failed";
-      }
-    },500);
-  });
-
-  /* ---------- STRATEGY AUTOSAVE ---------- */
-  const strategySelect = td.querySelector(".trade-strategy");
-  const strategyContainer = td.querySelector(".strategy-tag-container");
-  strategySelect.addEventListener("change", ()=>{
-    const val = strategySelect.value || null;
-    fetch(`/api/trades/${trade.id}`,{
-      method:"PATCH",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ key_strategies_id: val })
-    });
-    trade.key_strategies_id = val ? Number(val) : null;
-    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
-  });
-
-  /* ---------- SETUPS ---------- */
-
-  // Fetch assigned setups
-  fetch(`/api/trade_setup?trade_id=${trade.id}`)
-    .then(r=>r.json())
-    .then(assigned=>{
-      setupContainer.innerHTML = renderSetupTags(assigned);
-
-      // Attach remove handlers
-      setupContainer.querySelectorAll(".setup-tag").forEach(tag=>{
-        tag.addEventListener("click", async ()=>{
-          const setupId = tag.dataset.setupId;
-          const ts = assigned.find(a=>a.id==setupId);
-          if(!ts) return;
-          await removeSetupFromTrade(ts.id);
-          tag.remove();
-        });
-      });
-
-      // Add new setup
-      setupSelect.addEventListener("change", async () => {
-        const setupId = setupSelect.value;
-        if(!setupId) return;
-
-        const resp = await fetch("/api/trade_setup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            key_trade_id: trade.id,
-            key_setup_id: setupId
-          })
-        });
-
-        const inserted = await resp.json();
-        const setup = SETUPS.find(s => s.id == setupId);
-
-        trade.setups.push({
-          trade_setup_id: inserted.id,
-          setup_name: setup.setup_name,
-          color: setup.color
-        });
-
-        setupContainer.innerHTML = renderSetupTags(trade.setups);
-        attachSetupRemoveHandlers(trade, setupContainer);
-
-        setupSelect.value = "";
-      });
-
-    // Load assigned setups
-    fetch(`/api/trade_setup?trade_id=${trade.id}`)
-      .then(r => r.json())
-      .then(rows => {
-        trade.setups = rows; // <-- store locally
-        setupContainer.innerHTML = renderSetupTags(trade.setups);
-        attachSetupRemoveHandlers(trade, setupContainer);
-      });
-
-  /* ---------- SCREENSHOT UPLOAD ---------- */
-  const chartInput = td.querySelector(".trade-chart");
-  const chartPreview = td.querySelector(".chart-preview");
-  chartInput.addEventListener("change", async e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const filename = `charts/${trade.id}_${Date.now()}_${file.name}`;
-    try{
-      const { error: uploadError } = await supabase.storage.from("charts").upload(filename, file);
-      if(uploadError) throw uploadError;
-      const { data: publicData, error: urlError } = await supabase.storage.from("charts").getPublicUrl(filename);
-      if(urlError) throw urlError;
-      const chartUrl = publicData.publicUrl;
-      await fetch(`/api/trades/${trade.id}`,{
-        method:"PATCH",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ chart: chartUrl })
-      });
-      chartPreview.innerHTML = `<img src="${chartUrl}" style="max-width:100%; max-height:150px;">`;
-    }catch(err){
-      alert("Failed to upload screenshot: "+err.message);
-    }
-  });
-
   openRow = { tr, detailsTr, panel };
 }
-
-/* ---------------- REMOVE SETUP ON CROSS ---------------- */
-function attachSetupRemoveHandlers(trade, container){
-  container.querySelectorAll(".setup-tag").forEach(tag => {
-    tag.addEventListener("click", async () => {
-      const id = tag.dataset.tradeSetupId;
-
-      await fetch(`/api/trade_setup/${id}`, { method: "DELETE" });
-
-      trade.setups = trade.setups.filter(s => s.trade_setup_id != id);
-      container.innerHTML = renderSetupTags(trade.setups);
-      attachSetupRemoveHandlers(trade, container);
-    });
-  });
-}
-
 
 /* ---------------- CLOSE DETAILS ---------------- */
 function closeDetails(){
@@ -422,72 +234,6 @@ function closeDetails(){
   setTimeout(()=>detailsTr.remove(), 250);
   openRow = null;
 }
-
-/* ---------------- FILTERS ---------------- */
-function applyFiltersAndRender(){
-  let data = [...originalData];
-
-  const from = dateFrom.value ? new Date(dateFrom.value) : null;
-  const to = dateTo.value ? new Date(dateTo.value) : null;
-  if(from || to) data = data.filter(t=>{
-    if(from && t.entryTimestamp<from) return false;
-    if(to && t.entryTimestamp>to) return false;
-    return true;
-  });
-
-  document.querySelectorAll("th input[data-col]").forEach(input=>{
-    if(!input.value) return;
-    const col = input.dataset.col;
-    data = data.filter(r => String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
-  });
-
-  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-  buildRows(data);
-  updateCharts(data);
-}
-
-function resetFilters(){
-  document.querySelectorAll("th input").forEach(i=>i.value="");
-  dateFrom.value=""; dateTo.value="";
-  buildRows(originalData);
-  updateCharts(originalData);
-}
-
-/* ---------------- DELETE ---------------- */
-function deleteSelected(){
-  const ids = [...document.querySelectorAll(".row-select:checked")].map(cb=>Number(cb.dataset.id));
-  if(!ids.length) return alert("No selection");
-  fetch("/api/trades",{
-    method:"DELETE",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ids})
-  }).then(()=>{
-    originalData = originalData.filter(t=>!ids.includes(t.id));
-    applyFiltersAndRender();
-  });
-}
-
-/* ---------------- CHART ---------------- */
-function updateCharts(data){
-  charts.pnl?.destroy();
-  const daily = {};
-  data.forEach(d=>{
-    const day = `${d.entryTimestamp.getFullYear()}/${pad(d.entryTimestamp.getMonth()+1)}/${pad(d.entryTimestamp.getDate())}`;
-    daily[day] = (daily[day]||0)+Number(d.pnl||0);
-  });
-  let cum=0, labels=[], values=[];
-  Object.keys(daily).sort().forEach(d=>{
-    cum+=daily[d];
-    labels.push(d);
-    values.push(cum);
-  });
-  charts.pnl = new Chart(pnlChart,{
-    type:"line",
-    data:{ labels, datasets:[{ data: values, borderColor:"green", backgroundColor:"rgba(0,255,0,0.2)", fill:true, tension:0.2 }] },
-    options:{ maintainAspectRatio:false, plugins:{legend:{display:false}} }
-  });
-}
 </script>
-
 
 {% endblock %}
