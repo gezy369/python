@@ -107,10 +107,19 @@ function renderStrategyTag(strategyId){
   return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
 }
 
-function renderSetupTags(setups){
-  if(!setups || setups.length===0) return `<span class="muted">No setups</span>`;
-  return setups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-trade-setup-id="${s.trade_setup_id}">${s.setup_name} ×</span>`).join("");
+function renderSetupTags(setupIds = []){
+  if (!setupIds.length)
+    return `<span class="setup-tag muted">No setup</span>`;
+
+  return setupIds.map(id => {
+    const s = SETUPS.find(x => x.id === id);
+    if (!s) return "";
+    return `<span class="setup-tag" style="background:${s.color};">
+      ${s.setup_name}
+    </span>`;
+  }).join("");
 }
+
 
 /* ---------------- TOGGLE DETAILS ---------------- */
 function toggleTradeDetails(tr, trade){
@@ -146,7 +155,9 @@ function toggleTradeDetails(tr, trade){
             <option value="">+ Add setup</option>
             ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
-          <div class="setup-tag-container" style="margin-top:6px;">${renderSetupTags(trade.setups)}</div>
+          <div class="setup-tag-container">
+            ${renderSetupTags(trade.setups)}
+          </div>
         </div>
       </div>
     </div>
