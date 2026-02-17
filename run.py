@@ -189,35 +189,19 @@ def get_strategies():
 
 # ===== TRADE SETUPS =====
 @app.get("/api/setups")
-def get_trade_setups():
-    trade_id = request.args.get("trade_id")
+def get_setups():
     response = (
         supabase
-        .table("trade_setup")
-        .select("""
-            id,
-            setup_id:key_setup_id,
-            setups (
-                setup_name,
-                color
-            )
-        """)
-        .eq("key_trade_id", trade_id)
+        .table("setups")
+        .select("id, setup_name, color")
+        .order("setup_name")
         .execute()
     )
-
-    rows = []
-    for r in response.data or []:
-        rows.append({
-            "trade_setup_id": r["id"],
-            "setup_name": r["setups"]["setup_name"],
-            "color": r["setups"]["color"]
-        })
-
-    return jsonify(rows)
+    return jsonify(response.data or [])
 
 
-@app.post("/api/setups")
+
+@app.post("/api/trade_setup")
 def add_trade_setup():
     data = request.json
     response = (
@@ -229,14 +213,14 @@ def add_trade_setup():
         })
         .execute()
     )
-
     return jsonify(response.data[0])
 
 
-@app.delete("/api/setups/<id>")
+@app.delete("/api/trade_setup/<id>")
 def delete_trade_setup(id):
     supabase.table("trade_setup").delete().eq("id", id).execute()
     return {"ok": True}
+
 
 
 

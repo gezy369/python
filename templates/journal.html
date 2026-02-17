@@ -101,7 +101,7 @@ function renderStrategyTag(strategyId){
 
 function renderSetupTags(setups){
   if(!setups || setups.length===0) return `<span class="muted">No setups</span>`;
-  return setups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-trade-setup-id="${s.id}">${s.setup_name} ×</span>`).join("");
+  return setups.map(s=>`<span class="setup-tag" style="background:${s.color}" data-trade-setup-id="${s.trade_setup_id}">${s.setup_name} ×</span>`).join("");
 }
 
 /* ---------------- TOGGLE DETAILS ---------------- */
@@ -168,7 +168,8 @@ function toggleTradeDetails(tr, trade){
     const resp = await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: setupId }) });
     const inserted = await resp.json();
     const setup = SETUPS.find(s=>s.id==setupId);
-    trade.setups.push({ id: inserted.id, setup_name: setup.setup_name, color: setup.color });
+    trade.setups.push({  trade_setup_id: inserted.id,  setup_name: setup.setup_name,  color: setup.color});
+
     setupContainer.innerHTML = renderSetupTags(trade.setups);
     setupSelect.value="";
     attachSetupRemoveHandlers(trade, setupContainer);
@@ -195,7 +196,7 @@ function attachSetupRemoveHandlers(trade, container){
     tag.addEventListener("click", async ()=>{
       const id = tag.dataset.tradeSetupId;
       await fetch(`/api/trade_setup/${id}`, { method:"DELETE" });
-      trade.setups = trade.setups.filter(s=>s.id!=id);
+      trade.setups = trade.setups.filter(s => s.trade_setup_id != id);
       container.innerHTML = renderSetupTags(trade.setups);
       attachSetupRemoveHandlers(trade, container);
     });
