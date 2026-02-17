@@ -191,31 +191,53 @@ def get_strategies():
 @app.get("/api/trade_setup")
 def get_trade_setups():
     trade_id = request.args.get("trade_id")
-    response = supabase.table("trade_setup").select("*").eq("trade_id", trade_id).execute()
-    return jsonify(response.data or [])
+    response = (
+        supabase
+        .table("trade_setup")
+        .select("""
+            id,
+            setup_id:key_setup_id,
+            setups (
+                setup_name,
+                color
+            )
+        """)
+        .eq("key_trade_id", trade_id)
+        .execute()
+    )
+
+    rows = []
+    for r in response.data or []:
+        rows.append({
+            "trade_setup_id": r["id"],
+            "setup_name": r["setups"]["setup_name"],
+            "color": r["setups"]["color"]
+        })
+
+    return jsonify(rows)
+
 
 @app.post("/api/trade_setup")
 def add_trade_setup():
     data = request.json
-    # Expected: { "key_trade_id": <trade_id>, "key_setup_id": <setup_id> }
-    trade_id = data.get("key_trade_id")
-    setup_id = data.get("key_setup_id")
-    if not trade_id or not setup_id:
-        return {"error": "Missing trade_id or setup_id"}, 400
-    # Insert into table
-    response = supabase.table("trade_setup").insert({
-        "trade_id": trade_id,
-        "setup_id": setup_id
-    }).execute()
-    # Return the inserted record ID
-    if response.data:
-        return jsonify({"id": response.data[0]["id"]})
-    return jsonify({"error": "Insert failed"}), 500
+    response = (
+        supabase
+        .table("trade_setup")
+        .insert({
+            "key_trade_id": data["key_trade_id"],
+            "key_setup_id": data["key_setup_id"]
+        })
+        .execute()
+    )
+
+    return jsonify(response.data[0])
+
 
 @app.delete("/api/trade_setup/<id>")
 def delete_trade_setup(id):
     supabase.table("trade_setup").delete().eq("id", id).execute()
     return {"ok": True}
+
 
 
 
