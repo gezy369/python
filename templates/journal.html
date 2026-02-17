@@ -57,7 +57,13 @@ Promise.all([
 
   STRATEGIES = strategies;
   SETUPS = setups;
-  originalData = trades.map(t => ({ ...t, entryTimestamp: new Date(t.entryTimestamp), exitTimestamp: new Date(t.exitTimestamp), setups: [] }));
+  originalData = trades.map(t => ({ ...t,
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp: new Date(t.exitTimestamp),
+    setups: tradeSetups
+    .filter(ts => ts.key_trade_id === t.id)
+    .map(ts => ts.key_setup_id)
+    }));
   buildHeaders();
   applyFiltersAndRender();
 });
