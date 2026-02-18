@@ -102,7 +102,7 @@ Promise.all([
       strategyFilter.appendChild(opt);
     });
   }
-  
+
   // Attach setups to trades
   originalData = trades.map(t => ({
     ...t,
@@ -409,38 +409,62 @@ function closeDetails(){
 }
 
 /* ---------------- FILTERS ---------------- */
-function applyFiltersAndRender(){
-  let data=[...originalData];
-  const from=dateFrom.value?new Date(dateFrom.value):null;
-  const to=dateTo.value?new Date(dateTo.value):null;
-  if(from||to) data=data.filter(t=>{ if(from&&t.entryTimestamp<from) return false; if(to&&t.entryTimestamp>to) return false; return true; });
-  document.querySelectorAll("th input[data-col]").forEach(input=>{ if(!input.value) return; const col=input.dataset.col; data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase())); });
-  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-  buildRows(data);
-  renderPnLChart(data);
+function applyFiltersAndRender() {
+  let data = [...originalData];
 
-  const setupSelect = document.getElementById("setupFilter");
-  const selectedSetups = Array.from(setupSelect.selectedOptions)
-                            .map(opt => opt.value)
-                            .filter(v => v !== "")
-                            .map(Number);
+  // ---------- DATE FILTER ----------
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to   = dateTo.value   ? new Date(dateTo.value)   : null;
 
-  if (selectedSetups.length > 0) {
-    // keep trades that have at least one of the selected setups
-    data = data.filter(trade => trade.setups?.some(id => selectedSetups.includes(id)));
+  if (from || to) {
+    data = data.filter(t => {
+      if (from && t.entryTimestamp < from) return false;
+      if (to   && t.entryTimestamp > to)   return false;
+      return true;
+    });
   }
 
-  // ---------- STRATEGY FILTER ----------
-  const strategyId = document.getElementById("strategyFilter")?.value;
+  // ---------- COLUMN FILTERS ----------
+  document.querySelectorAll("th input[data-col]").forEach(input => {
+    if (!input.value) return;
+    const col = input.dataset.col;
+    const val = input.value.toLowerCase();
+
+    data = data.filter(r =>
+      String(r[col] ?? "").toLowerCase().includes(val)
+    );
+  });
+
+  // ---------- SETUP FILTER (multi) ----------
+  const setupFilter = document.getElementById("setupFilter");
+  const selectedSetups = setupFilter
+    ? Array.from(setupFilter.selectedOptions)
+        .map(o => Number(o.value))
+        .filter(Boolean)
+    : [];
+
+  if (selectedSetups.length) {
+    data = data.filter(t =>
+      selectedSetups.every(id => t.setups?.includes(id))
+    );
+  }
+
+  // ---------- STRATEGY FILTER (single) ----------
+  const strategyFilter = document.getElementById("strategyFilter");
+  const strategyId = strategyFilter?.value;
 
   if (strategyId) {
-    data = data.filter(t => t.key_strategies_id === Number(strategyId));
+    data = data.filter(t => t.key_strategies_id == strategyId);
   }
 
-  // --- render table and chart ---
+  // ---------- SORT ----------
+  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+
+  // ---------- RENDER ----------
   buildRows(data);
-  updatePnLChart(data);  
+  updatePnLChart(data);
 }
+
 </script>
 
 
