@@ -13,16 +13,21 @@
 
   <div style="width:20px;"></div>
 
+  <!-- Setup filter -->
   <select id="setupFilter" multiple onchange="applyFiltersAndRender()" style="min-width:150px; height:100px;">
     <!-- options populated dynamically -->
   </select>
+<!-- Strategy filter -->
+ <select id="strategyFilter" onchange="applyFiltersAndRender()">
+  <option value="">All strategies</option>
+</select>
 
-
+<!-- Delete button -->
   <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
     Delete selected
   </button>
 </div>
-
+<!-- Table -->
 <div style="display:flex; gap:20px; align-items:flex-start;">
   <div style="flex:2;">
     <table id="tradeTable">
@@ -30,7 +35,7 @@
       <tbody></tbody>
     </table>
   </div>
-
+<!-- Pnl chart-->
   <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
     <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
   </div>
@@ -80,7 +85,24 @@ Promise.all([
     });
   }
 
+  // ---------- STRATEGY FILTER ----------
+  const strategyFilter = document.getElementById("strategyFilter");
+  if (strategyFilter) {
+    strategyFilter.innerHTML = ""; // clear previous
 
+    const allOption = document.createElement("option");
+    allOption.value = ""; // empty value = all
+    allOption.textContent = "All strategies";
+    strategyFilter.appendChild(allOption);
+
+    STRATEGIES.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.strategy_name;
+      strategyFilter.appendChild(opt);
+    });
+  }
+  
   // Attach setups to trades
   originalData = trades.map(t => ({
     ...t,
@@ -95,7 +117,6 @@ Promise.all([
   applyFiltersAndRender();
 });
 
-/* --------------- RESTE FILTERS -----------------  */
 function resetFilters() {
   // reset date inputs
   const dateFrom = document.getElementById("dateFrom");
@@ -112,10 +133,13 @@ function resetFilters() {
     Array.from(setupFilter.options).forEach(opt => opt.selected = opt.value === "");
   }
 
+  // reset strategy filter (single-select)
+  const strategyFilter = document.getElementById("strategyFilter");
+  if (strategyFilter) strategyFilter.value = "";
+
   // re-render table + chart
   applyFiltersAndRender();
 }
-
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
@@ -404,6 +428,13 @@ function applyFiltersAndRender(){
   if (selectedSetups.length > 0) {
     // keep trades that have at least one of the selected setups
     data = data.filter(trade => trade.setups?.some(id => selectedSetups.includes(id)));
+  }
+
+  // ---------- STRATEGY FILTER ----------
+  const strategyId = document.getElementById("strategyFilter")?.value;
+
+  if (strategyId) {
+    data = data.filter(t => t.key_strategies_id === Number(strategyId));
   }
 
   // --- render table and chart ---
