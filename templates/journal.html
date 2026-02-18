@@ -238,12 +238,14 @@ function toggleTradeDetails(tr, trade){
   // ---------- SETUP ADD ----------
   const setupSelect = td.querySelector(".setup-add");
   const setupContainer = td.querySelector(".setup-tag-container");
+  
   setupSelect.addEventListener("change", async ()=>{
     const setupId = setupSelect.value; if(!setupId) return;
     const resp = await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: setupId }) });
     const inserted = await resp.json();
     const setup = SETUPS.find(s=>s.id==setupId);
-    trade.setups.push({  trade_setup_id: inserted.id,  setup_name: setup.setup_name,  color: setup.color});
+    trade.setups.push(Number(setupId));
+
 
     setupContainer.innerHTML = renderSetupTags(trade.setups);
     setupSelect.value="";
