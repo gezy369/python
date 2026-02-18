@@ -62,6 +62,7 @@ Promise.all([
   STRATEGIES = strategies;
   SETUPS = setups;
 
+  // Populate the setup filter dropdown
   const setupFilter = document.getElementById("setupFilter");
   if (setupFilter) {
     setupFilter.innerHTML = `<option value="">All setups</option>`;
@@ -73,18 +74,20 @@ Promise.all([
     });
   }
 
+  // Attach setups to trades
   originalData = trades.map(t => ({
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp: new Date(t.exitTimestamp),
     setups: tradeSetups
       .filter(ts => ts.key_trade_id === t.id)
-      .map(ts => ts.key_setup_id)
+      .map(ts => ts.key_setup_id) // just IDs for now
   }));
 
   buildHeaders();
   applyFiltersAndRender();
 });
+
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
@@ -92,17 +95,10 @@ function buildHeaders(){
   COLUMN_ORDER.forEach(col=>{
     const th = document.createElement("th");
     if(col==="select"){
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.onclick=e=>{ document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked); };
-      th.appendChild(cb);
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.onclick=e=>{ document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked); }; th.appendChild(cb);
     } else {
       th.textContent = COLUMN_NAMES[col] ?? col;
-      const input=document.createElement("input");
-      input.placeholder="Filter";
-      input.dataset.col=col;
-      input.onkeyup=applyFiltersAndRender;
-      th.append(document.createElement("br"), input);
+      const input=document.createElement("input"); input.placeholder="Filter"; input.dataset.col=col; input.onkeyup=applyFiltersAndRender; th.append(document.createElement("br"), input);
     }
     tr.appendChild(th);
   });
@@ -110,28 +106,13 @@ function buildHeaders(){
 
 /* ---------------- RENDER ROWS ---------------- */
 function buildRows(data){
-  const tbody=document.querySelector("#tradeTable tbody");
-  tbody.innerHTML="";
+  const tbody=document.querySelector("#tradeTable tbody"); tbody.innerHTML="";
   data.forEach(row=>{
-    const tr=document.createElement("tr");
-    tr.className="trade-row";
-    tr.onclick=()=>toggleTradeDetails(tr,row);
-
+    const tr=document.createElement("tr"); tr.className="trade-row"; tr.onclick=()=>toggleTradeDetails(tr,row);
     COLUMN_ORDER.forEach(col=>{
       const td=document.createElement("td");
-      if(col==="select"){
-        const cb=document.createElement("input");
-        cb.type="checkbox";
-        cb.className="row-select";
-        cb.dataset.id=row.id;
-        cb.addEventListener("click",e=>e.stopPropagation());
-        td.appendChild(cb);
-      }
-      else if(col==="pnl"){
-        const v=Number(row[col])||0;
-        td.textContent=formatPnL(v);
-        td.className=v>=0?"pnl-positive":"pnl-negative";
-      }
+      if(col==="select"){ const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
+      else if(col==="pnl"){ const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
       else if(col.includes("Timestamp")) td.textContent=formatDate(row[col]);
       else td.textContent=row[col]??"";
       tr.appendChild(td);
@@ -140,83 +121,208 @@ function buildRows(data){
   });
 }
 
-/* ---------------- CHART ---------------- */
-function renderPnLChart(data) {
-  const ctx = document.getElementById("pnlChart");
-  if (!ctx) return;
+/* ---------------- TAGS ---------------- */
+function renderStrategyTag(strategyId){
+  if(!strategyId) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
+  const s=STRATEGIES.find(x=>x.id===strategyId); if(!s) return "";
+  return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
+}
 
-  if (charts.pnlChart) {
-    charts.pnlChart.destroy();
+function renderSetupTags(trade) {
+  if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
+
+  return trade.setups.map(id => {
+    const s = SETUPS.find(x => x.id === id);
+    if (!s) return "";
+
+    return `
+      <span class="setup-tag" style="background:${s.color};">
+        ${s.setup_name}
+        <span class="tag-remove"
+              onclick="removeSetup(event, ${trade.id}, ${id})">✕</span>
+      </span>
+    `;
+  }).join("");
+}
+
+
+
+function removeSetup(e, tradeId, setupId){
+  e.stopPropagation();
+
+  fetch("/api/trade_setups", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      trade_id: tradeId,
+      setup_id: setupId
+    })
+  })
+  .then(() => {
+  const trade = originalData.find(t => t.id === tradeId);
+  trade.setups = trade.setups.filter(id => id !== setupId);
+
+  // re-render tags only
+  const container = openRow?.panel?.querySelector(".setup-tag-container");
+  if (container) {
+    container.innerHTML = renderSetupTags(trade);
   }
+});
 
-  let cumulative = 0;
-  const pnlData = data.map(t => {
-    cumulative += Number(t.pnl) || 0;
-    return cumulative;
+}
+
+function refreshOpenTrade(){
+  if (!openRow) return;
+
+  const { tr, detailsTr } = openRow;
+  const tradeId = tr.querySelector(".row-select")?.dataset.id;
+  const trade = originalData.find(t => t.id == tradeId);
+
+  closeDetails();
+  toggleTradeDetails(tr, trade);
+}
+
+
+/* ---------------- TOGGLE DETAILS ---------------- */
+function toggleTradeDetails(tr, trade){
+  if(openRow && openRow.tr===tr){ closeDetails(); return; }
+  closeDetails(); tr.classList.add("expanded");
+
+  const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
+  const detailsTr=document.createElement("tr"); detailsTr.className="trade-details-row";
+  const td=document.createElement("td"); td.colSpan=COLUMN_ORDER.length;
+
+  td.innerHTML=`
+    <div class="trade-details">
+      <div class="trade-details-grid">
+        <div>
+          <h4>Trade</h4>
+          <div><strong>Symbol:</strong> ${trade.symbol}</div>
+          <div><strong>Side:</strong> ${trade.side}</div>
+          <div><strong>Qty:</strong> ${trade.qty}</div>
+          <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
+          <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
+          <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+        </div>
+
+        <div>
+          <h4>Strategy</h4>
+          <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
+          <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
+        </div>
+
+        <div>
+          <h4>Setups</h4>
+          <select class="setup-add" style="width:100%;">
+            <option value="">+ Add setup</option>
+            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
+          </select>
+          <div class="setup-tag-container">
+            ${renderSetupTags(trade)}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  detailsTr.appendChild(td); tr.after(detailsTr);
+  const panel = td.querySelector(".trade-details"); panel.offsetHeight; requestAnimationFrame(()=>panel.classList.add("open"));
+  openRow={tr,detailsTr,panel};
+
+  // ---------- STRATEGY CHANGE ----------
+  const strategySelect=td.querySelector(".trade-strategy");
+  const strategyContainer=td.querySelector(".strategy-tag-container");
+  strategySelect.addEventListener("change", ()=>{
+    const val = strategySelect.value || null;
+    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_strategies_id: val }) });
+    trade.key_strategies_id = val ? Number(val) : null;
+    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
+    attachStrategyRemoveHandler(trade, strategyContainer);
+  });
+  attachStrategyRemoveHandler(trade, strategyContainer);
+
+  // ---------- SETUP ADD ----------
+  const setupSelect = td.querySelector(".setup-add");
+  const setupContainer = td.querySelector(".setup-tag-container");
+
+  setupSelect.addEventListener("change", async () => {
+  const setupId = setupSelect.value;
+  if (!setupId) return;
+
+  await fetch("/api/trade_setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      key_trade_id: trade.id,
+      key_setup_id: setupId
+    })
   });
 
-  charts.pnlChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: data.map(t => formatDate(t.entryTimestamp)),
-      datasets: [{
-        label: "Cumulative PnL",
-        data: pnlData,
-        borderColor: "#2ecc71",     // ✅ green
-        backgroundColor: "transparent",
-        borderWidth: 2,
-        tension: 0.25,
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,            // ✅ instant updates
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          ticks: {
-            callback: v => `$${v.toLocaleString()}`
-          }
-        }
-      }
-    }
+    trade.setups.push(Number(setupId));   // ✅ keep IDs only
+
+    setupContainer.innerHTML = renderSetupTags(trade);
+    setupSelect.value = "";
+  });
+
+  attachSetupRemoveHandlers(trade, setupContainer);
+}
+
+/* ---------------- REMOVE STRATEGY ---------------- */
+function attachStrategyRemoveHandler(trade, container){
+  const tag = container.querySelector("[data-remove-strategy]");
+  if(tag){
+    tag.addEventListener("click", ()=>{
+      fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key_strategies_id: null }) });
+      trade.key_strategies_id = null;
+      container.innerHTML = renderStrategyTag(null);
+      attachStrategyRemoveHandler(trade, container);
+    });
+  }
+}
+
+/* ---------------- REMOVE SETUP ---------------- */
+function attachSetupRemoveHandlers(trade, container){
+  container.querySelectorAll(".setup-tag").forEach(tag=>{
+    tag.addEventListener("click", async ()=>{
+      const id = tag.dataset.tradeSetupId;
+      await fetch(`/api/trade_setup/${id}`, { method:"DELETE" });
+      trade.setups = trade.setups.filter(s => s.trade_setup_id != id);
+      container.innerHTML = renderSetupTags(trade.setups);
+      attachSetupRemoveHandlers(trade, container);
+    });
   });
 }
 
+/* ---------------- CLOSE DETAILS ---------------- */
+function closeDetails(){
+  if(!openRow) return;
+  const { tr, detailsTr, panel } = openRow;
+  tr.classList.remove("expanded");
+  panel.classList.remove("open");
+  setTimeout(()=>detailsTr.remove(),250);
+  openRow=null;
+}
 
 /* ---------------- FILTERS ---------------- */
 function applyFiltersAndRender(){
   let data=[...originalData];
-
   const from=dateFrom.value?new Date(dateFrom.value):null;
   const to=dateTo.value?new Date(dateTo.value):null;
-  if(from||to){
-    data=data.filter(t=>{
-      if(from&&t.entryTimestamp<from) return false;
-      if(to&&t.entryTimestamp>to) return false;
-      return true;
-    });
-  }
-
-  document.querySelectorAll("th input[data-col]").forEach(input=>{
-    if(!input.value) return;
-    const col=input.dataset.col;
-    data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase()));
-  });
-
-  const setupId = document.getElementById("setupFilter")?.value;
-  if (setupId) {
-    data = data.filter(t => t.setups?.includes(Number(setupId)));
-  }
-
+  if(from||to) data=data.filter(t=>{ if(from&&t.entryTimestamp<from) return false; if(to&&t.entryTimestamp>to) return false; return true; });
+  document.querySelectorAll("th input[data-col]").forEach(input=>{ if(!input.value) return; const col=input.dataset.col; data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase())); });
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
-  renderPnLChart(data);
+
+  const setupId = document.getElementById("setupFilter")?.value;
+
+  if (setupId) {
+    filtered = filtered.filter(t =>
+      t.setups?.includes(Number(setupId))
+    );
+  }
 }
 </script>
+
+
 
 {% endblock %}
