@@ -416,21 +416,26 @@ tr.trade-details-row td {
 /* ========== SETUP / STRATEGY ========== */
 .filter-buttons {
   display: flex;
-  gap: 6px;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
 .filter-buttons button {
-  padding: 4px 10px;
+  border: none;
+  padding: 6px 10px;
   border-radius: 14px;
-  border: 1px solid #ccc;
-  background: #f4f4f4;
+  font-size: 12px;
   cursor: pointer;
-  font-size: 13px;
+  opacity: 0.35;
+  color: #fff;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.filter-buttons button:hover {
+  opacity: 0.6;
 }
 
 .filter-buttons button.active {
-  background: #2ecc71;
-  color: white;
-  border-color: #27ae60;
+  opacity: 1;
+  transform: scale(1.05);
 }

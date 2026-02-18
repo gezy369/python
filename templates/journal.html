@@ -21,11 +21,13 @@
 
 <!-- Strategy and setup filters -->
 <div>
-  <div id="strategyFilter" class="filter-buttons single">Strategies</div>
-</div>
+  <div>
+  Strategies <div id="strategyFilter" class="filter-buttons single"></div>
+  </div>
 
-<div>
-  <div id="setupFilter" class="filter-buttons multi">Setups</div>
+  <div>
+  Setups <div id="setupFilter" class="filter-buttons multi"></div>
+  </div>
 </div>
 <!-- Table -->
 <div style="display:flex; gap:20px; align-items:flex-start;">
@@ -70,13 +72,13 @@ Promise.all([
 
   // ---------- SETUP FILTER ----------
   const setupContainer = document.getElementById("setupFilter");
-  if (setupContainer) {
     setupContainer.innerHTML = "";
 
     SETUPS.forEach(s => {
       const btn = document.createElement("button");
       btn.textContent = s.setup_name;
       btn.dataset.id = s.id;
+      btn.style.background = s.color;   // 🎨 color applied
 
       btn.onclick = () => {
         btn.classList.toggle("active");
@@ -87,35 +89,34 @@ Promise.all([
     });
   }
 
-
   // ---------- STRATEGY FILTER ----------
-  const strategyContainer = document.getElementById("strategyFilter");
-  if (strategyContainer) {
+    const strategyContainer = document.getElementById("strategyFilter");
     strategyContainer.innerHTML = "";
 
     STRATEGIES.forEach(s => {
       const btn = document.createElement("button");
       btn.textContent = s.strategy_name;
       btn.dataset.id = s.id;
+      btn.style.background = s.color;   // 🎨 color applied
 
       btn.onclick = () => {
-      const isActive = btn.classList.contains("active");
+        const isActive = btn.classList.contains("active");
 
-      strategyContainer
-        .querySelectorAll("button")
-        .forEach(b => b.classList.remove("active"));
+        strategyContainer
+          .querySelectorAll("button")
+          .forEach(b => b.classList.remove("active"));
 
-      if (!isActive) {
-        btn.classList.add("active");
-      }
+        if (!isActive) {
+          btn.classList.add("active");
+        }
 
-  applyFiltersAndRender();
-};
+        applyFiltersAndRender();
+      };
 
       strategyContainer.appendChild(btn);
     });
-  }
 
+  //}
 
   // Attach setups to trades
   originalData = trades.map(t => ({
