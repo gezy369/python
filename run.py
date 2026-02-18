@@ -244,18 +244,6 @@ def get_trade_setups():
         print("Supabase /api/trade_setups error:", e)
         return jsonify({"error": str(e)}), 500
 
-# to remove ?
-    rows = []
-    for r in response.data or []:
-        rows.append({
-            "trade_setup_id": r["id"],
-            "key_trade_id": r["key_trade_id"],
-            "key_setup_id": r["key_setup_id"],
-            "setup_name": r["setups"]["setup_name"],
-            "color": r["setups"]["color"]
-        })
-
-    return jsonify(rows)
 
 
 

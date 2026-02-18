@@ -212,7 +212,7 @@ function toggleTradeDetails(tr, trade){
             ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
           <div class="setup-tag-container">
-            ${renderSetupTags(trade.setups)}
+            ${renderSetupTags(trade)}
           </div>
         </div>
       </div>
