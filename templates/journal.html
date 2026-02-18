@@ -66,7 +66,12 @@ Promise.all([
   // Populate the setup filter dropdown
   const setupFilter = document.getElementById("setupFilter");
   if (setupFilter) {
-    setupFilter.innerHTML = `<option value="">All setups</option>`;
+    setupFilter.innerHTML = ""; // clear previous
+    const allOption = document.createElement("option");
+    allOption.value = ""; // empty value = all
+    allOption.textContent = "All setups";
+    setupFilter.appendChild(allOption);
+
     SETUPS.forEach(s => {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -74,6 +79,7 @@ Promise.all([
       setupFilter.appendChild(opt);
     });
   }
+
 
   // Attach setups to trades
   originalData = trades.map(t => ({
@@ -387,7 +393,10 @@ function applyFiltersAndRender(){
   renderPnLChart(data);
 
   const setupSelect = document.getElementById("setupFilter");
-  const selectedSetups = Array.from(setupSelect.selectedOptions).map(opt => Number(opt.value));
+  const selectedSetups = Array.from(setupSelect.selectedOptions)
+                            .map(opt => opt.value)
+                            .filter(v => v !== "")
+                            .map(Number);
 
   if (selectedSetups.length > 0) {
     // keep trades that have at least one of the selected setups
