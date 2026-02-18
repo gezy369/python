@@ -141,33 +141,52 @@ function buildRows(data){
 }
 
 /* ---------------- CHART ---------------- */
-function renderPnLChart(data){
-  const canvas = document.getElementById("pnlChart");
-  if (!canvas) return;
+function renderPnLChart(data) {
+  const ctx = document.getElementById("pnlChart");
+  if (!ctx) return;
 
-  if (charts.pnl) charts.pnl.destroy();
+  if (charts.pnlChart) {
+    charts.pnlChart.destroy();
+  }
 
-  let sum = 0;
-  const cumulative = data.map(t => (sum += Number(t.pnl) || 0));
+  let cumulative = 0;
+  const pnlData = data.map(t => {
+    cumulative += Number(t.pnl) || 0;
+    return cumulative;
+  });
 
-  charts.pnl = new Chart(canvas, {
+  charts.pnlChart = new Chart(ctx, {
     type: "line",
     data: {
       labels: data.map(t => formatDate(t.entryTimestamp)),
       datasets: [{
-        data: cumulative,
+        label: "Cumulative PnL",
+        data: pnlData,
+        borderColor: "#2ecc71",     // ✅ green
+        backgroundColor: "transparent",
         borderWidth: 2,
-        tension: 0.3,
-        fill: false
+        tension: 0.25,
+        pointRadius: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } }
+      animation: false,            // ✅ instant updates
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: v => `$${v.toLocaleString()}`
+          }
+        }
+      }
     }
   });
 }
+
 
 /* ---------------- FILTERS ---------------- */
 function applyFiltersAndRender(){
