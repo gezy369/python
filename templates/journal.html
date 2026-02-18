@@ -88,6 +88,24 @@ Promise.all([
   applyFiltersAndRender();
 });
 
+/* --------------- RESTE FILTERS -----------------  */
+function resetFilters() {
+  // reset date inputs
+  const dateFrom = document.getElementById("dateFrom");
+  const dateTo = document.getElementById("dateTo");
+  if (dateFrom) dateFrom.value = "";
+  if (dateTo) dateTo.value = "";
+
+  // reset column filters
+  document.querySelectorAll("th input[data-col]").forEach(input => input.value = "");
+
+  // reset setup filter
+  const setupFilter = document.getElementById("setupFilter");
+  if (setupFilter) setupFilter.value = "";
+
+  // re-render table + chart
+  applyFiltersAndRender();
+}
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
@@ -367,7 +385,6 @@ function applyFiltersAndRender(){
   buildRows(data);
   renderPnLChart(data);
 
-
   const setupId = document.getElementById("setupFilter")?.value;
 
   if (setupId) {
@@ -375,6 +392,9 @@ function applyFiltersAndRender(){
       t.setups?.includes(Number(setupId))
     );
   }
+  // --- render table and chart ---
+  buildRows(data);
+  updatePnLChart(data);  
 }
 </script>
 
