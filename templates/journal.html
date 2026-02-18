@@ -20,7 +20,7 @@
 </div>
 
 <!-- Strategy and setup filters -->
-<div>
+<div id="strategySetup">
   <div>
   Strategies <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
@@ -87,7 +87,6 @@ Promise.all([
 
       setupContainer.appendChild(btn);
     });
-  //}
 
   // ---------- STRATEGY FILTER ----------
     const strategyContainer = document.getElementById("strategyFilter");
@@ -116,8 +115,6 @@ Promise.all([
       strategyContainer.appendChild(btn);
     });
 
-  //}
-
   // Attach setups to trades
   originalData = trades.map(t => ({
     ...t,
@@ -132,6 +129,7 @@ Promise.all([
   applyFiltersAndRender();
 });
 
+/* ---------------- RESET FILTERS ---------------- */
 function resetFilters() {
   // reset date inputs
   const dateFrom = document.getElementById("dateFrom");
@@ -139,20 +137,8 @@ function resetFilters() {
   if (dateFrom) dateFrom.value = "";
   if (dateTo) dateTo.value = "";
 
-  // reset column filters
-  document
-  .querySelectorAll(".filter-buttons button")
-  .forEach(b => b.classList.remove("active"));
-
-  // reset setup filter (multi-select)
-  //const setupFilter = document.getElementById("setupFilter");
-  //if (setupFilter) {
-    //Array.from(setupFilter.options).forEach(opt => opt.selected = opt.value === "");
-  //}
-
-  // reset strategy filter (single-select)
-  //const strategyFilter = document.getElementById("strategyFilter");
-  //if (strategyFilter) strategyFilter.value = "";
+  // remove all active filter buttons
+  document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
 
   // re-render table + chart
   applyFiltersAndRender();

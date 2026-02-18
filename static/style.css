@@ -229,12 +229,6 @@ button {
   gap: 20px;
 }
 
-/* ===== Blocks =====
-.settings-block {
-  border: 1px solid var(--border-color, #333);
-  padding: 12px;
-}*/
-
 /* ===== Tables ===== */
 .settings-table {
   width: 100%;
@@ -438,4 +432,11 @@ tr.trade-details-row td {
 .filter-buttons button.active {
   opacity: 1;
   transform: scale(1.05);
+}
+
+#strategySetup{
+  display:flex;
+  gap:20px;
+  align-items:center;
+  margin-bottom:10px;
 }
