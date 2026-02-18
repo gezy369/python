@@ -13,9 +13,10 @@
 
   <div style="width:20px;"></div>
 
-  <select id="setupFilter" onchange="applyFiltersAndRender()">
-    <option value="">All setups</option>
+  <select id="setupFilter" multiple onchange="applyFiltersAndRender()" style="min-width:150px; height:100px;">
+    <!-- options populated dynamically -->
   </select>
+
 
   <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
     Delete selected
@@ -385,13 +386,14 @@ function applyFiltersAndRender(){
   buildRows(data);
   renderPnLChart(data);
 
-  const setupId = document.getElementById("setupFilter")?.value;
+  const setupSelect = document.getElementById("setupFilter");
+  const selectedSetups = Array.from(setupSelect.selectedOptions).map(opt => Number(opt.value));
 
-  if (setupId) {
-    filtered = filtered.filter(t =>
-      t.setups?.includes(Number(setupId))
-    );
+  if (selectedSetups.length > 0) {
+    // keep trades that have at least one of the selected setups
+    data = data.filter(trade => trade.setups?.some(id => selectedSetups.includes(id)));
   }
+
   // --- render table and chart ---
   buildRows(data);
   updatePnLChart(data);  
