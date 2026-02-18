@@ -267,6 +267,59 @@ function toggleTradeDetails(tr, trade){
   attachSetupRemoveHandlers(trade, setupContainer);
 }
 
+/* ---------------- CHARTS -------------------- */
+function renderPnLChart(data) {
+  const ctx = document.getElementById("pnlChart");
+  if (!ctx) return;
+
+  // destroy previous chart
+  if (charts.pnl) charts.pnl.destroy();
+
+  // group pnl by date
+  const byDate = {};
+  data.forEach(t => {
+    const d = t.entryTimestamp.toISOString().slice(0, 10); // YYYY-MM-DD
+    byDate[d] = (byDate[d] || 0) + (Number(t.pnl) || 0);
+  });
+
+  const dates = Object.keys(byDate).sort();
+  let cumulative = 0;
+  const cumulativePnL = dates.map(d => {
+    cumulative += byDate[d];
+    return cumulative;
+  });
+
+  charts.pnl = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [{
+        label: "Cumulative PnL",
+        data: cumulativePnL,
+        borderColor: "#2ecc71",
+        backgroundColor: "rgba(46, 204, 113, 0.15)",
+        tension: 0.25,
+        fill: true,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: v => `$${v.toLocaleString()}`
+          }
+        }
+      }
+    }
+  });
+}
+
 /* ---------------- REMOVE STRATEGY ---------------- */
 function attachStrategyRemoveHandler(trade, container){
   const tag = container.querySelector("[data-remove-strategy]");
@@ -312,6 +365,8 @@ function applyFiltersAndRender(){
   document.querySelectorAll("th input[data-col]").forEach(input=>{ if(!input.value) return; const col=input.dataset.col; data=data.filter(r=>String(r[col]??"").toLowerCase().includes(input.value.toLowerCase())); });
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
+  renderPnLChart(data);
+
 
   const setupId = document.getElementById("setupFilter")?.value;
 
