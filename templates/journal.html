@@ -87,7 +87,7 @@ Promise.all([
 
       setupContainer.appendChild(btn);
     });
-  }
+  //}
 
   // ---------- STRATEGY FILTER ----------
     const strategyContainer = document.getElementById("strategyFilter");
@@ -145,14 +145,14 @@ function resetFilters() {
   .forEach(b => b.classList.remove("active"));
 
   // reset setup filter (multi-select)
-  const setupFilter = document.getElementById("setupFilter");
-  if (setupFilter) {
-    Array.from(setupFilter.options).forEach(opt => opt.selected = opt.value === "");
-  }
+  //const setupFilter = document.getElementById("setupFilter");
+  //if (setupFilter) {
+    //Array.from(setupFilter.options).forEach(opt => opt.selected = opt.value === "");
+  //}
 
   // reset strategy filter (single-select)
-  const strategyFilter = document.getElementById("strategyFilter");
-  if (strategyFilter) strategyFilter.value = "";
+  //const strategyFilter = document.getElementById("strategyFilter");
+  //if (strategyFilter) strategyFilter.value = "";
 
   // re-render table + chart
   applyFiltersAndRender();
