@@ -159,10 +159,16 @@ function removeSetup(e, tradeId, setupId){
     })
   })
   .then(() => {
-    const trade = originalData.find(t => t.id === tradeId);
-    trade.setups = trade.setups.filter(id => id !== setupId);
-    refreshOpenTrade();
-  });
+  const trade = originalData.find(t => t.id === tradeId);
+  trade.setups = trade.setups.filter(id => id !== setupId);
+
+  // re-render tags only
+  const container = openRow?.panel?.querySelector(".setup-tag-container");
+  if (container) {
+    container.innerHTML = renderSetupTags(trade);
+  }
+});
+
 }
 
 function refreshOpenTrade(){
