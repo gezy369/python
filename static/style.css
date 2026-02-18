@@ -434,7 +434,3 @@ tr.trade-details-row td {
   color: white;
   border-color: #27ae60;
 }
-
-.filter-buttons.single button.active {
-  pointer-events: none;
-}

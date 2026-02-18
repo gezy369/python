@@ -13,21 +13,19 @@
 
   <div style="width:20px;"></div>
 
-<div>
-  <strong>Strategies:</strong>
-  <div id="strategyFilter" class="filter-buttons single"></div>
-</div>
-
-<div>
-  <strong>Setups:</strong>
-  <div id="setupFilter" class="filter-buttons multi"></div>
-</div>
-
-
-<!-- Delete button -->
+  <!-- Delete button -->
   <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
     Delete selected
   </button>
+</div>
+
+<!-- Strategy and setup filters -->
+<div>
+  <div id="strategyFilter" class="filter-buttons single">Strategies</div>
+</div>
+
+<div>
+  <div id="setupFilter" class="filter-buttons multi">Setups</div>
 </div>
 <!-- Table -->
 <div style="display:flex; gap:20px; align-items:flex-start;">
@@ -101,13 +99,18 @@ Promise.all([
       btn.dataset.id = s.id;
 
       btn.onclick = () => {
-        strategyContainer
-          .querySelectorAll("button")
-          .forEach(b => b.classList.remove("active"));
+      const isActive = btn.classList.contains("active");
 
+      strategyContainer
+        .querySelectorAll("button")
+        .forEach(b => b.classList.remove("active"));
+
+      if (!isActive) {
         btn.classList.add("active");
-        applyFiltersAndRender();
-      };
+      }
+
+  applyFiltersAndRender();
+};
 
       strategyContainer.appendChild(btn);
     });
@@ -502,7 +505,7 @@ function applyFiltersAndRender() {
 
   if (selectedSetups.length) {
     data = data.filter(t =>
-      selectedSetups.every(id => t.setups?.includes(id))
+      selectedSetups.some(id => t.setups?.includes(id))
     );
   }
 
