@@ -412,3 +412,29 @@ tr.trade-details-row td {
 .tag-remove:hover {
   opacity: 0.7;
 }
+
+/* ========== SETUP / STRATEGY ========== */
+.filter-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-buttons button {
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid #ccc;
+  background: #f4f4f4;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.filter-buttons button.active {
+  background: #2ecc71;
+  color: white;
+  border-color: #27ae60;
+}
+
+.filter-buttons.single button.active {
+  pointer-events: none;
+}

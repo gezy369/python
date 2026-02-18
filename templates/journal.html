@@ -13,14 +13,16 @@
 
   <div style="width:20px;"></div>
 
-  <!-- Setup filter -->
-  <select id="setupFilter" multiple onchange="applyFiltersAndRender()" style="min-width:150px; height:100px;">
-    <!-- options populated dynamically -->
-  </select>
-<!-- Strategy filter -->
- <select id="strategyFilter" onchange="applyFiltersAndRender()">
-  <option value="">All strategies</option>
-</select>
+<div>
+  <strong>Strategies:</strong>
+  <div id="strategyFilter" class="filter-buttons single"></div>
+</div>
+
+<div>
+  <strong>Setups:</strong>
+  <div id="setupFilter" class="filter-buttons multi"></div>
+</div>
+
 
 <!-- Delete button -->
   <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
@@ -68,40 +70,49 @@ Promise.all([
   STRATEGIES = strategies;
   SETUPS = setups;
 
-  // Populate the setup filter dropdown
-  const setupFilter = document.getElementById("setupFilter");
-  if (setupFilter) {
-    setupFilter.innerHTML = ""; // clear previous
-    const allOption = document.createElement("option");
-    allOption.value = ""; // empty value = all
-    allOption.textContent = "All setups";
-    setupFilter.appendChild(allOption);
+  // ---------- SETUP FILTER ----------
+  const setupContainer = document.getElementById("setupFilter");
+  if (setupContainer) {
+    setupContainer.innerHTML = "";
 
     SETUPS.forEach(s => {
-      const opt = document.createElement("option");
-      opt.value = s.id;
-      opt.textContent = s.setup_name;
-      setupFilter.appendChild(opt);
+      const btn = document.createElement("button");
+      btn.textContent = s.setup_name;
+      btn.dataset.id = s.id;
+
+      btn.onclick = () => {
+        btn.classList.toggle("active");
+        applyFiltersAndRender();
+      };
+
+      setupContainer.appendChild(btn);
     });
   }
+
 
   // ---------- STRATEGY FILTER ----------
-  const strategyFilter = document.getElementById("strategyFilter");
-  if (strategyFilter) {
-    strategyFilter.innerHTML = ""; // clear previous
-
-    const allOption = document.createElement("option");
-    allOption.value = ""; // empty value = all
-    allOption.textContent = "All strategies";
-    strategyFilter.appendChild(allOption);
+  const strategyContainer = document.getElementById("strategyFilter");
+  if (strategyContainer) {
+    strategyContainer.innerHTML = "";
 
     STRATEGIES.forEach(s => {
-      const opt = document.createElement("option");
-      opt.value = s.id;
-      opt.textContent = s.strategy_name;
-      strategyFilter.appendChild(opt);
+      const btn = document.createElement("button");
+      btn.textContent = s.strategy_name;
+      btn.dataset.id = s.id;
+
+      btn.onclick = () => {
+        strategyContainer
+          .querySelectorAll("button")
+          .forEach(b => b.classList.remove("active"));
+
+        btn.classList.add("active");
+        applyFiltersAndRender();
+      };
+
+      strategyContainer.appendChild(btn);
     });
   }
+
 
   // Attach setups to trades
   originalData = trades.map(t => ({
@@ -125,7 +136,9 @@ function resetFilters() {
   if (dateTo) dateTo.value = "";
 
   // reset column filters
-  document.querySelectorAll("th input[data-col]").forEach(input => input.value = "");
+  document
+  .querySelectorAll(".filter-buttons button")
+  .forEach(b => b.classList.remove("active"));
 
   // reset setup filter (multi-select)
   const setupFilter = document.getElementById("setupFilter");
@@ -483,12 +496,9 @@ function applyFiltersAndRender() {
   });
 
   // ---------- SETUP FILTER (multi) ----------
-  const setupFilter = document.getElementById("setupFilter");
-  const selectedSetups = setupFilter
-    ? Array.from(setupFilter.selectedOptions)
-        .map(o => Number(o.value))
-        .filter(Boolean)
-    : [];
+  const selectedSetups = [
+    ...document.querySelectorAll("#setupFilter button.active")
+  ].map(b => Number(b.dataset.id));
 
   if (selectedSetups.length) {
     data = data.filter(t =>
@@ -496,12 +506,12 @@ function applyFiltersAndRender() {
     );
   }
 
-  // ---------- STRATEGY FILTER (single) ----------
-  const strategyFilter = document.getElementById("strategyFilter");
-  const strategyId = strategyFilter?.value;
 
-  if (strategyId) {
-    data = data.filter(t => t.key_strategies_id == strategyId);
+  // ---------- STRATEGY FILTER (single) ----------
+  const activeStrategy = document.querySelector("#strategyFilter button.active");
+  if (activeStrategy) {
+    const strategyId = Number(activeStrategy.dataset.id);
+    data = data.filter(t => t.key_strategies_id === strategyId);
   }
 
   // ---------- SORT ----------
