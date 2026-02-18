@@ -106,13 +106,16 @@ function resetFilters() {
   // reset column filters
   document.querySelectorAll("th input[data-col]").forEach(input => input.value = "");
 
-  // reset setup filter
+  // reset setup filter (multi-select)
   const setupFilter = document.getElementById("setupFilter");
-  if (setupFilter) setupFilter.value = "";
+  if (setupFilter) {
+    Array.from(setupFilter.options).forEach(opt => opt.selected = opt.value === "");
+  }
 
   // re-render table + chart
   applyFiltersAndRender();
 }
+
 
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
