@@ -372,6 +372,53 @@ function renderPnLChart(data) {
   });
 }
 
+function updatePnLChart(data) {
+  const ctx = document.getElementById("pnlChart");
+  if (!ctx) return;
+
+  // group PnL by date
+  const daily = {};
+  data.forEach(t => {
+    const d = t.entryTimestamp.toISOString().slice(0, 10);
+    daily[d] = (daily[d] || 0) + (Number(t.pnl) || 0);
+  });
+
+  const dates = Object.keys(daily).sort();
+  let cumulative = 0;
+  const values = dates.map(d => (cumulative += daily[d]));
+
+  // destroy previous chart
+  if (charts.pnl) charts.pnl.destroy();
+
+  charts.pnl = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [{
+        label: "Cumulative PnL",
+        data: values,
+        borderColor: "#2ecc71",
+        backgroundColor: "rgba(46, 204, 113, 0.15)",
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: v => `$${v.toLocaleString()}`
+          }
+        }
+      }
+    }
+  });
+}
+
 /* ---------------- REMOVE STRATEGY ---------------- */
 function attachStrategyRemoveHandler(trade, container){
   const tag = container.querySelector("[data-remove-strategy]");
@@ -464,6 +511,7 @@ function applyFiltersAndRender() {
   buildRows(data);
   updatePnLChart(data);
 }
+
 
 </script>
 
