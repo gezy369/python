@@ -12,13 +12,43 @@
   <div class="sidebar">
     <h1>Trading Futures</h1>
 
-    <label style="display:block; margin-bottom:8px;">
-      Account
-      <select id="accountSelect" style="width:100%; margin-top:4px;">
-        <option value="">Select account…</option>
+  <div id="global-account-selector" style="margin-bottom: 12px;">
+    <label>
+      Account:
+      <select id="accountSelect">
+        <option value="">Select account</option>
       </select>
     </label>
-    
+  </div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const select = document.getElementById("accountSelect");
+    if (!select) return;
+
+    const res = await fetch("/api/accounts");
+    const accounts = await res.json();
+
+    select.innerHTML = `<option value="">Select account</option>`;
+
+    accounts.forEach(acc => {
+      const opt = document.createElement("option");
+      opt.value = acc.id;
+      opt.textContent = acc.name;
+      select.appendChild(opt);
+    });
+
+    // restore last selected account
+    const saved = localStorage.getItem("selectedAccountId");
+    if (saved) select.value = saved;
+
+    // persist selection
+    select.addEventListener("change", () => {
+      localStorage.setItem("selectedAccountId", select.value);
+    });
+  });
+  </script>
+
     <a class="menu-item" href="{{ url_for('dashboard') }}">
       📊 Dashboard
     </a>
