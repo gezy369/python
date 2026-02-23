@@ -259,7 +259,6 @@ function toggleTradeDetails(tr, trade){
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
           <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
           <div style="margin-top:10px;">
-            <strong>Notes</strong>
             <textarea
               class="trade-notes"
               rows="4"
@@ -312,7 +311,7 @@ function toggleTradeDetails(tr, trade){
       trade.notes = value; // keep local state in sync
     }, 600); // debounce (ms)
   });
-  
+
   // ---------- STRATEGY CHANGE ----------
   const strategySelect=td.querySelector(".trade-strategy");
   const strategyContainer=td.querySelector(".strategy-tag-container");
@@ -349,6 +348,15 @@ function toggleTradeDetails(tr, trade){
   });
 
   attachSetupRemoveHandlers(trade, setupContainer);
+}
+
+/* --------------- ACCOUNT LISTENER ---------------- */
+const accountSelect = document.getElementById("accountSelect");
+
+if (accountSelect) {
+  accountSelect.addEventListener("change", () => {
+    applyFiltersAndRender();
+  });
 }
 
 /* ---------------- CHARTS -------------------- */
@@ -502,7 +510,15 @@ function applyFiltersAndRender() {
       return true;
     });
   }
+  // ---------- ACCOUNT FILTER ----------
+  const selectedAccountId = accountSelect?.value;
 
+  if (selectedAccountId) {
+    data = data.filter(t =>
+      String(t.key_trading_accounts) === selectedAccountId
+    );
+  }
+  
   // ---------- COLUMN FILTERS ----------
   document.querySelectorAll("th input[data-col]").forEach(input => {
     if (!input.value) return;
