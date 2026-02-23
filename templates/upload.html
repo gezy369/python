@@ -44,6 +44,32 @@
 </div>
 
 <script>
+
+// popultate account dropdown
+const accountSelect = document.getElementById("accountSelect");
+
+// fetch accounts
+fetch("/api/accounts")
+  .then(r => r.json())
+  .then(accounts => {
+    accounts.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.account_name;
+      accountSelect.appendChild(opt);
+    });
+  });
+
+// manage empty account selection
+const accountId = accountSelect.value;
+
+if (!accountId) {
+  messageDiv.innerHTML = "Please select an account";
+  messageDiv.className = "error";
+  return;
+}
+
+
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
 const messageDiv = document.getElementById("message");
@@ -84,6 +110,7 @@ function uploadFile() {
 
   const formData = new FormData();
   formData.append("file", selectedFile);
+  formData.append("account_id", accountId);
 
   fetch("{{ url_for('upload_file') }}", {
     method: "POST",

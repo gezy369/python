@@ -12,6 +12,13 @@
   <div class="sidebar">
     <h1>Trading Futures</h1>
 
+    <label style="display:block; margin-bottom:8px;">
+      Account
+      <select id="accountSelect" style="width:100%; margin-top:4px;">
+        <option value="">Select account…</option>
+      </select>
+    </label>
+    
     <a class="menu-item" href="{{ url_for('dashboard') }}">
       📊 Dashboard
     </a>

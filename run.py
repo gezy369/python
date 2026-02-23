@@ -89,6 +89,7 @@ def upload_file():
         return render_template("upload.html")
     
     try:
+        # ---------- FILE ----------
         if "file" not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
@@ -97,24 +98,36 @@ def upload_file():
         if not file.filename.lower().endswith(".csv"):
             return jsonify({"error": "Only CSV files allowed"}), 400
 
-        # Read CSV directly into pandas DataFrame
-        df = pd.read_csv(file)  # <- file is already a file-like object
+        # ---------- ACCOUNT ----------
+        account_id = request.form.get("account_id")
+        if not account_id:
+            return jsonify({"error": "No account selected"}), 400
 
-        # Pass DataFrame to your function
+        # ---------- READ CSV ----------
+        df = pd.read_csv(file)
+
+        # Your existing CSV handler
         df_imported_trades = csv_handler(df)
-        
-        # Convert DataFrame to JSON-safe format
+
+        # ---------- ADD ACCOUNT TO ALL TRADES ----------
+        df_imported_trades["account_id"] = account_id
+
+        # ---------- PREVIEW DATA ----------
         data = df_imported_trades.to_dict(orient="records")
         columns = list(df_imported_trades.columns)
 
-        # Insert into Supabase
-        # Convert timestamps to strings for JSON / Supabase
-        df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-        df_imported_trades["exitTimestamp"] = df_imported_trades["exitTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-        # Convert DataFrame to list of dicts
-        records = df_imported_trades.to_dict(orient="records")
+        # ---------- FORMAT TIMESTAMPS ----------
+        df_imported_trades["entryTimestamp"] = (
+            df_imported_trades["entryTimestamp"]
+            .dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
+        df_imported_trades["exitTimestamp"] = (
+            df_imported_trades["exitTimestamp"]
+            .dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
 
-        # Insert into Supabase
+        # ---------- INSERT INTO SUPABASE ----------
+        records = df_imported_trades.to_dict(orient="records")
         response = supabase.table("trades").insert(records).execute()
 
         print(response)
