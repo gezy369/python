@@ -110,7 +110,7 @@ def upload_file():
         df_imported_trades = csv_handler(df)
 
         # ---------- ADD ACCOUNT TO ALL TRADES ----------
-        df_imported_trades["account_id"] = account_id
+        df_imported_trades["key_trading_accounts"] = account_id
 
         # ---------- PREVIEW DATA ----------
         data = df_imported_trades.to_dict(orient="records")
