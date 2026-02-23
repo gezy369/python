@@ -12,87 +12,89 @@ def csv_handler(df_trade):
     # Read the CSV
     # df_trade = pd.read_csv(csv_file)
 
+# Clean the PnL column
+df_trade["pnl"] = (
+    df_trade["pnl"]
+    .str.replace("$", "", regex=False)
+    .str.replace("(", "-", regex=False)
+    .str.replace(")", "", regex=False)
+    .astype(float)
+)
 
-    # Clean the PnL column
-    df_trade["pnl"] = (
-        df_trade["pnl"]
-        .str.replace("$", "", regex=False)
-        .str.replace("(", "-", regex=False)
-        .str.replace(")", "", regex=False)
-        .astype(float)
+# Convert timestamps to datetime
+df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
+df_trade["soldTimestamp"] = pd.to_datetime(df_trade["soldTimestamp"], format="%m/%d/%Y %H:%M:%S")
+
+# Adds the side of the trade
+df_trade["side"] = np.where(
+    df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+    "short",
+    "long"
+)
+# Adds entry time columns
+df_trade["entryTimestamp"] = np.where(
+    df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
+    df_trade["boughtTimestamp"],
+    df_trade["soldTimestamp"]
+)
+# Adds exit time columns
+df_trade["exitTimestamp"] = np.where(
+    df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+    df_trade["boughtTimestamp"],
+    df_trade["soldTimestamp"]
+)
+
+# Adds entry price columns
+df_trade["entryPrice"] = np.where(
+    df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
+    df_trade["buyPrice"],
+    df_trade["sellPrice"]
+)
+# Adds exit price columns
+df_trade["exitPrice"] = np.where(
+    df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
+    df_trade["buyPrice"],
+    df_trade["sellPrice"]
+)
+
+    # Group partial fills into full trades
+trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
+
+df_trades = (
+    df_trade
+    .groupby(trade_cols, as_index=False)
+    .agg(
+        qty=("qty", "sum"),
+        pnl=("pnl", "sum"),
+        duration=("duration", "last"),
+        entryTimestamp=("entryTimestamp", "first"),
+        exitPrice=("exitPrice","last"),
+        exitTimestamp=("exitTimestamp","last"),
+        side=("side","first")
     )
+)
 
-    # Convert timestamps to datetime
-    df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
-    df_trade["soldTimestamp"] = pd.to_datetime(df_trade["soldTimestamp"], format="%m/%d/%Y %H:%M:%S")
+# Formats symbols
+df_trades["symbol"] = df_trades["symbol"].str[:-2] 
 
-    # Adds the side of the trade
-    df_trade["side"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
-        "short",
-        "long"
-    )
-    # Adds entry time columns
-    df_trade["entryTimestamp"] = np.where(
-        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
-        df_trade["boughtTimestamp"],
-        df_trade["soldTimestamp"]
-    )
-    # Adds exit time columns
-    df_trade["exitTimestamp"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
-        df_trade["boughtTimestamp"],
-        df_trade["soldTimestamp"]
-    )
+# Reorder columns
+df_trades = df_trades[[
+    "symbol",
+    "entryTimestamp",
+    "exitTimestamp",
+    "entryPrice",
+    "exitPrice",
+    "duration",
+    "side",
+    "qty",
+    "pnl"
+]]  
 
-    # Adds entry price columns
-    df_trade["entryPrice"] = np.where(
-        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
-        df_trade["buyPrice"],
-        df_trade["sellPrice"]
-    )
-    # Adds exit price columns
-    df_trade["exitPrice"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
-        df_trade["buyPrice"],
-        df_trade["sellPrice"]
-    )
+# Print results
+#print("=== Reconstructed Trades ===")
+#print(df_trades)
 
-        # Group partial fills into full trades
-    trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
-
-    df_trades = (
-        df_trade
-        .groupby(trade_cols, as_index=False)
-        .agg(
-            qty=("qty", "sum"),
-            pnl=("pnl", "sum"),
-            duration=("duration", "first"),
-            soldTimestamp=("soldTimestamp", "first")
-        )
-    )
-
-    # Formats symbols
-    df_trades["symbol"] = df_trades["symbol"].str[:-2] 
-
-    # Reorder columns
-    df_trades = df_trades[[
-        "symbol",
-        "entryTimestamp",
-        "exitTimestamp",
-        "entryPrice",
-        "exitPrice",
-        "duration",
-        "side",
-        "qty",
-        "pnl"
-    ]]  
-
-    # Print results
-    #print("=== Reconstructed Trades ===")
-    #print(df_trades)
-
-    return df_trades
+return df_trades
 
 #csv_handler(csv_file)
 
