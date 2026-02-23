@@ -258,6 +258,15 @@ function toggleTradeDetails(tr, trade){
           <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
           <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+          <div style="margin-top:10px;">
+            <strong>Notes</strong>
+            <textarea
+              class="trade-notes"
+              rows="4"
+              style="width:100%; resize:vertical;"
+              placeholder="Write your trade notes here..."
+            >${trade.notes ?? ""}</textarea>
+          </div>
         </div>
 
         <div>
@@ -283,7 +292,27 @@ function toggleTradeDetails(tr, trade){
   detailsTr.appendChild(td); tr.after(detailsTr);
   const panel = td.querySelector(".trade-details"); panel.offsetHeight; requestAnimationFrame(()=>panel.classList.add("open"));
   openRow={tr,detailsTr,panel};
+  
+  // ---------- NOTES AUTOSAVE ----------
+  const notesEl = td.querySelector(".trade-notes");
+  let notesTimer = null;
 
+  notesEl.addEventListener("input", () => {
+    clearTimeout(notesTimer);
+
+    notesTimer = setTimeout(() => {
+      const value = notesEl.value;
+
+      fetch(`/api/trades/${trade.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: value })
+      });
+
+      trade.notes = value; // keep local state in sync
+    }, 600); // debounce (ms)
+  });
+  
   // ---------- STRATEGY CHANGE ----------
   const strategySelect=td.querySelector(".trade-strategy");
   const strategyContainer=td.querySelector(".strategy-tag-container");
