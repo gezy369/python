@@ -12,14 +12,14 @@ def csv_handler(df_trade):
     # Read the CSV
     # df_trade = pd.read_csv(csv_file)
 
-# Clean the PnL column
-df_trade["pnl"] = (
-    df_trade["pnl"]
-    .str.replace("$", "", regex=False)
-    .str.replace("(", "-", regex=False)
-    .str.replace(")", "", regex=False)
-    .astype(float)
-)
+    # Clean the PnL column
+    df_trade["pnl"] = (
+        df_trade["pnl"]
+        .str.replace("$", "", regex=False)
+        .str.replace("(", "-", regex=False)
+        .str.replace(")", "", regex=False)
+        .astype(float)
+    )
 
     # Convert timestamps to datetime
     df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
