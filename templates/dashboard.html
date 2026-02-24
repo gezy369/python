@@ -142,15 +142,17 @@ function renderCalendar() {
   /* ---------- days ---------- */
   let currentWeekKey = null;
 
-  for (let day = 1; day <= daysInMonth; day++) {
+    for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
     const weekday = dateObj.getDay(); // 0 = Sun, 6 = Sat
 
     // ⛔ Skip weekends
     if (weekday === 0 || weekday === 6) continue;
 
+    const weekKey = getISOWeek(dateObj); // ✅ MISSING LINE
+
     if (currentWeekKey && weekKey !== currentWeekKey) {
-      insertWeeklyTotal(currentWeekKey);
+        insertWeeklyTotal(currentWeekKey);
     }
     currentWeekKey = weekKey;
 
