@@ -485,6 +485,7 @@ tr.trade-details-row td {
 .calendar-date {
   font-size: 12px;
   opacity: 0.6;
+  color: #ffffff;
 }
 
 .calendar-trades {
@@ -504,17 +505,17 @@ tr.trade-details-row td {
 }
 
 .calendar-wrapper {
-  max-width: 900px;   /* 👈 adjust to taste (800–1000px works well) */
+  max-width: 700px;   /* 👈 adjust to taste (800–1000px works well) */
   margin: 0 auto;     /* center */
 }
 
-.calendar-date {
+/*.calendar-date {
   font-size: 12px;
   font-weight: bold;
   color: #ffffff;
   opacity: 0.7;
-  align-self: flex-start; /* top-left */
-}
+  align-self: flex-start; /* top-left
+}*/
 
 .calendar-month-total {
   margin-top: 12px;
@@ -538,12 +539,12 @@ tr.trade-details-row td {
 
 /* 🟢 Profitable day */
 .calendar-day.day-positive {
-  background: linear-gradient(180deg, rgba(0,180,120,0.25), #151515);
+  background: linear-gradient(180deg, rgba(0,180,120,0.25), #cecece);
 }
 
 /* 🔴 Losing day */
 .calendar-day.day-negative {
-  background: linear-gradient(180deg, rgba(200,60,60,0.25), #151515);
+  background: linear-gradient(180deg, rgba(200,60,60,0.25), #cecece);
 }
 
 /* ⚪ No trades / flat */
