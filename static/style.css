@@ -453,7 +453,7 @@ tr.trade-details-row td {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
 
@@ -554,4 +554,9 @@ tr.trade-details-row td {
   display: flex;
   justify-content: space-between;
   font-size: 15px;
+}
+
+.calendar-week-total,
+.calendar-month-total {
+  grid-column: span 5;
 }
