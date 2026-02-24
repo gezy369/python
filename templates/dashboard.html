@@ -17,24 +17,7 @@
 
 <script>
 
-/* Fetch trades & build the calendar */
-let trades = [];
-
-fetch("/api/trades")
-  .then(r => r.json())
-  .then(data => {
-    trades = data.map(t => ({
-      ...t,
-      entryDate: new Date(t.entryTimestamp)
-    }));
-    renderCalendar();
-  });
-
-monthSelect.onchange = renderCalendar;
-yearSelect.onchange = renderCalendar;
-
-
-/* Setup month/year selecion*/
+/* =================== Setup month/year selecion =================== */
 const monthSelect = document.getElementById("calendarMonth");
 const yearSelect = document.getElementById("calendarYear");
 const calendarEl = document.getElementById("tradingCalendar");
@@ -66,7 +49,27 @@ const now = new Date();
 monthSelect.value = now.getMonth();
 yearSelect.value = now.getFullYear();
 
-/* Calendar rendering logic */
+
+
+/* =================== Fetch trades & build the calendar =================== */
+let trades = [];
+
+fetch("/api/trades")
+  .then(r => r.json())
+  .then(data => {
+    trades = data.map(t => ({
+      ...t,
+      entryDate: new Date(t.entryTimestamp)
+    }));
+    renderCalendar();
+  });
+
+monthSelect.onchange = renderCalendar;
+yearSelect.onchange = renderCalendar;
+
+
+
+/* =================== Calendar rendering logic ===================== */
 function renderCalendar() {
   calendarEl.innerHTML = "";
 
