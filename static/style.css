@@ -440,3 +440,61 @@ tr.trade-details-row td {
   align-items:center;
   margin-bottom:10px;
 }
+
+/* ---------- CALENDAR ----------*/
+.calendar-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day,
+.calendar-header {
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.calendar-header {
+  text-align: center;
+  font-weight: bold;
+  color: #777;
+}
+
+.calendar-day {
+  background: #1e1e1e;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.calendar-day.empty {
+  background: transparent;
+}
+
+.calendar-date {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.calendar-trades {
+  font-size: 12px;
+}
+
+.calendar-pnl {
+  font-weight: bold;
+}
+
+.calendar-pnl.positive {
+  color: #2ecc71;
+}
+
+.calendar-pnl.negative {
+  color: #e74c3c;
+}

@@ -29,7 +29,7 @@
     const res = await fetch("/api/accounts");
     const accounts = await res.json();
 
-    select.innerHTML = `<option value="">Select account</option>`;
+    select.innerHTML = `<option value="">All accounts</option>`;
 
     accounts.forEach(acc => {
       const opt = document.createElement("option");
