@@ -507,19 +507,33 @@ tr.trade-details-row td {
 .calendar-wrapper {
   max-width: 700px;   /* 👈 adjust to taste (800–1000px works well) */
   margin: 0 auto;     /* center */
+  padding-bottom: 6px;
 }
 
 .calendar-month-total {
-  margin-top: 12px;
-  padding: 10px 14px;
-  /*background: #cecece;*/
-  /*border-radius: 8px;*/
-  font-size: 14px;
+  margin-top: 14px;
   display: flex;
-  gap: 8px;
-  align-items: center;
+  justify-content: flex-end;   /* 👉 align right */
+  font-size: 14px;
 }
 
+.calendar-month-total .month-pnl {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+/* Green / red backgrounds */
+.calendar-month-total .positive {
+  color: #1f8f6a;
+  background: rgba(31, 143, 106, 0.12);
+}
+
+.calendar-month-total .negative {
+  color: #c73d32;
+  background: rgba(199, 61, 50, 0.12);
+}
 
 .calendar-day:hover {
   transform: translateY(-1px);
