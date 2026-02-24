@@ -147,9 +147,9 @@ function renderCalendar() {
     const monthTotalEl = document.getElementById("calendarMonthTotal");
 
     monthTotalEl.innerHTML = `
-    <strong>Month total:</strong>
-    ${monthlyTotal.trades} trades —
-    <span class="${monthlyTotal.pnl >= 0 ? "positive" : "negative"}">
+    <strong>Month total</strong>
+    <span class="month-trades">${monthlyTotal.trades} trades</span>
+    <span class="month-pnl ${monthlyTotal.pnl >= 0 ? "positive" : "negative"}">
         ${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}
     </span>
     `;

@@ -513,15 +513,31 @@ tr.trade-details-row td {
 .calendar-month-total {
   margin-top: 14px;
   display: flex;
-  justify-content: flex-end;   /* 👉 align right */
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;              /* 👈 THIS controls spacing */
   font-size: 14px;
 }
 
+.calendar-month-total {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;              /* 👈 THIS controls spacing */
+  font-size: 14px;
+}
+
+/* Trade count spacing & style */
+.calendar-month-total .month-trades {
+  color: #444;
+}
+
+/* PnL pill */
 .calendar-month-total .month-pnl {
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 6px;
-  margin-left: 6px;
 }
 
 /* Green / red backgrounds */

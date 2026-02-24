@@ -501,7 +501,12 @@ function applyFiltersAndRender() {
 
   // ---------- DATE FILTER ----------
   const from = dateFrom.value ? new Date(dateFrom.value) : null;
-  const to   = dateTo.value   ? new Date(dateTo.value)   : null;
+  let to = dateTo.value ? new Date(dateTo.value) : null;
+
+  // 👇 make "to" inclusive (end of day)
+  if (to) {
+    to.setHours(23, 59, 59, 999);
+  }
 
   if (from || to) {
     data = data.filter(t => {
