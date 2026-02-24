@@ -83,6 +83,7 @@ function renderCalendar() {
   const startWeekday = firstDay.getDay(); // 0 = Sunday
   const daysInMonth = lastDay.getDate();
 
+  
   // headers
   ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
     const h = document.createElement("div");
@@ -120,7 +121,44 @@ function renderCalendar() {
 
     calendarEl.appendChild(cell);
   }
+
+    const weeklyTotals = {};
+    const monthlyTotal = { trades: 0, pnl: 0 };
+
+    trades.forEach(t => {
+    const date = new Date(t.entryTimestamp);
+    const weekKey = getISOWeek(date); // e.g. "2026-W06"
+
+    weeklyTotals[weekKey] ??= { trades: 0, pnl: 0 };
+    weeklyTotals[weekKey].trades += 1;
+    weeklyTotals[weekKey].pnl += Number(t.pnl) || 0;
+
+    monthlyTotal.trades += 1;
+    monthlyTotal.pnl += Number(t.pnl) || 0;
+    });
 }
+
+
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${week}`;
+}
+
+
+/* =================== Goes to journal with filtered day ======================== */
+document.addEventListener("click", e => {
+  const day = e.target.closest(".calendar-day");
+  if (!day) return;
+
+  const date = day.dataset.date;
+  if (!date) return;
+
+  window.location.href = `/journal?from=${date}&to=${date}`;
+});
 
 </script>
 

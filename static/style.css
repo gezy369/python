@@ -508,7 +508,7 @@ tr.trade-details-row td {
 }
 
 .calendar-day {
-  background: #1e1e1e;
+  background: #cacaca;
   min-height: 80px;
   border-radius: 8px;
   padding: 6px 8px;
@@ -520,7 +520,7 @@ tr.trade-details-row td {
 .calendar-date {
   font-size: 12px;
   font-weight: bold;
-  color: #aaa;
+  color: #ffffff;
   opacity: 0.7;
   align-self: flex-start; /* top-left */
 }
@@ -533,4 +533,25 @@ tr.trade-details-row td {
 .calendar-pnl {
   font-weight: bold;
   text-align: center;
+}
+
+.calendar-week-total {
+  grid-column: span 7;
+  background: #cacaca;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.calendar-month-total {
+  margin-top: 12px;
+  background: #cacaca;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
 }

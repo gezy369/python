@@ -558,6 +558,20 @@ function applyFiltersAndRender() {
 }
 
 
+/* ==================== Journal: auto-apply date filters from URL ================== */
+function applyDateFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get("from");
+  const to = params.get("to");
+
+  if (from) document.getElementById("dateFrom").value = from;
+  if (to) document.getElementById("dateTo").value = to;
+
+  if (from || to) applyFiltersAndRender();
+}
+
+applyDateFromURL();
+
 </script>
 
 
