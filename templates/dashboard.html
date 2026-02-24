@@ -83,8 +83,7 @@ function renderCalendar() {
   const startWeekday = firstDay.getDay(); // 0 = Sunday
   const daysInMonth = lastDay.getDate();
 
-  
-  // headers
+  /* ---------- headers ---------- */
   ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
     const h = document.createElement("div");
     h.className = "calendar-header";
@@ -92,15 +91,45 @@ function renderCalendar() {
     calendarEl.appendChild(h);
   });
 
-  // empty cells before first day
+  /* ---------- weekly + monthly aggregates ---------- */
+  const weeklyTotals = {};
+  const monthlyTotal = { trades: 0, pnl: 0 };
+
+  trades.forEach(t => {
+    const d = new Date(t.entryDate);
+    if (d.getMonth() !== month || d.getFullYear() !== year) return;
+
+    const weekKey = getISOWeek(d);
+    weeklyTotals[weekKey] ??= { trades: 0, pnl: 0 };
+    weeklyTotals[weekKey].trades += 1;
+    weeklyTotals[weekKey].pnl += Number(t.pnl) || 0;
+
+    monthlyTotal.trades += 1;
+    monthlyTotal.pnl += Number(t.pnl) || 0;
+  });
+
+  /* ---------- empty cells ---------- */
   for (let i = 0; i < startWeekday; i++) {
     calendarEl.appendChild(document.createElement("div"));
   }
 
-  // days
+  /* ---------- days ---------- */
+  let currentWeekKey = null;
+
   for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(year, month, day);
+    const weekKey = getISOWeek(dateObj);
+
+    if (currentWeekKey && weekKey !== currentWeekKey) {
+      insertWeeklyTotal(currentWeekKey);
+    }
+    currentWeekKey = weekKey;
+
     const cell = document.createElement("div");
     cell.className = "calendar-day";
+
+    const isoDate = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    cell.dataset.date = isoDate;
 
     const dayTrades = trades.filter(t =>
       t.entryDate.getFullYear() === year &&
@@ -109,33 +138,21 @@ function renderCalendar() {
     );
 
     const tradeCount = dayTrades.length;
-    const dayPnL = dayTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
+    const dayPnL = dayTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
 
     cell.innerHTML = `
       <div class="calendar-date">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
       <div class="calendar-pnl ${dayPnL >= 0 ? "positive" : "negative"}">
-        ${dayPnL ? `$${dayPnL.toFixed(2)}` : ""}
+        ${tradeCount ? `$${dayPnL.toFixed(2)}` : ""}
       </div>
     `;
 
     calendarEl.appendChild(cell);
   }
 
-    const weeklyTotals = {};
-    const monthlyTotal = { trades: 0, pnl: 0 };
-
-    trades.forEach(t => {
-    const date = new Date(t.entryTimestamp);
-    const weekKey = getISOWeek(date); // e.g. "2026-W06"
-
-    weeklyTotals[weekKey] ??= { trades: 0, pnl: 0 };
-    weeklyTotals[weekKey].trades += 1;
-    weeklyTotals[weekKey].pnl += Number(t.pnl) || 0;
-
-    monthlyTotal.trades += 1;
-    monthlyTotal.pnl += Number(t.pnl) || 0;
-    });
+  insertWeeklyTotal(currentWeekKey);
+  insertMonthlyTotal(monthlyTotal);
 }
 
 
@@ -148,6 +165,30 @@ function getISOWeek(d) {
   return `${date.getUTCFullYear()}-W${week}`;
 }
 
+function insertWeeklyTotal(weekKey) {
+  const w = weeklyTotals[weekKey];
+  if (!w) return;
+
+  const row = document.createElement("div");
+  row.className = "calendar-week-total";
+  row.innerHTML = `
+    <span>Week total</span>
+    <span>${w.trades} trades</span>
+    <span>${w.pnl >= 0 ? "+" : ""}$${w.pnl.toFixed(2)}</span>
+  `;
+  calendarEl.appendChild(row);
+}
+
+function insertMonthlyTotal(total) {
+  const row = document.createElement("div");
+  row.className = "calendar-month-total";
+  row.innerHTML = `
+    <strong>Month total</strong>
+    <span>${total.trades} trades</span>
+    <span>${total.pnl >= 0 ? "+" : ""}$${total.pnl.toFixed(2)}</span>
+  `;
+  calendarEl.appendChild(row);
+}
 
 /* =================== Goes to journal with filtered day ======================== */
 document.addEventListener("click", e => {
