@@ -441,6 +441,9 @@ tr.trade-details-row td {
   margin-bottom:10px;
 }
 
+
+
+
 /* ---------- CALENDAR ----------*/
 .calendar-controls {
   display: flex;
@@ -467,7 +470,7 @@ tr.trade-details-row td {
 }
 
 .calendar-day {
-  background: #1e1e1e;
+  background: #cccccc;
   min-height: 70px;
   display: flex;
   flex-direction: column;
@@ -497,4 +500,37 @@ tr.trade-details-row td {
 
 .calendar-pnl.negative {
   color: #e74c3c;
+}
+
+.calendar-wrapper {
+  max-width: 900px;   /* 👈 adjust to taste (800–1000px works well) */
+  margin: 0 auto;     /* center */
+}
+
+.calendar-day {
+  background: #1e1e1e;
+  min-height: 80px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.calendar-date {
+  font-size: 12px;
+  font-weight: bold;
+  color: #aaa;
+  opacity: 0.7;
+  align-self: flex-start; /* top-left */
+}
+
+.calendar-trades {
+  font-size: 12px;
+  text-align: center;
+}
+
+.calendar-pnl {
+  font-weight: bold;
+  text-align: center;
 }
