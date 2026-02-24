@@ -143,16 +143,6 @@ function renderCalendar() {
     calendarEl.appendChild(cell);
   }
 
-  /* ---------- monthly total ---------- */
-  const row = document.createElement("div");
-  row.className = "calendar-month-total";
-  row.innerHTML = `
-    <strong>Month total</strong>
-    <span>${monthlyTotal.trades} trades</span>
-    <span>${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}</span>
-  `;
-  calendarEl.appendChild(row);
-
     // at the very end of renderCalendar()
     const monthTotalEl = document.getElementById("calendarMonthTotal");
 

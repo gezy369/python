@@ -509,28 +509,17 @@ tr.trade-details-row td {
   margin: 0 auto;     /* center */
 }
 
-/*.calendar-date {
-  font-size: 12px;
-  font-weight: bold;
-  color: #ffffff;
-  opacity: 0.7;
-  align-self: flex-start; /* top-left
-}*/
-
 .calendar-month-total {
   margin-top: 12px;
   padding: 10px 14px;
-  background: #cecece;
-  border-radius: 8px;
+  /*background: #cecece;*/
+  /*border-radius: 8px;*/
   font-size: 14px;
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-/*.calendar-month-total {
-  grid-column: span 5;
-}*/
 
 .calendar-day:hover {
   transform: translateY(-1px);
@@ -549,5 +538,5 @@ tr.trade-details-row td {
 
 /* ⚪ No trades / flat */
 .calendar-day.day-flat {
-  background: #151515;
+  background: #cecece;
 }
