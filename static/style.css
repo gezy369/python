@@ -471,7 +471,7 @@ tr.trade-details-row td {
 }
 
 .calendar-day {
-  background: #151515;
+  background: #cecece;
   border-radius: 8px;
   padding: 8px;
   cursor: pointer;
@@ -508,16 +508,6 @@ tr.trade-details-row td {
   margin: 0 auto;     /* center */
 }
 
-.calendar-day {
-  background: #cacaca;
-  min-height: 80px;
-  border-radius: 8px;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
 .calendar-date {
   font-size: 12px;
   font-weight: bold;
@@ -526,31 +516,10 @@ tr.trade-details-row td {
   align-self: flex-start; /* top-left */
 }
 
-.calendar-trades {
-  font-size: 12px;
-  text-align: center;
-}
-
-.calendar-pnl {
-  font-weight: bold;
-  text-align: center;
-}
-
-.calendar-week-total {
-  grid-column: span 7;
-  background: #cacaca;
-  padding: 6px 10px;
-  border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
-  font-weight: bold;
-  opacity: 0.9;
-}
-
 .calendar-month-total {
   margin-top: 12px;
   padding: 10px 14px;
-  background: #111;
+  background: #cecece;
   border-radius: 8px;
   font-size: 14px;
   display: flex;
@@ -558,10 +527,9 @@ tr.trade-details-row td {
   align-items: center;
 }
 
-.calendar-week-total,
-.calendar-month-total {
+/*.calendar-month-total {
   grid-column: span 5;
-}
+}*/
 
 .calendar-day:hover {
   transform: translateY(-1px);
