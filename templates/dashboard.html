@@ -13,6 +13,8 @@
 
 <div class="calendar-wrapper">
   <div id="tradingCalendar" class="calendar-grid"></div>
+  <!-- 👇 Monthly total goes HERE -->
+  <div id="calendarMonthTotal" class="calendar-month-total"></div>
 </div>
 
 <script>
@@ -124,12 +126,18 @@ function renderCalendar() {
     const tradeCount = dayTrades.length;
     const dayPnL = dayTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
 
+    // 👇 determine background class
+    let pnlClass = "day-flat";
+    if (tradeCount > 0) {
+        pnlClass = dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
+    }
+    cell.className = `calendar-day ${pnlClass}`;
     cell.innerHTML = `
-      <div class="calendar-date">${day}</div>
-      <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
-      <div class="calendar-pnl ${dayPnL >= 0 ? "positive" : "negative"}">
-        ${tradeCount ? `$${dayPnL.toFixed(2)}` : ""}
-      </div>
+    <div class="calendar-date">${day}</div>
+    <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
+    <div class="calendar-pnl ${dayPnL > 0 ? "positive" : dayPnL < 0 ? "negative" : ""}">
+        ${tradeCount ? `${dayPnL > 0 ? "+" : ""}$${dayPnL.toFixed(2)}` : ""}
+    </div>
     `;
 
     calendarEl.appendChild(cell);
@@ -144,6 +152,18 @@ function renderCalendar() {
     <span>${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}</span>
   `;
   calendarEl.appendChild(row);
+
+    // at the very end of renderCalendar()
+    const monthTotalEl = document.getElementById("calendarMonthTotal");
+
+    monthTotalEl.innerHTML = `
+    <strong>Month total:</strong>
+    ${monthlyTotal.trades} trades —
+    <span class="${monthlyTotal.pnl >= 0 ? "positive" : "negative"}">
+        ${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}
+    </span>
+    `;
+
 }
 
 /* =================== Click → journal filtered day =================== */

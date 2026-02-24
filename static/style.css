@@ -453,8 +453,9 @@ tr.trade-details-row td {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 days + weekly total */
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
+  max-width: 900px; /* prevents full-page stretch */
 }
 
 .calendar-day,
@@ -470,11 +471,11 @@ tr.trade-details-row td {
 }
 
 .calendar-day {
-  background: #cccccc;
-  min-height: 70px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  background: #151515;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .calendar-day.empty {
@@ -548,15 +549,36 @@ tr.trade-details-row td {
 
 .calendar-month-total {
   margin-top: 12px;
-  background: #cacaca;
-  padding: 10px;
+  padding: 10px 14px;
+  background: #111;
   border-radius: 8px;
+  font-size: 14px;
   display: flex;
-  justify-content: space-between;
-  font-size: 15px;
+  gap: 8px;
+  align-items: center;
 }
 
 .calendar-week-total,
 .calendar-month-total {
   grid-column: span 5;
+}
+
+.calendar-day:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+}
+
+/* 🟢 Profitable day */
+.calendar-day.day-positive {
+  background: linear-gradient(180deg, rgba(0,180,120,0.25), #151515);
+}
+
+/* 🔴 Losing day */
+.calendar-day.day-negative {
+  background: linear-gradient(180deg, rgba(200,60,60,0.25), #151515);
+}
+
+/* ⚪ No trades / flat */
+.calendar-day.day-flat {
+  background: #151515;
 }
