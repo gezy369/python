@@ -2,6 +2,8 @@
 {% block title %}Journal{% endblock %}
 {% block content %}
 
+<script type="module" src="/static/js/trade.js"></script>
+
 <h2>Trade Journal</h2>
 
 <!-- ================= CONTROLS ================= -->
@@ -507,10 +509,6 @@ async function applyFiltersAndRender() {
     from,
     to
   });
-  
-  // ---------- DATE FILTER ----------
-  const from = dateFrom.value || null;
-  const to = dateTo.value || null;
   
   // ---------- COLUMN FILTERS ----------
   document.querySelectorAll("th input[data-col]").forEach(input => {

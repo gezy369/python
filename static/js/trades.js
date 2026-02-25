@@ -1,4 +1,4 @@
-export async function fetchFilteredTrades(filters = {}) {
+async function fetchFilteredTrades(filters = {}) {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, val]) => {
