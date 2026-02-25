@@ -1,3 +1,5 @@
+// static/js/trade.js
+
 async function fetchFilteredTrades(filters = {}) {
   const params = new URLSearchParams();
 
@@ -14,3 +16,6 @@ async function fetchFilteredTrades(filters = {}) {
   const res = await fetch(`/api/trades?${params.toString()}`);
   return await res.json();
 }
+
+// expose globally (important)
+window.fetchFilteredTrades = fetchFilteredTrades;
