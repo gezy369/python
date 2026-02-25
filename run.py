@@ -52,12 +52,18 @@ def api_trades():
         strategy_id = request.args.get("strategy")
         setup_ids = request.args.getlist("setups")
 
-        print("FILTER PARAMS:", account_id, date_from, date_to, strategy_id, setup_ids)
-        print("TRADES BEFORE:", len(trades))
-
         # ---------- FETCH TRADES ----------
         trades_res = supabase.table("trades").select("*").execute()
         trades = trades_res.data or []
+
+
+
+        # TEST TEST TEST TEST
+        print("FILTER PARAMS:", account_id, date_from, date_to, strategy_id, setup_ids)
+        print("TRADES BEFORE:", len(trades))
+        # TEST TEST TEST TEST
+
+
 
         if not trades:
             return jsonify([])

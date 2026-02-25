@@ -2,8 +2,6 @@
 {% block title %}Journal{% endblock %}
 {% block content %}
 
-<script type="module" src="/static/js/trade.js"></script>
-
 <h2>Trade Journal</h2>
 
 <!-- ================= CONTROLS ================= -->
@@ -500,16 +498,18 @@ function closeDetails(){
 
 /* ---------------- FILTERS ---------------- */
 async function applyFiltersAndRender() {
+  const dateFrom = document.getElementById("dateFrom");
+  const dateTo = document.getElementById("dateTo");
 
-  const from = dateFrom.value || null;
-  const to = dateTo.value || null;
+  const from = dateFrom?.value || null;
+  const to = dateTo?.value || null;
 
   let data = await fetchFilteredTrades({
     account: accountSelect?.value,
     from,
     to
   });
-  
+
   // ---------- COLUMN FILTERS ----------
   document.querySelectorAll("th input[data-col]").forEach(input => {
     if (!input.value) return;
@@ -521,7 +521,7 @@ async function applyFiltersAndRender() {
     );
   });
 
-  // ---------- SETUP FILTER (multi) ----------
+  // ---------- SETUP FILTER ----------
   const selectedSetups = [
     ...document.querySelectorAll("#setupFilter button.active")
   ].map(b => Number(b.dataset.id));
@@ -532,18 +532,15 @@ async function applyFiltersAndRender() {
     );
   }
 
-
-  // ---------- STRATEGY FILTER (single) ----------
+  // ---------- STRATEGY FILTER ----------
   const activeStrategy = document.querySelector("#strategyFilter button.active");
   if (activeStrategy) {
     const strategyId = Number(activeStrategy.dataset.id);
     data = data.filter(t => t.key_strategies_id === strategyId);
   }
 
-  // ---------- SORT ----------
   data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
 
-  // ---------- RENDER ----------
   buildRows(data);
   updatePnLChart(data);
 }
