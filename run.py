@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from utils.functions import csv_handler
+from utils.functions import csv_handler, filter_trades
 import os
 import io
 import pandas as pd
@@ -44,7 +44,14 @@ def journal():
 @app.get("/api/trades")
 def api_trades():
     try:
-        # Fetch all trades
+        # ---------- QUERY PARAMS ----------
+        account_id = request.args.get("account")
+        date_from = request.args.get("from")
+        date_to = request.args.get("to")
+        strategy_id = request.args.get("strategy")
+        setup_ids = request.args.getlist("setups")
+
+        # ---------- FETCH TRADES ----------
         trades_res = supabase.table("trades").select("*").execute()
         trades = trades_res.data or []
 
@@ -53,7 +60,7 @@ def api_trades():
 
         trade_ids = [t["id"] for t in trades]
 
-        # Fetch trade_setup links for all trades
+        # ---------- FETCH SETUPS ----------
         links_res = (
             supabase.table("trade_setup")
             .select("key_trade_id, key_setup_id")
@@ -62,13 +69,22 @@ def api_trades():
         )
         links = links_res.data or []
 
-        # Attach setups to trades
         setups_by_trade = {}
         for l in links:
             setups_by_trade.setdefault(l["key_trade_id"], []).append(l["key_setup_id"])
 
         for t in trades:
             t["setups"] = setups_by_trade.get(t["id"], [])
+
+        # ---------- APPLY SHARED FILTER ----------
+        trades = filter_trades(
+            trades,
+            account_id=account_id,
+            date_from=date_from,
+            date_to=date_to,
+            strategy_id=strategy_id,
+            setup_ids=setup_ids,
+        )
 
         return jsonify(trades)
 

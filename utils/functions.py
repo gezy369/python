@@ -90,13 +90,59 @@ def csv_handler(df_trade):
         "pnl"
     ]]  
 
-    # Print results
-    #print("=== Reconstructed Trades ===")
-    #print(df_trades)
-
     return df_trades
 
-#csv_handler(csv_file)
+
+# ================================================================================
+# DATA FILTER
+# This function filters the displayed data per account
+# ================================================================================
 
 
+from datetime import datetime
 
+def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None,):
+    """
+    trades: list of trade dicts
+    """
+
+    result = trades
+
+    # ---------- ACCOUNT ----------
+    if account_id:
+        result = [
+            t for t in result
+            if str(t.get("key_trading_accounts")) == str(account_id)
+        ]
+
+    # ---------- DATE RANGE ----------
+    if date_from:
+        date_from = datetime.fromisoformat(date_from)
+        result = [
+            t for t in result
+            if datetime.fromisoformat(t["entryTimestamp"]) >= date_from
+        ]
+
+    if date_to:
+        date_to = datetime.fromisoformat(date_to)
+        result = [
+            t for t in result
+            if datetime.fromisoformat(t["entryTimestamp"]) <= date_to
+        ]
+
+    # ---------- STRATEGY ----------
+    if strategy_id:
+        result = [
+            t for t in result
+            if t.get("key_strategies_id") == int(strategy_id)
+        ]
+
+    # ---------- SETUPS ----------
+    if setup_ids:
+        setup_ids = set(map(int, setup_ids))
+        result = [
+            t for t in result
+            if setup_ids.intersection(t.get("setups", []))
+        ]
+
+    return result
