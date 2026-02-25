@@ -101,48 +101,44 @@ def csv_handler(df_trade):
 
 from datetime import datetime
 
-def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None,):
-    """
-    trades: list of trade dicts
-    """
+def filter_trades(
+    trades,
+    account_id=None,
+    date_from=None,
+    date_to=None,
+    strategy_id=None,
+    setup_ids=None,
+):
+    result = []
 
-    result = trades
+    # normalize dates once
+    from_dt = datetime.fromisoformat(date_from) if date_from else None
+    to_dt = datetime.fromisoformat(date_to) if date_to else None
+    if to_dt:
+        to_dt = to_dt.replace(hour=23, minute=59, second=59)
 
-    # ---------- ACCOUNT ----------
-    if account_id:
-        result = [
-            t for t in result
-            if str(t.get("key_trading_accounts")) == str(account_id)
-        ]
+    setup_ids = set(map(int, setup_ids)) if setup_ids else set()
 
-    # ---------- DATE RANGE ----------
-    if date_from:
-        date_from = datetime.fromisoformat(date_from)
-        result = [
-            t for t in result
-            if datetime.fromisoformat(t["entryTimestamp"]) >= date_from
-        ]
+    for t in trades:
+        # ---- account ----
+        if account_id and str(t.get("key_trading_accounts")) != str(account_id):
+            continue
 
-    if date_to:
-        date_to = datetime.fromisoformat(date_to)
-        result = [
-            t for t in result
-            if datetime.fromisoformat(t["entryTimestamp"]) <= date_to
-        ]
+        # ---- date ----
+        entry_ts = datetime.fromisoformat(t["entryTimestamp"])
+        if from_dt and entry_ts < from_dt:
+            continue
+        if to_dt and entry_ts > to_dt:
+            continue
 
-    # ---------- STRATEGY ----------
-    if strategy_id:
-        result = [
-            t for t in result
-            if t.get("key_strategies_id") == int(strategy_id)
-        ]
+        # ---- strategy ----
+        if strategy_id and str(t.get("key_strategies_id")) != str(strategy_id):
+            continue
 
-    # ---------- SETUPS ----------
-    if setup_ids:
-        setup_ids = set(map(int, setup_ids))
-        result = [
-            t for t in result
-            if setup_ids.intersection(t.get("setups", []))
-        ]
+        # ---- setups ----
+        if setup_ids and not setup_ids.intersection(set(t.get("setups", []))):
+            continue
+
+        result.append(t)
 
     return result

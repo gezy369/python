@@ -43,6 +43,7 @@ def journal():
 # Fetch all the trades in the DB
 @app.get("/api/trades")
 def api_trades():
+    
     try:
         # ---------- QUERY PARAMS ----------
         account_id = request.args.get("account")
@@ -50,6 +51,9 @@ def api_trades():
         date_to = request.args.get("to")
         strategy_id = request.args.get("strategy")
         setup_ids = request.args.getlist("setups")
+
+        print("FILTER PARAMS:", account_id, date_from, date_to, strategy_id, setup_ids)
+        print("TRADES BEFORE:", len(trades))
 
         # ---------- FETCH TRADES ----------
         trades_res = supabase.table("trades").select("*").execute()
@@ -85,8 +89,9 @@ def api_trades():
             strategy_id=strategy_id,
             setup_ids=setup_ids,
         )
-
+        print("TRADES AFTER:", len(trades))
         return jsonify(trades)
+
 
     except Exception as e:
         print("api/trades error:", e)
