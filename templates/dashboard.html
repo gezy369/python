@@ -18,6 +18,15 @@
 </div>
 
 <script>
+
+//Render calendar on account change
+const accountSelect = document.getElementById("accountSelect");
+if (accountSelect) {
+  accountSelect.addEventListener("change", () => {
+    renderCalendar();
+  });
+}
+
 /* =================== Setup month/year selection =================== */
 const monthSelect = document.getElementById("calendarMonth");
 const yearSelect = document.getElementById("calendarYear");
@@ -69,7 +78,19 @@ yearSelect.onchange = renderCalendar;
 /* =================== Calendar rendering =================== */
 function renderCalendar() {
   calendarEl.innerHTML = "";
+  // ---------- ACCOUNT FILTER ----------
+  const selectedAccountId = accountSelect?.value || null;
 
+  let filteredTrades = [...trades];
+
+  if (selectedAccountId) {
+    filteredTrades = filteredTrades.filter(t =>
+      String(t.key_trading_accounts) === selectedAccountId
+    );
+  }
+
+  // ------------------------------------
+  
   const month = Number(monthSelect.value);
   const year = Number(yearSelect.value);
 
@@ -86,10 +107,12 @@ function renderCalendar() {
     calendarEl.appendChild(h);
   });
 
+
+
   /* ---------- monthly aggregate ---------- */
   const monthlyTotal = { trades: 0, pnl: 0 };
 
-  trades.forEach(t => {
+  filteredTrades.forEach(t => {
     const d = t.entryDate;
     if (d.getMonth() === month && d.getFullYear() === year) {
       monthlyTotal.trades += 1;
@@ -117,7 +140,7 @@ function renderCalendar() {
     const isoDate = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     cell.dataset.date = isoDate;
 
-    const dayTrades = trades.filter(t =>
+    const dayTrades = filteredTrades.filter(t =>
       t.entryDate.getFullYear() === year &&
       t.entryDate.getMonth() === month &&
       t.entryDate.getDate() === day
