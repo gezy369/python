@@ -20,7 +20,7 @@
 <script>
 
 // helper to filter trades by accounts
-async function fetchFilteredTrades(filters = {}) {
+/*async function fetchFilteredTrades(filters = {}) {
   const params = new URLSearchParams();
 
   if (filters.account) params.set("account", filters.account);
@@ -29,7 +29,7 @@ async function fetchFilteredTrades(filters = {}) {
 
   const res = await fetch(`/api/trades?${params.toString()}`);
   return await res.json();
-}
+}*/
 
 //Render calendar on account change
 const accountSelect = document.getElementById("accountSelect");
@@ -94,28 +94,36 @@ async function renderCalendar() {
   const month = Number(monthSelect.value);
   const year = Number(yearSelect.value);
 
-  // build month range
-  const from = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const to = `${year}-${String(month + 1).padStart(2, "0")}-31`;
+  // ✅ valid month range
+  const fromDate = new Date(year, month, 1);
+  const toDate   = new Date(year, month + 1, 0);
 
-  // fetch already-filtered trades
-  const filteredTrades = await fetchFilteredTrades({
+  const from = fromDate.toISOString().slice(0, 10);
+  const to   = toDate.toISOString().slice(0, 10);
+
+  let filteredTrades = await fetchFilteredTrades({
     account: accountSelect?.value,
     from,
     to
   });
 
-  // normalize timestamps once
-  filteredTrades.forEach(t => {
-    t.entryDate = new Date(t.entryTimestamp);
-  });
+  // 🔒 guard
+  if (!Array.isArray(filteredTrades)) {
+    console.error("Dashboard API error:", filteredTrades);
+    filteredTrades = [];
+  }
+
+  // normalize timestamps
+  filteredTrades = filteredTrades.map(t => ({
+    ...t,
+    entryDate: new Date(t.entryTimestamp)
+  }));
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const startWeekday = (firstDay.getDay() + 6) % 7; // Mon = 0
+  const startWeekday = (firstDay.getDay() + 6) % 7;
   const daysInMonth = lastDay.getDate();
 
-  /* ---------- headers ---------- */
   ["Mon","Tue","Wed","Thu","Fri"].forEach(d => {
     const h = document.createElement("div");
     h.className = "calendar-header";
@@ -123,38 +131,27 @@ async function renderCalendar() {
     calendarEl.appendChild(h);
   });
 
-
-
-  /* ---------- monthly aggregate ---------- */
   const monthlyTotal = { trades: 0, pnl: 0 };
 
   filteredTrades.forEach(t => {
     const d = t.entryDate;
     if (d.getMonth() === month && d.getFullYear() === year) {
-      monthlyTotal.trades += 1;
+      monthlyTotal.trades++;
       monthlyTotal.pnl += Number(t.pnl) || 0;
     }
   });
 
-  /* ---------- empty cells before first weekday ---------- */
   const emptyCells = Math.min(startWeekday, 5);
   for (let i = 0; i < emptyCells; i++) {
     calendarEl.appendChild(document.createElement("div"));
   }
 
-  /* ---------- days ---------- */
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
-    const weekday = dateObj.getDay(); // 0 = Sun, 6 = Sat
-
-    // skip weekends
+    const weekday = dateObj.getDay();
     if (weekday === 0 || weekday === 6) continue;
 
-    const cell = document.createElement("div");
-    cell.className = "calendar-day";
-
     const isoDate = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    cell.dataset.date = isoDate;
 
     const dayTrades = filteredTrades.filter(t =>
       t.entryDate.getFullYear() === year &&
@@ -165,34 +162,32 @@ async function renderCalendar() {
     const tradeCount = dayTrades.length;
     const dayPnL = dayTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
 
-    // 👇 determine background class
     let pnlClass = "day-flat";
     if (tradeCount > 0) {
-        pnlClass = dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
+      pnlClass = dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
     }
+
+    const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
+    cell.dataset.date = isoDate;
     cell.innerHTML = `
-    <div class="calendar-date">${day}</div>
-    <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
-    <div class="calendar-pnl ${dayPnL > 0 ? "positive" : dayPnL < 0 ? "negative" : ""}">
+      <div class="calendar-date">${day}</div>
+      <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
+      <div class="calendar-pnl ${dayPnL > 0 ? "positive" : dayPnL < 0 ? "negative" : ""}">
         ${tradeCount ? `${dayPnL > 0 ? "+" : ""}$${dayPnL.toFixed(2)}` : ""}
-    </div>
+      </div>
     `;
 
     calendarEl.appendChild(cell);
   }
 
-    // at the very end of renderCalendar()
-    const monthTotalEl = document.getElementById("calendarMonthTotal");
-
-    monthTotalEl.innerHTML = `
+  document.getElementById("calendarMonthTotal").innerHTML = `
     <strong>Month total</strong>
     <span class="month-trades">${monthlyTotal.trades} trades</span>
     <span class="month-pnl ${monthlyTotal.pnl >= 0 ? "positive" : "negative"}">
-        ${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}
+      ${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}
     </span>
-    `;
-
+  `;
 }
 
 /* =================== Click → journal filtered day =================== */
