@@ -504,11 +504,13 @@ async function applyFiltersAndRender() {
   const from = dateFrom?.value || null;
   const to = dateTo?.value || null;
 
-  let data = await fetchFilteredTrades({
-    account: accountSelect?.value,
-    from,
-    to
-  });
+  let data = normalizeTrades(
+    await fetchFilteredTrades({
+      account: accountSelect?.value,
+      from,
+      to
+    })
+  );
 
   // ---------- COLUMN FILTERS ----------
   document.querySelectorAll("th input[data-col]").forEach(input => {

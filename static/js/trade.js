@@ -1,5 +1,14 @@
 // static/js/trade.js
 
+function normalizeTrades(trades) {
+  return trades.map(t => ({
+    ...t,
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp: new Date(t.exitTimestamp),
+    setups: t.setups || []
+  }));
+}
+
 async function fetchFilteredTrades(filters = {}) {
   const params = new URLSearchParams();
 
