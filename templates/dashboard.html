@@ -36,32 +36,12 @@ if (accountSelect) {
   });
 }
 
-/* =================== Setup month/year selection =================== */
-/*const monthSelect = document.getElementById("calendarMonth");*/
-const yearSelect = document.getElementById("calendarYear");
 const calendarEl = document.getElementById("tradingCalendar");
 
 const MONTHS = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
 ];
-
-// populate month selector
-MONTHS.forEach((m, i) => {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = m;
-  monthSelect.appendChild(opt);
-});
-
-// populate year selector
-const currentYear = new Date().getFullYear();
-for (let y = currentYear - 5; y <= currentYear + 1; y++) {
-  const opt = document.createElement("option");
-  opt.value = y;
-  opt.textContent = y;
-  yearSelect.appendChild(opt);
-}
 
 // default to current month/year
 const now = new Date();
@@ -80,9 +60,6 @@ fetch("/api/trades")
     }));
     renderCalendar();
   });
-
-monthSelect.onchange = renderCalendar;
-yearSelect.onchange = renderCalendar;
 
 let currentDate = new Date();
 
@@ -163,7 +140,7 @@ async function renderCalendar() {
   });
 
   renderDashboardStats(filteredTrades, month, year);
-  
+
   const emptyCells = Math.min(startWeekday, 5);
   for (let i = 0; i < emptyCells; i++) {
     calendarEl.appendChild(document.createElement("div"));
