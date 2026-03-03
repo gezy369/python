@@ -218,10 +218,10 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   };
 
 /* =========================
-   📅 MONTHLY DAILY PNL
+   📅 MONTHLY DAILY EQUITY (LINE)
 ========================== */
 
-function buildMonthlyDailyPnL(trades) {
+function buildMonthlyDailyEquity(trades) {
 
   const grouped = {};
 
@@ -234,38 +234,41 @@ function buildMonthlyDailyPnL(trades) {
     (a,b) => new Date(a) - new Date(b)
   );
 
-  return {
-    labels: sortedDates,
-    data: sortedDates.map(d => grouped[d])
-  };
+  let cumulative = 0;
+  const labels = [];
+  const data = [];
+
+  sortedDates.forEach(d => {
+    cumulative += grouped[d];
+    labels.push(d);
+    data.push(cumulative);
+  });
+
+  return { labels, data };
 }
 
-const monthlyData = buildMonthlyDailyPnL(monthlyTrades);
+  const monthlyEquity = buildMonthlyDailyEquity(monthlyTrades);
 
   if (monthlyChartInstance) monthlyChartInstance.destroy();
 
   monthlyChartInstance = new Chart(
     document.getElementById("monthlyEquityChart"),
     {
-      type: "bar",
+      type: "line",
       data: {
-        labels: monthlyData.labels,
+        labels: monthlyEquity.labels,
         datasets: [{
-          label: "Daily PnL",
-          data: monthlyData.data
+          label: "Monthly Equity",
+          data: monthlyEquity.data,
+          tension: 0.35,
+          fill: false
         }]
       },
       options: {
         responsive: true,
-        animation: {
-          duration: 1000,
-          easing: "easeOutQuart"
-        },
+        animation: { duration: 1000, easing: "easeOutQuart" },
         plugins: { legend: { display: false } },
-        scales: {
-          x: { display: false },
-          y: { beginAtZero: true }
-        }
+        scales: { x: { display: false } }
       }
     }
   );
