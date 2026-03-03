@@ -117,14 +117,15 @@ async function renderCalendar() {
     account: accountSelect?.value
   });
 
-  // 🔒 guard
-  if (!Array.isArray(filteredTrades)) {
-    console.error("Dashboard API error:", filteredTrades);
-    filteredTrades = [];
-  }
+  if (!Array.isArray(monthlyTrades)) monthlyTrades = [];
+  if (!Array.isArray(accountTrades)) accountTrades = [];
 
-  // normalize timestamps
-  filteredTrades = filteredTrades.map(t => ({
+  monthlyTrades = monthlyTrades.map(t => ({
+    ...t,
+    entryDate: new Date(t.entryTimestamp)
+  }));
+
+  accountTrades = accountTrades.map(t => ({
     ...t,
     entryDate: new Date(t.entryTimestamp)
   }));
@@ -143,7 +144,7 @@ async function renderCalendar() {
 
   const monthlyTotal = { trades: 0, pnl: 0 };
 
-  filteredTrades.forEach(t => {
+  monthlyTrades.forEach(t => {
     const d = t.entryDate;
     if (d.getMonth() === month && d.getFullYear() === year) {
       monthlyTotal.trades++;
@@ -165,7 +166,7 @@ async function renderCalendar() {
 
     const isoDate = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
 
-    const dayTrades = filteredTrades.filter(t =>
+    const dayTrades = monthlyTrades.filter(t =>
       t.entryDate.getFullYear() === year &&
       t.entryDate.getMonth() === month &&
       t.entryDate.getDate() === day
