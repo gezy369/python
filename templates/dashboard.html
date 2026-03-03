@@ -45,8 +45,6 @@ const MONTHS = [
 
 // default to current month/year
 const now = new Date();
-monthSelect.value = now.getMonth();
-yearSelect.value = now.getFullYear();
 
 /* =================== Fetch trades =================== */
 let trades = [];
@@ -62,7 +60,6 @@ fetch("/api/trades")
   });
 
 let currentDate = new Date();
-
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
@@ -84,6 +81,7 @@ document.getElementById("nextMonth").onclick = () => {
 };
 
 updateCalendarLabel();
+renderCalendar();
 
 /* =================== Calendar rendering =================== */
 async function renderCalendar() {
