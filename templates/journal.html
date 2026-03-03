@@ -209,10 +209,20 @@ function resetFilters() {
   if (dateFrom) dateFrom.value = "";
   if (dateTo) dateTo.value = "";
 
-  // remove all active filter buttons
-  document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
+  // remove active filter buttons
+  document
+    .querySelectorAll(".filter-buttons button")
+    .forEach(b => b.classList.remove("active"));
 
-  // re-render table + chart
+  // clear column filters
+  document
+    .querySelectorAll("th input[data-col]")
+    .forEach(input => input.value = "");
+
+  // clear URL params (important!)
+  window.history.replaceState({}, "", "/journal");
+
+  // re-render
   applyFiltersAndRender();
 }
 
