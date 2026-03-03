@@ -247,7 +247,8 @@ function buildMonthlyDailyEquity(trades) {
   return { labels, data };
 }
 
-  const monthlyEquity = buildMonthlyDailyEquity(monthlyTrades);
+  // instead of: const monthlyEquity = buildMonthlyDailyEquity(monthlyTrades);
+  monthlyChartData = buildMonthlyDailyEquity(monthlyTrades);
 
   if (monthlyChartInstance) monthlyChartInstance.destroy();
 
@@ -256,10 +257,10 @@ function buildMonthlyDailyEquity(trades) {
     {
       type: "line",
       data: {
-        labels: monthlyEquity.labels,
+        labels: monthlyChartData.labels,
         datasets: [{
           label: "Monthly Equity",
-          data: monthlyEquity.data,
+          data: monthlyChartData.data,
           tension: 0.35,
           fill: false
         }]
