@@ -6,22 +6,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
 <h2>Monthly Trading Calendar</h2>
 
 <div class="calendar-controls-modern">
   <button id="prevMonth" class="cal-nav">◀</button>
-
   <div class="calendar-current">
     <span id="calendarLabel"></span>
   </div>
-
   <button id="nextMonth" class="cal-nav">▶</button>
 </div>
 
 <div class="calendar-wrapper">
   <div id="tradingCalendar" class="calendar-grid"></div>
-  <!-- 👇 Monthly total goes HERE -->
   <div id="calendarMonthTotal" class="calendar-month-total"></div>
 </div>
 
@@ -39,12 +35,9 @@
 
 <script>
 
-//Render calendar on account change
 const accountSelect = document.getElementById("accountSelect");
 if (accountSelect) {
-  accountSelect.addEventListener("change", () => {
-    renderCalendar();
-  });
+  accountSelect.addEventListener("change", renderCalendar);
 }
 
 const calendarEl = document.getElementById("tradingCalendar");
@@ -54,29 +47,12 @@ const MONTHS = [
   "July","August","September","October","November","December"
 ];
 
-// default to current month/year
-const now = new Date();
-
-/* =================== Fetch trades =================== */
-let trades = [];
-
-fetch("/api/trades")
-  .then(r => r.json())
-  .then(data => {
-    trades = data.map(t => ({
-      ...t,
-      entryDate: new Date(t.entryTimestamp)
-    }));
-    renderCalendar();
-  });
-
 let currentDate = new Date();
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
-  calendarLabel.textContent = `${MONTHS[month]} ${year}`;
+  calendarLabel.textContent =
+    `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
 }
 
 document.getElementById("prevMonth").onclick = () => {
@@ -92,36 +68,31 @@ document.getElementById("nextMonth").onclick = () => {
 };
 
 updateCalendarLabel();
-renderCalendar();
 
-/* =================== Calendar rendering =================== */
+/* ===================== RENDER CALENDAR ===================== */
+
 async function renderCalendar() {
+
   calendarEl.innerHTML = "";
 
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
 
-  // ✅ valid month range
   const fromDate = new Date(year, month, 1);
   const toDate   = new Date(year, month + 1, 0);
 
-  const from = fromDate.toISOString().slice(0, 10);
-  const to   = toDate.toISOString().slice(0, 10);
+  const from = fromDate.toISOString().slice(0,10);
+  const to   = toDate.toISOString().slice(0,10);
 
-  // 1️⃣ Month filtered trades
   let monthlyTrades = await fetchFilteredTrades({
     account: accountSelect?.value,
     from,
     to
-  });
+  }) || [];
 
-  // 2️⃣ Full account trades (no date filter)
   let accountTrades = await fetchFilteredTrades({
     account: accountSelect?.value
-  });
-
-  if (!Array.isArray(monthlyTrades)) monthlyTrades = [];
-  if (!Array.isArray(accountTrades)) accountTrades = [];
+  }) || [];
 
   monthlyTrades = monthlyTrades.map(t => ({
     ...t,
@@ -132,6 +103,8 @@ async function renderCalendar() {
     ...t,
     entryDate: new Date(t.entryTimestamp)
   }));
+
+  renderDashboardStats(monthlyTrades, accountTrades, month, year);
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -145,52 +118,43 @@ async function renderCalendar() {
     calendarEl.appendChild(h);
   });
 
-  const monthlyTotal = { trades: 0, pnl: 0 };
-
-  monthlyTrades.forEach(t => {
-    const d = t.entryDate;
-    if (d.getMonth() === month && d.getFullYear() === year) {
-      monthlyTotal.trades++;
-      monthlyTotal.pnl += Number(t.pnl) || 0;
-    }
-  });
-
-  renderDashboardStats(monthlyTrades, accountTrades, month, year);
-
-  const emptyCells = Math.min(startWeekday, 5);
-  for (let i = 0; i < emptyCells; i++) {
+  for (let i = 0; i < Math.min(startWeekday,5); i++) {
     calendarEl.appendChild(document.createElement("div"));
   }
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateObj = new Date(year, month, day);
-    const weekday = dateObj.getDay();
-    if (weekday === 0 || weekday === 6) continue;
+  const monthlyTotal = { trades: 0, pnl: 0 };
 
-    const isoDate = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  for (let day = 1; day <= daysInMonth; day++) {
+
+    const dateObj = new Date(year, month, day);
+    if (dateObj.getDay() === 0 || dateObj.getDay() === 6) continue;
+
+    const isoDate = dateObj.toISOString().slice(0,10);
 
     const dayTrades = monthlyTrades.filter(t =>
-      t.entryDate.getFullYear() === year &&
-      t.entryDate.getMonth() === month &&
-      t.entryDate.getDate() === day
+      t.entryDate.toISOString().slice(0,10) === isoDate
     );
 
     const tradeCount = dayTrades.length;
-    const dayPnL = dayTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+    const dayPnL = dayTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
 
-    let pnlClass = "day-flat";
-    if (tradeCount > 0) {
-      pnlClass = dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
-    }
+    monthlyTotal.trades += tradeCount;
+    monthlyTotal.pnl += dayPnL;
+
+    const pnlClass =
+      tradeCount === 0 ? "day-flat" :
+      dayPnL > 0 ? "day-positive" :
+      dayPnL < 0 ? "day-negative" : "day-flat";
 
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
+
     cell.innerHTML = `
       <div class="calendar-date">${day}</div>
-      <div class="calendar-trades">${tradeCount} trade${tradeCount !== 1 ? "s" : ""}</div>
-      <div class="calendar-pnl ${dayPnL > 0 ? "positive" : dayPnL < 0 ? "negative" : ""}">
-        ${tradeCount ? `${dayPnL > 0 ? "+" : ""}$${dayPnL.toFixed(2)}` : ""}
+      <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
+      <div class="calendar-pnl ${dayPnL>0?"positive":dayPnL<0?"negative":""}">
+        ${tradeCount ? `${dayPnL>=0?"+":""}$${dayPnL.toFixed(2)}` : ""}
       </div>
     `;
 
@@ -199,49 +163,61 @@ async function renderCalendar() {
 
   document.getElementById("calendarMonthTotal").innerHTML = `
     <strong>Month total</strong>
-    <span class="month-trades">${monthlyTotal.trades} trades</span>
-    <span class="month-pnl ${monthlyTotal.pnl >= 0 ? "positive" : "negative"}">
-      ${monthlyTotal.pnl >= 0 ? "+" : ""}$${monthlyTotal.pnl.toFixed(2)}
+    <span>${monthlyTotal.trades} trades</span>
+    <span class="${monthlyTotal.pnl>=0?"positive":"negative"}">
+      ${monthlyTotal.pnl>=0?"+":""}$${monthlyTotal.pnl.toFixed(2)}
     </span>
   `;
 }
 
-/* ===================== STATS ========================= */
+/* ===================== DASHBOARD STATS ===================== */
+
 let monthlyChartInstance = null;
 let accountChartInstance = null;
 
 function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
 
-  /* =========================
-     📈 EQUITY DATA BUILDER
-  ========================== */
+  function buildEquity(trades, groupByDay=false) {
 
-  function buildEquityData(trades) {
-    const sorted = [...trades].sort(
-      (a, b) => new Date(a.entryDate) - new Date(b.entryDate)
-    );
+    const grouped = {};
+
+    trades.forEach(t => {
+      const key = groupByDay
+        ? new Date(t.entryDate).toISOString().slice(0,10)
+        : `${t.entryDate.getTime()}_${Math.random()}`;
+
+      grouped[key] = (grouped[key] || 0) + (Number(t.pnl) || 0);
+    });
+
+    const sortedKeys = Object.keys(grouped).sort((a,b)=> new Date(a)-new Date(b));
 
     let cumulative = 0;
     const labels = [];
     const data = [];
 
-    sorted.forEach(t => {
-      cumulative += Number(t.pnl) || 0;
-      labels.push(new Date(t.entryDate).toISOString().slice(0, 10));
+    sortedKeys.forEach(k => {
+      cumulative += grouped[k];
+      labels.push(k.slice(0,10));
       data.push(cumulative);
     });
 
     return { labels, data };
   }
 
-  /* =========================
-     📅 MONTHLY EQUITY
-  ========================== */
+  const monthlyEquity = buildEquity(monthlyTrades);
+  const accountEquity = buildEquity(accountTrades, true);
 
-  const monthlyEquity = buildEquityData(monthlyTrades);
+  const baseOptions = {
+    responsive: true,
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuart'
+    },
+    plugins: { legend: { display:false } },
+    scales: { x: { display:false } }
+  };
 
   if (monthlyChartInstance) monthlyChartInstance.destroy();
-
   monthlyChartInstance = new Chart(
     document.getElementById("monthlyEquityChart"),
     {
@@ -249,29 +225,16 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       data: {
         labels: monthlyEquity.labels,
         datasets: [{
-          label: "Monthly Equity",
           data: monthlyEquity.data,
-          tension: 0.3,
-          fill: false
+          tension: 0.35,
+          fill:false
         }]
       },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { display: false }
-        }
-      }
+      options: baseOptions
     }
   );
 
-  /* =========================
-     🏦 FULL ACCOUNT EQUITY
-  ========================== */
-
-  const accountEquity = buildEquityData(accountTrades);
-
   if (accountChartInstance) accountChartInstance.destroy();
-
   accountChartInstance = new Chart(
     document.getElementById("accountEquityChart"),
     {
@@ -279,77 +242,78 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       data: {
         labels: accountEquity.labels,
         datasets: [{
-          label: "Account Equity",
           data: accountEquity.data,
-          tension: 0.3,
-          fill: false
+          tension: 0.35,
+          fill:false
         }]
       },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { display: false }
-        }
-      }
+      options: baseOptions
     }
   );
 
-  /* =========================
-     📊 MONTHLY STATS
-  ========================== */
+  function computeStats(trades) {
 
-  const monthlyPnL = monthlyTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
-  const monthlyWins = monthlyTrades.filter(t=>Number(t.pnl)>0).length;
-  const monthlyWinRate = monthlyTrades.length
-    ? ((monthlyWins / monthlyTrades.length) * 100).toFixed(1)
-    : 0;
+    const pnl = trades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+    const wins = trades.filter(t=>Number(t.pnl)>0);
+    const losses = trades.filter(t=>Number(t.pnl)<0);
+
+    const avgWin = wins.length
+      ? wins.reduce((s,t)=>s+Number(t.pnl),0)/wins.length
+      : 0;
+
+    const avgLoss = losses.length
+      ? losses.reduce((s,t)=>s+Number(t.pnl),0)/losses.length
+      : 0;
+
+    const winRate = trades.length
+      ? (wins.length / trades.length * 100).toFixed(1)
+      : 0;
+
+    return { pnl, avgWin, avgLoss, winRate };
+  }
+
+  const m = computeStats(monthlyTrades);
+  const a = computeStats(accountTrades);
 
   document.querySelector("#monthlyStats .stats-content").innerHTML = `
     <h4>${MONTHS[month]} ${year}</h4>
     <div>Trades: <strong>${monthlyTrades.length}</strong></div>
-    <div>
-      PnL:
-      <span class="${monthlyPnL>=0?"positive":"negative"}">
-        ${monthlyPnL>=0?"+":""}$${monthlyPnL.toFixed(2)}
+    <div>PnL:
+      <span class="${m.pnl>=0?"positive":"negative"}">
+        ${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}
       </span>
     </div>
-    <div>Win Rate: ${monthlyWinRate}%</div>
+    <div>Win Rate: ${m.winRate}%</div>
+    <div>Avg Win: +$${m.avgWin.toFixed(2)}</div>
+    <div>Avg Loss: $${m.avgLoss.toFixed(2)}</div>
   `;
-
-  /* =========================
-     🏦 ACCOUNT STATS
-  ========================== */
-
-  const totalPnL = accountTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
-  const totalWins = accountTrades.filter(t=>Number(t.pnl)>0).length;
-  const totalWinRate = accountTrades.length
-    ? ((totalWins / accountTrades.length) * 100).toFixed(1)
-    : 0;
 
   document.querySelector("#accountStats .stats-content").innerHTML = `
     <h4>Full Account</h4>
     <div>Trades: <strong>${accountTrades.length}</strong></div>
-    <div>
-      PnL:
-      <span class="${totalPnL>=0?"positive":"negative"}">
-        ${totalPnL>=0?"+":""}$${totalPnL.toFixed(2)}
+    <div>PnL:
+      <span class="${a.pnl>=0?"positive":"negative"}">
+        ${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}
       </span>
     </div>
-    <div>Win Rate: ${totalWinRate}%</div>
+    <div>Win Rate: ${a.winRate}%</div>
+    <div>Avg Win: +$${a.avgWin.toFixed(2)}</div>
+    <div>Avg Loss: $${a.avgLoss.toFixed(2)}</div>
   `;
 }
 
+/* ===================== CLICK DAY ===================== */
 
-/* =================== Click → journal filtered day =================== */
 document.addEventListener("click", e => {
   const day = e.target.closest(".calendar-day");
   if (!day) return;
-
   const date = day.dataset.date;
   if (!date) return;
-
   window.location.href = `/journal?from=${date}&to=${date}`;
 });
+
+renderCalendar();
+
 </script>
 
 {% endblock %}
