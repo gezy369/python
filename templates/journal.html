@@ -29,21 +29,32 @@
   Setups <div id="setupFilter" class="filter-buttons multi"></div>
   </div>
 </div>
-<!-- Table -->
+<!-- Table + Chart column -->
 <div style="display:flex; gap:20px; align-items:flex-start;">
+
+  <!-- Table -->
   <div style="flex:2;">
     <table id="tradeTable">
       <thead><tr id="headerRow"></tr></thead>
       <tbody></tbody>
     </table>
   </div>
-<!-- Pnl chart-->
+
+  <!-- Chart + Stats column -->
   <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
-    <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
+
+    <!-- PnL chart -->
+    <div style="height:220px;">
+      <canvas id="pnlChart"></canvas>
+    </div>
+
+    <!-- Stats now INSIDE the same column -->
+    <div id="journalStats" class="journal-stats"></div>
+
   </div>
-  <div id="journalStats" class="journal-stats"></div>
+
 </div>
-<!-- Stats -->
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
