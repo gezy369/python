@@ -21,9 +21,17 @@
   <!-- 👇 Monthly total goes HERE -->
   <div id="calendarMonthTotal" class="calendar-month-total"></div>
 </div>
+
 <div class="dashboard-stats">
-  <div id="monthlyStats" class="dashboard-card"></div>
-  <div id="accountStats" class="dashboard-card"></div>
+  <div id="monthlyStats" class="dashboard-card">
+    <canvas id="monthlyEquityChart" height="120"></canvas>
+    <div class="stats-content"></div>
+  </div>
+
+  <div id="accountStats" class="dashboard-card">
+    <canvas id="accountEquityChart" height="120"></canvas>
+    <div class="stats-content"></div>
+  </div>
 </div>
 
 <script>
@@ -195,64 +203,134 @@ async function renderCalendar() {
 }
 
 /* ===================== STATS ========================= */
+let monthlyChartInstance = null;
+let accountChartInstance = null;
+
 function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
 
   /* =========================
-     📅 MONTHLY STATS
+     📈 EQUITY DATA BUILDER
   ========================== */
 
-  const monthlyPnL = monthlyTrades.reduce((sum, t) => 
-    sum + (Number(t.pnl) || 0), 0);
+  function buildEquityData(trades) {
+    const sorted = [...trades].sort(
+      (a, b) => new Date(a.entryDate) - new Date(b.entryDate)
+    );
 
-  const monthlyWins = monthlyTrades.filter(t => 
-    Number(t.pnl) > 0).length;
+    let cumulative = 0;
+    const labels = [];
+    const data = [];
 
+    sorted.forEach(t => {
+      cumulative += Number(t.pnl) || 0;
+      labels.push(new Date(t.entryDate).toISOString().slice(0, 10));
+      data.push(cumulative);
+    });
+
+    return { labels, data };
+  }
+
+  /* =========================
+     📅 MONTHLY EQUITY
+  ========================== */
+
+  const monthlyEquity = buildEquityData(monthlyTrades);
+
+  if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+  monthlyChartInstance = new Chart(
+    document.getElementById("monthlyEquityChart"),
+    {
+      type: "line",
+      data: {
+        labels: monthlyEquity.labels,
+        datasets: [{
+          label: "Monthly Equity",
+          data: monthlyEquity.data,
+          tension: 0.3,
+          fill: false
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false }
+        }
+      }
+    }
+  );
+
+  /* =========================
+     🏦 FULL ACCOUNT EQUITY
+  ========================== */
+
+  const accountEquity = buildEquityData(accountTrades);
+
+  if (accountChartInstance) accountChartInstance.destroy();
+
+  accountChartInstance = new Chart(
+    document.getElementById("accountEquityChart"),
+    {
+      type: "line",
+      data: {
+        labels: accountEquity.labels,
+        datasets: [{
+          label: "Account Equity",
+          data: accountEquity.data,
+          tension: 0.3,
+          fill: false
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false }
+        }
+      }
+    }
+  );
+
+  /* =========================
+     📊 MONTHLY STATS
+  ========================== */
+
+  const monthlyPnL = monthlyTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+  const monthlyWins = monthlyTrades.filter(t=>Number(t.pnl)>0).length;
   const monthlyWinRate = monthlyTrades.length
     ? ((monthlyWins / monthlyTrades.length) * 100).toFixed(1)
     : 0;
 
-  document.getElementById("monthlyStats").innerHTML = `
+  document.querySelector("#monthlyStats .stats-content").innerHTML = `
     <h4>${MONTHS[month]} ${year}</h4>
-
     <div>Trades: <strong>${monthlyTrades.length}</strong></div>
-
     <div>
       PnL:
-      <span class="${monthlyPnL >= 0 ? "positive" : "negative"}">
-        ${monthlyPnL >= 0 ? "+" : ""}$${monthlyPnL.toFixed(2)}
+      <span class="${monthlyPnL>=0?"positive":"negative"}">
+        ${monthlyPnL>=0?"+":""}$${monthlyPnL.toFixed(2)}
       </span>
     </div>
-
     <div>Win Rate: ${monthlyWinRate}%</div>
   `;
 
-
   /* =========================
-     🏦 FULL ACCOUNT STATS
+     🏦 ACCOUNT STATS
   ========================== */
 
-  const totalPnL = accountTrades.reduce((sum, t) => 
-    sum + (Number(t.pnl) || 0), 0);
-
-  const totalWins = accountTrades.filter(t => 
-    Number(t.pnl) > 0).length;
-
+  const totalPnL = accountTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+  const totalWins = accountTrades.filter(t=>Number(t.pnl)>0).length;
   const totalWinRate = accountTrades.length
     ? ((totalWins / accountTrades.length) * 100).toFixed(1)
     : 0;
 
-  document.getElementById("accountStats").innerHTML = `
+  document.querySelector("#accountStats .stats-content").innerHTML = `
     <h4>Full Account</h4>
-
     <div>Trades: <strong>${accountTrades.length}</strong></div>
-
     <div>
       PnL:
-      <span class="${totalPnL >= 0 ? "positive" : "negative"}">
-        ${totalPnL >= 0 ? "+" : ""}$${totalPnL.toFixed(2)}
+      <span class="${totalPnL>=0?"positive":"negative"}">
+        ${totalPnL>=0?"+":""}$${totalPnL.toFixed(2)}
       </span>
     </div>
-
     <div>Win Rate: ${totalWinRate}%</div>
   `;
 }
