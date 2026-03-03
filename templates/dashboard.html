@@ -6,9 +6,14 @@
 
 <h2>Monthly Trading Calendar</h2>
 
-<div class="calendar-controls">
-  <select id="calendarMonth"></select>
-  <select id="calendarYear"></select>
+<div class="calendar-controls-modern">
+  <button id="prevMonth" class="cal-nav">◀</button>
+
+  <div class="calendar-current">
+    <span id="calendarLabel"></span>
+  </div>
+
+  <button id="nextMonth" class="cal-nav">▶</button>
 </div>
 
 <div class="calendar-wrapper">
@@ -16,20 +21,12 @@
   <!-- 👇 Monthly total goes HERE -->
   <div id="calendarMonthTotal" class="calendar-month-total"></div>
 </div>
+<div class="dashboard-stats">
+  <div id="monthlyStats" class="dashboard-card"></div>
+  <div id="accountStats" class="dashboard-card"></div>
+</div>
 
 <script>
-
-// helper to filter trades by accounts
-/*async function fetchFilteredTrades(filters = {}) {
-  const params = new URLSearchParams();
-
-  if (filters.account) params.set("account", filters.account);
-  if (filters.from) params.set("from", filters.from);
-  if (filters.to) params.set("to", filters.to);
-
-  const res = await fetch(`/api/trades?${params.toString()}`);
-  return await res.json();
-}*/
 
 //Render calendar on account change
 const accountSelect = document.getElementById("accountSelect");
@@ -40,7 +37,7 @@ if (accountSelect) {
 }
 
 /* =================== Setup month/year selection =================== */
-const monthSelect = document.getElementById("calendarMonth");
+/*const monthSelect = document.getElementById("calendarMonth");*/
 const yearSelect = document.getElementById("calendarYear");
 const calendarEl = document.getElementById("tradingCalendar");
 
@@ -87,12 +84,36 @@ fetch("/api/trades")
 monthSelect.onchange = renderCalendar;
 yearSelect.onchange = renderCalendar;
 
+let currentDate = new Date();
+
+const calendarLabel = document.getElementById("calendarLabel");
+
+function updateCalendarLabel() {
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+  calendarLabel.textContent = `${MONTHS[month]} ${year}`;
+}
+
+document.getElementById("prevMonth").onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  updateCalendarLabel();
+  renderCalendar();
+};
+
+document.getElementById("nextMonth").onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  updateCalendarLabel();
+  renderCalendar();
+};
+
+updateCalendarLabel();
+
 /* =================== Calendar rendering =================== */
 async function renderCalendar() {
   calendarEl.innerHTML = "";
 
-  const month = Number(monthSelect.value);
-  const year = Number(yearSelect.value);
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
 
   // ✅ valid month range
   const fromDate = new Date(year, month, 1);
@@ -141,6 +162,8 @@ async function renderCalendar() {
     }
   });
 
+  renderDashboardStats(filteredTrades, month, year);
+  
   const emptyCells = Math.min(startWeekday, 5);
   for (let i = 0; i < emptyCells; i++) {
     calendarEl.appendChild(document.createElement("div"));
@@ -189,6 +212,47 @@ async function renderCalendar() {
     </span>
   `;
 }
+
+/* ===================== STATS ========================= */
+function renderDashboardStats(allTrades, month, year) {
+
+  const monthlyTrades = allTrades.filter(t =>
+    t.entryDate.getMonth() === month &&
+    t.entryDate.getFullYear() === year
+  );
+
+  const monthlyPnL = monthlyTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+
+  const monthlyWins = monthlyTrades.filter(t=>Number(t.pnl)>0).length;
+  const monthlyWinRate = monthlyTrades.length
+    ? ((monthlyWins / monthlyTrades.length) * 100).toFixed(1)
+    : 0;
+
+  document.getElementById("monthlyStats").innerHTML = `
+    <h4>Monthly Stats</h4>
+    <div>Trades: ${monthlyTrades.length}</div>
+    <div>PnL: <span class="${monthlyPnL>=0?"positive":"negative"}">
+      ${monthlyPnL>=0?"+":""}$${monthlyPnL.toFixed(2)}
+    </span></div>
+    <div>Win rate: ${monthlyWinRate}%</div>
+  `;
+
+  const totalPnL = allTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+  const totalWins = allTrades.filter(t=>Number(t.pnl)>0).length;
+  const totalWinRate = allTrades.length
+    ? ((totalWins / allTrades.length) * 100).toFixed(1)
+    : 0;
+
+  document.getElementById("accountStats").innerHTML = `
+    <h4>Full Account Stats</h4>
+    <div>Trades: ${allTrades.length}</div>
+    <div>PnL: <span class="${totalPnL>=0?"positive":"negative"}">
+      ${totalPnL>=0?"+":""}$${totalPnL.toFixed(2)}
+    </span></div>
+    <div>Win rate: ${totalWinRate}%</div>
+  `;
+}
+
 
 /* =================== Click → journal filtered day =================== */
 document.addEventListener("click", e => {

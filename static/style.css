@@ -606,3 +606,50 @@ tr.trade-details-row td {
 .chart-container {
   flex: 2;   /* chart takes more space */
 }
+
+/* month selector */
+.calendar-controls-modern {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cal-nav {
+  background: #f4f6f8;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.cal-nav:hover {
+  background: #e0e6ed;
+}
+
+.calendar-current {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 25px;
+}
+
+.dashboard-card {
+  flex: 1;
+  background: #f8f9fb;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.dashboard-card h4 {
+  margin-bottom: 12px;
+}
