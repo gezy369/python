@@ -570,3 +570,28 @@ tr.trade-details-row td {
 .calendar-day.day-flat {
   background: #cecece;
 }
+
+/* Journal stats */
+.journal-stats {
+  margin-top: 20px;
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.stat-block {
+  background: #f7f7f7;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.positive {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.negative {
+  color: #c62828;
+  font-weight: 600;
+}

@@ -42,6 +42,8 @@
     <div style="height:220px;"><canvas id="pnlChart"></canvas></div>
   </div>
 </div>
+<!-- Stats -->
+<div id="journalStats" class="journal-stats"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -52,6 +54,63 @@ let openRow = null;
 let STRATEGIES = [];
 let SETUPS = [];
 
+// STATS RENDER
+function renderJournalStats(data) {
+  const statsEl = document.getElementById("journalStats");
+  if (!statsEl) return;
+
+  const totalTrades = data.length;
+
+  // Normalize side just in case (lowercase safety)
+  const longs = data.filter(t => 
+    String(t.side).toLowerCase() === "long"
+  );
+
+  const shorts = data.filter(t => 
+    String(t.side).toLowerCase() === "short"
+  );
+
+  const longCount = longs.length;
+  const shortCount = shorts.length;
+
+  const longPnL = longs.reduce((sum, t) => 
+    sum + (Number(t.pnl) || 0), 0
+  );
+
+  const shortPnL = shorts.reduce((sum, t) => 
+    sum + (Number(t.pnl) || 0), 0
+  );
+
+  const wins = data.filter(t => Number(t.pnl) > 0).length;
+
+  const winRate = totalTrades
+    ? ((wins / totalTrades) * 100).toFixed(1)
+    : 0;
+
+  statsEl.innerHTML = `
+    <div class="stat-block">
+      <strong>Total trades:</strong> ${totalTrades}
+    </div>
+
+    <div class="stat-block">
+      <strong>Longs:</strong> ${longCount} —
+      <span class="${longPnL >= 0 ? "positive" : "negative"}">
+        ${longPnL >= 0 ? "+" : ""}$${longPnL.toFixed(2)}
+      </span>
+    </div>
+
+    <div class="stat-block">
+      <strong>Shorts:</strong> ${shortCount} —
+      <span class="${shortPnL >= 0 ? "positive" : "negative"}">
+        ${shortPnL >= 0 ? "+" : ""}$${shortPnL.toFixed(2)}
+      </span>
+    </div>
+
+    <div class="stat-block">
+      <strong>Win rate:</strong> ${winRate}%
+    </div>
+  `;
+}
 
 /* ---------------- COLUMNS & FORMAT ---------------- */
 const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
@@ -545,6 +604,7 @@ async function applyFiltersAndRender() {
 
   buildRows(data);
   updatePnLChart(data);
+  renderJournalStats(data);
 }
 
 
