@@ -217,20 +217,56 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     scales: { x: { display:false } }
   };
 
+/* =========================
+   📅 MONTHLY DAILY PNL
+========================== */
+
+function buildMonthlyDailyPnL(trades) {
+
+  const grouped = {};
+
+  trades.forEach(t => {
+    const date = new Date(t.entryDate).toISOString().slice(0,10);
+    grouped[date] = (grouped[date] || 0) + (Number(t.pnl) || 0);
+  });
+
+  const sortedDates = Object.keys(grouped).sort(
+    (a,b) => new Date(a) - new Date(b)
+  );
+
+  return {
+    labels: sortedDates,
+    data: sortedDates.map(d => grouped[d])
+  };
+}
+
+const monthlyData = buildMonthlyDailyPnL(monthlyTrades);
+
   if (monthlyChartInstance) monthlyChartInstance.destroy();
+
   monthlyChartInstance = new Chart(
     document.getElementById("monthlyEquityChart"),
     {
-      type: "line",
+      type: "bar",
       data: {
-        labels: monthlyEquity.labels,
+        labels: monthlyData.labels,
         datasets: [{
-          data: monthlyEquity.data,
-          tension: 0.35,
-          fill:false
+          label: "Daily PnL",
+          data: monthlyData.data
         }]
       },
-      options: baseOptions
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1000,
+          easing: "easeOutQuart"
+        },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { beginAtZero: true }
+        }
+      }
     }
   );
 
