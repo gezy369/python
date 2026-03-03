@@ -572,18 +572,25 @@ tr.trade-details-row td {
 }
 
 /* Journal stats */
-.journal-stats {
-  margin-top: 20px;
+.journal-chart-row {
   display: flex;
-  gap: 40px;
-  flex-wrap: wrap;
-  font-size: 14px;
+  align-items: flex-start;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.journal-stats {
+  flex: 1;   /* stats sit on right side */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .stat-block {
   background: #f7f7f7;
   padding: 10px 14px;
   border-radius: 6px;
+  font-size: 14px;
 }
 
 .positive {
@@ -594,4 +601,8 @@ tr.trade-details-row td {
 .negative {
   color: #c62828;
   font-weight: 600;
+}
+
+.chart-container {
+  flex: 2;   /* chart takes more space */
 }

@@ -50,6 +50,21 @@
 
     <!-- Stats now INSIDE the same column -->
     <div id="journalStats" class="journal-stats"></div>
+    
+    <div style="flex:1; display:flex; flex-direction:column; gap:20px;">
+
+    <!-- PnL chart -->
+    <div style="height:220px;">
+      <canvas id="pnlChart"></canvas>
+    </div>
+
+    <!-- Stats -->
+    <div id="journalStats" class="journal-stats"></div>
+
+    <!-- Donut -->
+    <div style="height:180px; display:flex; justify-content:center;">
+      <canvas id="sideDonut"></canvas>
+    </div>
 
   </div>
 
@@ -124,6 +139,50 @@ function renderJournalStats(data) {
   `;
 }
 
+/* ----------------------- DONUT ----------------------------- */
+let sideDonutChart = null;
+
+function renderSideDonut(data) {
+  const ctx = document.getElementById("sideDonut");
+  if (!ctx) return;
+
+  const longs = data.filter(t =>
+    String(t.side).toLowerCase() === "long"
+  ).length;
+
+  const shorts = data.filter(t =>
+    String(t.side).toLowerCase() === "short"
+  ).length;
+
+  // destroy old chart if it exists (important!)
+  if (sideDonutChart) {
+    sideDonutChart.destroy();
+  }
+
+  sideDonutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Long", "Short"],
+      datasets: [{
+        data: [longs, shorts],
+        backgroundColor: [
+          "#1a7f37",   // green
+          "#c62828"    // red
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "bottom"
+        }
+      },
+      cutout: "65%"  // makes it donut style
+    }
+  });
+}
 /* ---------------- COLUMNS & FORMAT ---------------- */
 const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
 const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
@@ -617,6 +676,7 @@ async function applyFiltersAndRender() {
   buildRows(data);
   updatePnLChart(data);
   renderJournalStats(data);
+  renderSideDonut(data);
 }
 
 
