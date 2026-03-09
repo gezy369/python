@@ -697,7 +697,9 @@ async function showTradeChart(trade, containerId) {
 
   try {
     // Let the backend handle =F suffix
-    const res = await fetch(`/api/yahoo/${trade.symbol}`);
+    const tradeDate = trade.entryTimestamp.toISOString().slice(0, 10);
+    const res = await fetch(`/api/yahoo/${trade.symbol}?date=${tradeDate}`);
+
     const json = await res.json();
 
     const result = json.chart.result[0];

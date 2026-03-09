@@ -113,21 +113,33 @@ def charts():
 @app.route("/api/yahoo/<symbol>")
 def fetch_yahoo(symbol):
     try:
-        import requests  # safe to re-import
+        from datetime import datetime, timedelta
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&range=5d"
         
+        # Get date from query param, default to today
+        date_str = request.args.get("date")  # expects YYYY-MM-DD
+        if date_str:
+            trade_date = datetime.strptime(date_str, "%Y-%m-%d")
+        else:
+            trade_date = datetime.utcnow()
+
+        # Fetch a window: day before to day after the trade
+        period1 = int((trade_date - timedelta(days=1)).timestamp())
+        period2 = int((trade_date + timedelta(days=1)).timestamp())
+
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&period1={period1}&period2={period2}"
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json",
             "Referer": "https://finance.yahoo.com",
         }
-        
+
         r = requests.get(url, headers=headers, timeout=10)
-        
+
         if not r.ok:
             return jsonify({"error": r.status_code, "body": r.text[:500]}), 502
-        
+
         return jsonify(r.json())
 
     except Exception as e:
