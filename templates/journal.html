@@ -336,13 +336,16 @@ function toggleTradeDetails(tr, trade){
     <div class="trade-details">
       <div class="trade-details-grid">
         <div>
+
           <h4>Trade</h4>
+
           <div><strong>Symbol:</strong> ${trade.symbol}</div>
           <div><strong>Side:</strong> ${trade.side}</div>
           <div><strong>Qty:</strong> ${trade.qty}</div>
           <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
           <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+
           <div style="margin-top:10px;">
             <textarea
               class="trade-notes"
@@ -351,6 +354,7 @@ function toggleTradeDetails(tr, trade){
               placeholder="Write your trade notes here..."
             >${trade.notes ?? ""}</textarea>
           </div>
+
         </div>
 
         <div>
@@ -359,11 +363,7 @@ function toggleTradeDetails(tr, trade){
           <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
         </div>
 
-      </div>
-    </div>
-          
-          
-          <div>
+        <div>
           <h4>Setups</h4>
           <select class="setup-add" style="width:100%;">
             <option value="">+ Add setup</option>
@@ -371,9 +371,11 @@ function toggleTradeDetails(tr, trade){
           </select>
           <div class="setup-tag-container">
             ${renderSetupTags(trade)}
+        </div>
 
       </div>
-        
+    </div>
+          
         <div class="trade-chart">
           <div id="tradeChart-${trade.id}" style="height:350px;"></div>
         </div>
