@@ -356,6 +356,10 @@ function toggleTradeDetails(tr, trade){
           <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
         </div>
 
+        <div class="trade-chart">
+          <div id="tradeChart-${trade.id}" style="height:350px;"></div>
+        </div>
+
         <div>
           <h4>Setups</h4>
           <select class="setup-add" style="width:100%;">
@@ -373,6 +377,9 @@ function toggleTradeDetails(tr, trade){
   detailsTr.appendChild(td); tr.after(detailsTr);
   const panel = td.querySelector(".trade-details"); panel.offsetHeight; requestAnimationFrame(()=>panel.classList.add("open"));
   openRow={tr,detailsTr,panel};
+  
+  // ---------- CHART -----------
+  showTradeChart(trade, `tradeChart-${trade.id}`);
   
   // ---------- NOTES AUTOSAVE ----------
   const notesEl = td.querySelector(".trade-notes");
@@ -644,6 +651,76 @@ function applyDateFromURL() {
 
 applyDateFromURL();
 
+
+/* ==================== CHART GENERATION ========================*/
+async function fetchYahooCandles(symbol) {
+
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=5d`;
+
+  const res = await fetch(url);
+  const json = await res.json();
+
+  const result = json.chart.result[0];
+
+  const timestamps = result.timestamp;
+  const quote = result.indicators.quote[0];
+
+  return timestamps.map((t,i)=>({
+    time: t,
+    open: quote.open[i],
+    high: quote.high[i],
+    low: quote.low[i],
+    close: quote.close[i]
+  }));
+}
+
+
+async function showTradeChart(trade, containerId) {
+
+  const chart = LightweightCharts.createChart(
+    document.getElementById(containerId),
+    {
+      height: 350,
+      layout: {
+        background: { color: "#ffffff" },
+        textColor: "#333"
+      }
+    }
+  );
+
+  const candleSeries = chart.addCandlestickSeries();
+
+  const candles = await fetchYahooCandles(trade.symbol);
+
+  candleSeries.setData(candles);
+
+  const entryTime = Math.floor(new Date(trade.entryTimestamp)/1000);
+  const exitTime  = Math.floor(new Date(trade.exitTimestamp)/1000);
+
+  candleSeries.setMarkers([
+    {
+      time: entryTime,
+      position: "belowBar",
+      color: "green",
+      shape: "arrowUp",
+      text: "Entry"
+    },
+    {
+      time: exitTime,
+      position: "aboveBar",
+      color: "red",
+      shape: "arrowDown",
+      text: "Exit"
+    }
+  ]);
+
+  chart.timeScale().setVisibleRange({
+    from: entryTime - 3600*4,
+    to: entryTime + 3600*4
+  });
+
+}
 </script>
 
 
