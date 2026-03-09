@@ -356,7 +356,7 @@ function toggleTradeDetails(tr, trade){
           <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
         </div>
 
-        <div class="tradeChart">
+        <div class="trade-chart">
           <div id="tradeChart-${trade.id}" style="height:350px;"></div>
         </div>
 
@@ -656,7 +656,7 @@ applyDateFromURL();
 async function fetchYahooCandles(symbol) {
 
   const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}=f?interval=5m&range=5d`;
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}=F?interval=5m&range=5d`;
 
   const res = await fetch(url);
   const json = await res.json();
@@ -681,7 +681,6 @@ async function showTradeChart(trade, containerId) {
   const chart = LightweightCharts.createChart(
     document.getElementById(containerId),
     {
-      width: container.offsetWidth || 600,
       height: 350,
       layout: {
         background: { color: "#ffffff" },
@@ -689,10 +688,6 @@ async function showTradeChart(trade, containerId) {
       }
     }
   );
-
-  window.addEventListener("resize", () => {
-    chart.applyOptions({ width: container.clientWidth });
-  });
 
   const candleSeries = chart.addCandlestickSeries();
 

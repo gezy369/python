@@ -321,10 +321,10 @@ tr.trade-details-row td {
 /* Animated container */
 .trade-details {
   overflow: hidden;
-  max-height: 350;
+  max-height: 0;
   transition: max-height 0.25s ease, padding 0.25s ease;
   /*padding: 0 16px;*/
-  padding: 10px;
+  padding: 0 16px;
   background: #f9fbff;
 }
 
@@ -653,11 +653,4 @@ tr.trade-details-row td {
 
 .dashboard-card h4 {
   margin-bottom: 12px;
-}
-
-/*  CHART  */
-#tradeChart{
-  width:100%;
-  height:320px;
-  margin-top:12px;
 }
