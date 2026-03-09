@@ -380,7 +380,7 @@ function toggleTradeDetails(tr, trade){
   
   // ---------- CHART -----------
   showTradeChart(trade, `tradeChart-${trade.id}`);
-  
+
   // ---------- NOTES AUTOSAVE ----------
   const notesEl = td.querySelector(".trade-notes");
   let notesTimer = null;
@@ -681,7 +681,7 @@ async function showTradeChart(trade, containerId) {
   const chart = LightweightCharts.createChart(
     document.getElementById(containerId),
     {
-      height: 350,
+      height: 200,
       layout: {
         background: { color: "#ffffff" },
         textColor: "#333"
