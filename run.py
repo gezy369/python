@@ -111,8 +111,10 @@ def charts():
 # ===== CHARTING =====
 @app.route("/api/yahoo/<symbol>")
 def fetch_yahoo(symbol):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
-    r = requests.get(url)
+    # Append =F for futures if not already present
+    yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&range=5d"
+    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
     r.raise_for_status()
     return jsonify(r.json())
 

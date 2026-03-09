@@ -686,9 +686,7 @@ async function fetchYahooCandles(symbol) {
 
 async function showTradeChart(trade, containerId) {
   const chartEl = document.getElementById(containerId);
-  chartEl.innerHTML = ""; // clear previous chart
-
-  const symbol = trade.symbol.toUpperCase() + "=F";
+  chartEl.innerHTML = "";
 
   const chart = LightweightCharts.createChart(chartEl, {
     height: 350,
@@ -697,9 +695,8 @@ async function showTradeChart(trade, containerId) {
 
   const candleSeries = chart.addCandlestickSeries();
 
-  // 1️⃣ Fetch via your server endpoint
-  let candles;
   try {
+    // Let the backend handle =F suffix
     const res = await fetch(`/api/yahoo/${trade.symbol}`);
     const json = await res.json();
 
@@ -707,35 +704,35 @@ async function showTradeChart(trade, containerId) {
     const timestamps = result.timestamp;
     const quote = result.indicators.quote[0];
 
-    candles = timestamps.map((t, i) => ({
-      time: t, 
-      open: quote.open[i],
-      high: quote.high[i],
-      low: quote.low[i],
-      close: quote.close[i],
-    }));
+    const candles = timestamps
+      .map((t, i) => ({
+        time: t,
+        open: quote.open[i],
+        high: quote.high[i],
+        low: quote.low[i],
+        close: quote.close[i],
+      }))
+      .filter(c => c.open && c.high && c.low && c.close); // ← filter nulls
+
+    candleSeries.setData(candles);
+
+    const entryTime = Math.floor(new Date(trade.entryTimestamp) / 1000);
+    const exitTime  = Math.floor(new Date(trade.exitTimestamp)  / 1000);
+
+    candleSeries.setMarkers([
+      { time: entryTime, position: "belowBar", color: "green", shape: "arrowUp",   text: "Entry" },
+      { time: exitTime,  position: "aboveBar", color: "red",   shape: "arrowDown", text: "Exit"  },
+    ]);
+
+    chart.timeScale().setVisibleRange({
+      from: entryTime - 3600,
+      to:   exitTime  + 3600,
+    });
+
   } catch (err) {
     console.error("Failed to fetch candles", err);
-    candleSeries.setData([]);
-    return;
+    chartEl.innerHTML = `<p style="color:red;">Chart unavailable for ${trade.symbol}</p>`;
   }
-
-  candleSeries.setData(candles);
-
-  // 2️⃣ Add markers
-  const entryTime = Math.floor(new Date(trade.entryTimestamp) / 1000);
-  const exitTime = Math.floor(new Date(trade.exitTimestamp) / 1000);
-
-  candleSeries.setMarkers([
-    { time: entryTime, position: "belowBar", color: "green", shape: "arrowUp", text: "Entry" },
-    { time: exitTime, position: "aboveBar", color: "red", shape: "arrowDown", text: "Exit" },
-  ]);
-
-  // 3️⃣ Zoom 1 hour before and 1 hour after
-  chart.timeScale().setVisibleRange({
-    from: entryTime - 3600, // 1 hour before
-    to: exitTime + 3600,     // 1 hour after
-  });
 }
 </script>
 
