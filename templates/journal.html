@@ -677,99 +677,55 @@ async function fetchYahooCandles(symbol) {
 
 
 async function showTradeChart(trade, containerId) {
+  const chartEl = document.getElementById(containerId);
+  chartEl.innerHTML = ""; // clear previous chart
 
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  const chart = LightweightCharts.createChart(container, {
-    width: container.clientWidth || 600,
-    height: 320,
-    layout: {
-      background: { color: "#ffffff" },
-      textColor: "#333"
-    },
-    grid: {
-      vertLines: { color: "#eee" },
-      horzLines: { color: "#eee" }
-    },
-    timeScale: {
-      timeVisible: true,
-      secondsVisible: false
-    }
+  const chart = LightweightCharts.createChart(chartEl, {
+    height: 350,
+    layout: { background: { color: "#ffffff" }, textColor: "#333" },
   });
 
-  const candleSeries = chart.addSeries(
-    LightweightCharts.CandlestickSeries
-  );
+  const candleSeries = chart.addCandlestickSeries();
 
-  const entryTime = trade.entryTimestamp.getTime();
-  const exitTime = trade.exitTimestamp.getTime();
+  // 1️⃣ Fetch via your server endpoint
+  let candles;
+  try {
+    const res = await fetch(`/api/yahoo/${trade.symbol}`);
+    const json = await res.json();
 
-  const start = new Date(entryTime - 60 * 60 * 1000); // 1h before
-  const end = new Date(exitTime + 60 * 60 * 1000); // 1h after
+    const result = json.chart.result[0];
+    const timestamps = result.timestamp;
+    const quote = result.indicators.quote[0];
 
-  const period1 = Math.floor(start.getTime() / 1000);
-  const period2 = Math.floor(end.getTime() / 1000);
-
-  let symbol = trade.symbol;
-
-  // basic Yahoo symbol conversion
-  if (symbol === "BTCUSDT") symbol = "BTC-USD";
-  if (symbol === "ETHUSDT") symbol = "ETH-USD";
-
-  const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}` +
-    `?interval=1m&period1=${period1}&period2=${period2}`;
-
-  const res = await fetch(url);
-  const json = await res.json();
-
-  const result = json?.chart?.result?.[0];
-  if (!result) {
-    container.innerHTML = "No market data available.";
+    candles = timestamps.map((t, i) => ({
+      time: t, 
+      open: quote.open[i],
+      high: quote.high[i],
+      low: quote.low[i],
+      close: quote.close[i],
+    }));
+  } catch (err) {
+    console.error("Failed to fetch candles", err);
+    candleSeries.setData([]);
     return;
   }
 
-  const timestamps = result.timestamp;
-  const quote = result.indicators.quote[0];
-
-  const candles = timestamps.map((t, i) => ({
-    time: t,
-    open: quote.open[i],
-    high: quote.high[i],
-    low: quote.low[i],
-    close: quote.close[i]
-  })).filter(c => c.open !== null);
-
   candleSeries.setData(candles);
 
-  // entry / exit markers
+  // 2️⃣ Add markers
+  const entryTime = Math.floor(new Date(trade.entryTimestamp) / 1000);
+  const exitTime = Math.floor(new Date(trade.exitTimestamp) / 1000);
+
   candleSeries.setMarkers([
-    {
-      time: Math.floor(entryTime / 1000),
-      position: "belowBar",
-      color: "green",
-      shape: "arrowUp",
-      text: "Entry"
-    },
-    {
-      time: Math.floor(exitTime / 1000),
-      position: "aboveBar",
-      color: "red",
-      shape: "arrowDown",
-      text: "Exit"
-    }
+    { time: entryTime, position: "belowBar", color: "green", shape: "arrowUp", text: "Entry" },
+    { time: exitTime, position: "aboveBar", color: "red", shape: "arrowDown", text: "Exit" },
   ]);
 
-  chart.timeScale().fitContent();
-
-  // responsive resize
-  window.addEventListener("resize", () => {
-    chart.applyOptions({ width: container.clientWidth });
+  // 3️⃣ Zoom 1 hour before and 1 hour after
+  chart.timeScale().setVisibleRange({
+    from: entryTime - 3600, // 1 hour before
+    to: exitTime + 3600,     // 1 hour after
   });
-
 }
 </script>
 

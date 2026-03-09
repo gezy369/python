@@ -108,6 +108,14 @@ def api_trades():
 def charts():
 
     return render_template("charts.html")
+# ===== CHARTING =====
+@app.route("/api/yahoo/<symbol>")
+def fetch_yahoo(symbol):
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
+    r = requests.get(url)
+    r.raise_for_status()
+    return jsonify(r.json())
+
 
 # ===== TRADES UPLOAD =====
 @app.route("/upload", methods=["GET", "POST"])
