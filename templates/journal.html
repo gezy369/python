@@ -351,7 +351,9 @@ function toggleTradeDetails(tr, trade){
               placeholder="Write your trade notes here..."
             >${trade.notes ?? ""}</textarea>
           </div>
-
+          </div>
+        </div>
+        </div>
           <div>
             <h4>Strategy</h4>
             <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
@@ -366,19 +368,13 @@ function toggleTradeDetails(tr, trade){
           </select>
           <div class="setup-tag-container">
             ${renderSetupTags(trade)}
-          </div>
-        </div>
 
-        </div>
-
+      </div>
         
-
         <div class="trade-chart">
           <div id="tradeChart-${trade.id}" style="height:350px;"></div>
         </div>
 
-        
-      </div>
     </div>
   `;
 
