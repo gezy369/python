@@ -356,7 +356,7 @@ function toggleTradeDetails(tr, trade){
           <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
         </div>
 
-        <div class="trade-chart">
+        <div class="tradeChart">
           <div id="tradeChart-${trade.id}" style="height:350px;"></div>
         </div>
 
@@ -681,13 +681,18 @@ async function showTradeChart(trade, containerId) {
   const chart = LightweightCharts.createChart(
     document.getElementById(containerId),
     {
-      height: 200,
+      width: container.offsetWidth || 600,
+      height: 350,
       layout: {
         background: { color: "#ffffff" },
         textColor: "#333"
       }
     }
   );
+
+  window.addEventListener("resize", () => {
+    chart.applyOptions({ width: container.clientWidth });
+  });
 
   const candleSeries = chart.addCandlestickSeries();
 
