@@ -6,6 +6,7 @@ import os
 import io
 import pandas as pd
 from supabase import create_client, Client
+import requests
 
 app = Flask(__name__)
 
@@ -111,22 +112,26 @@ def charts():
 # ===== CHARTING =====
 @app.route("/api/yahoo/<symbol>")
 def fetch_yahoo(symbol):
-    yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&range=5d"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Referer": "https://finance.yahoo.com",
-    }
-    
-    r = requests.get(url, headers=headers)
-    
-    # Don't raise — return the error so you can debug it
-    if not r.ok:
-        return jsonify({"error": r.status_code, "body": r.text[:500]}), 502
-    
-    return jsonify(r.json())
+    try:
+        import requests  # safe to re-import
+        yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&range=5d"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Referer": "https://finance.yahoo.com",
+        }
+        
+        r = requests.get(url, headers=headers, timeout=10)
+        
+        if not r.ok:
+            return jsonify({"error": r.status_code, "body": r.text[:500]}), 502
+        
+        return jsonify(r.json())
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ===== TRADES UPLOAD =====

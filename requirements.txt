@@ -4,3 +4,4 @@ pandas
 supabase
 yfinance
 mplfinance
+requests
