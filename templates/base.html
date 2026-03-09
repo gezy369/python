@@ -6,7 +6,8 @@
 </head>
 
 <script src="{{ url_for('static', filename='js/trade.js') }}"></script>
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<!-- Include lightweight-charts (non-standalone, exposes LightweightCharts globally) -->
+<script src="https://unpkg.com/lightweight-charts@8.1.0/dist/lightweight-charts.js"></script>
 
 <body>
 <div class="app">
