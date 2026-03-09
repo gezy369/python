@@ -350,19 +350,14 @@ function toggleTradeDetails(tr, trade){
               placeholder="Write your trade notes here..."
             >${trade.notes ?? ""}</textarea>
           </div>
-        </div>
 
-        <div>
-          <h4>Strategy</h4>
-          <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
-          <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
-        </div>
-
-        <div class="trade-chart">
-          <div id="tradeChart-${trade.id}" style="height:350px;"></div>
-        </div>
-
-        <div>
+          <div>
+            <h4>Strategy</h4>
+            <select class="trade-strategy" style="width:100%;">${strategyOptions}</select>
+            <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
+          </div>
+          
+          <div>
           <h4>Setups</h4>
           <select class="setup-add" style="width:100%;">
             <option value="">+ Add setup</option>
@@ -372,6 +367,16 @@ function toggleTradeDetails(tr, trade){
             ${renderSetupTags(trade)}
           </div>
         </div>
+
+        </div>
+
+        
+
+        <div class="trade-chart">
+          <div id="tradeChart-${trade.id}" style="height:350px;"></div>
+        </div>
+
+        
       </div>
     </div>
   `;
@@ -681,6 +686,8 @@ async function fetchYahooCandles(symbol) {
 async function showTradeChart(trade, containerId) {
   const chartEl = document.getElementById(containerId);
   chartEl.innerHTML = ""; // clear previous chart
+
+  const symbol = trade.symbol.toUpperCase() + "=F";
 
   const chart = LightweightCharts.createChart(chartEl, {
     height: 350,
