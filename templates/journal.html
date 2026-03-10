@@ -65,6 +65,7 @@ let charts = {};
 let openRow = null;
 let STRATEGIES = [];
 let SETUPS = [];
+let dataReady = false;
 
 // STATS RENDER
 function renderJournalStats(data) {
@@ -198,6 +199,7 @@ Promise.all([
   }));
 
   buildHeaders();
+  dataReady = true;
   applyFiltersAndRender();
 });
 
@@ -590,6 +592,7 @@ function closeDetails(){
 
 /* ---------------- FILTERS ---------------- */
 async function applyFiltersAndRender() {
+  if (!dataReady) return; // ← bail if data isn't loaded yet
   const dateFrom = document.getElementById("dateFrom");
   const dateTo = document.getElementById("dateTo");
 
@@ -649,8 +652,6 @@ function applyDateFromURL() {
 
   if (from) document.getElementById("dateFrom").value = from;
   if (to) document.getElementById("dateTo").value = to;
-
-  if (from || to) applyFiltersAndRender();
 }
 
 applyDateFromURL();
