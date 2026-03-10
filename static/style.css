@@ -329,7 +329,7 @@ tr.trade-details-row td {
 
 /* When open */
 .trade-details.open {
-  max-height: 500px; /* large enough */
+  max-height: 550px; /* large enough */
   padding: 16px;
 }
 
