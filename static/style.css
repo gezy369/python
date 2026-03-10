@@ -323,14 +323,13 @@ tr.trade-details-row td {
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.25s ease, padding 0.25s ease;
-  /*padding: 0 16px;*/
   padding: 0 16px;
   background: #f9fbff;
 }
 
 /* When open */
 .trade-details.open {
-  max-height: 400px; /* large enough */
+  max-height: 500px; /* large enough */
   padding: 16px;
 }
 
