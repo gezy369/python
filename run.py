@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.functions import csv_handler, filter_trades
 import os
-import io
+import io, base64
 import pandas as pd
 from supabase import create_client, Client
 import requests
+import mplfinance as mpf
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -194,6 +196,36 @@ def upload_file():
         records = df_imported_trades.to_dict(orient="records")
         response = supabase.table("trades").insert(records).execute()
 
+        # ---------- GENERATE CHARTS ----------       ← ADD FROM HERE
+inserted_trades = response.data or []
+
+for trade in inserted_trades:
+    try:
+        chart_b64 = generate_chart_base64(
+            symbol=trade["symbol"],
+            entry_time=datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
+            exit_time=datetime.strptime(trade["exitTimestamp"],  "%Y-%m-%d %H:%M:%S"),
+            entry_price=float(trade["entryPrice"]),
+            exit_price=float(trade["exitPrice"]),
+            side=trade["side"]
+        )
+
+        if chart_b64:
+            supabase.table("trades") \
+                .update({"chart_image": chart_b64}) \
+                .eq("id", trade["id"]) \
+                .execute()
+
+            except Exception as e:
+                print(f"Chart generation failed for trade {trade.get('id')}: {e}")
+                continue                              # ← TO HERE
+
+        print(response)
+
+        return jsonify({
+            "rows": data,
+            "columns": columns
+        })
         print(response)
 
         return jsonify({

@@ -3,7 +3,86 @@
 {% block title %}Charts{% endblock %}
 
 {% block content %}
+
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+
 <h2>Charts</h2>
-<p>Welcome to the trade charts.</p>
+
+<div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+  <label>Symbol:
+    <input type="text" id="symbolInput" value="MNQ" style="width: 80px; text-transform: uppercase;">
+  </label>
+  <button onclick="loadChart()">Load</button>
+  <span id="chartStatus" style="color: #888; font-size: 0.85rem;"></span>
+</div>
+
+<div id="mainChart" style="height: 500px; border: 1px solid #ddd; border-radius: 6px;"></div>
+
+<script>
+let chartInstance = null;
+let tradeCharts = {};
+
+async function loadChart() {
+  const symbol = document.getElementById("symbolInput").value.trim().toUpperCase() || "MNQ";
+  const status = document.getElementById("chartStatus");
+  const chartEl = document.getElementById("mainChart");
+
+  status.textContent = "Loading...";
+  chartEl.innerHTML = "";
+
+  // Destroy previous instance
+  if (chartInstance) {
+    chartInstance.remove();
+    chartInstance = null;
+  }
+
+  chartInstance = LightweightCharts.createChart(chartEl, {
+    height: 500,
+    layout: { background: { color: "#ffffff" }, textColor: "#333" },
+  });
+
+  const candleSeries = chartInstance.addCandlestickSeries();
+
+  try {
+    const res  = await fetch(`/api/yahoo/${symbol}?interval=5m&range=1d`);
+    const json = await res.json();
+
+    if (json.error) throw new Error(json.error);
+
+    const result     = json.chart.result[0];
+    const timestamps = result.timestamp;
+    const quote      = result.indicators.quote[0];
+
+    const candles = timestamps
+      .map((t, i) => ({
+        time:  t,
+        open:  quote.open[i],
+        high:  quote.high[i],
+        low:   quote.low[i],
+        close: quote.close[i],
+      }))
+      .filter(c => c.open && c.high && c.low && c.close);
+
+    if (!candles.length) throw new Error("No data returned");
+
+    candleSeries.setData(candles);
+    chartInstance.timeScale().fitContent();
+    status.textContent = `${symbol}=F · 5m · last 24h`;
+
+  } catch (err) {
+    console.error(err);
+    status.textContent = `⚠ Could not load chart: ${err.message}`;
+    chartEl.innerHTML = `<p style="color:red; padding:16px;">Chart unavailable for ${symbol}</p>`;
+  }
+}
+
+// Uppercase input as you type
+document.getElementById("symbolInput").addEventListener("input", e => {
+  e.target.value = e.target.value.toUpperCase();
+});
+
+// Load MNQ on page open
+loadChart();
+</script>
 
 {% endblock %}

@@ -697,83 +697,29 @@ async function showTradeChart(trade, containerId) {
   const chartEl = document.getElementById(containerId);
   chartEl.innerHTML = "";
 
-  const chart = LightweightCharts.createChart(chartEl, {
-    height: 350,
-    layout: { background: { color: "#ffffff" }, textColor: "#333" },
-  });
-
-  const candleSeries = chart.addCandlestickSeries();
-
-  try {
-    // Let the backend handle =F suffix
-    const tradeDate = trade.entryTimestamp.toISOString().slice(0, 10);
-    const res = await fetch(`/api/yahoo/${trade.symbol}?date=${tradeDate}`);
-
-    const json = await res.json();
-
-    const result = json.chart.result[0];
-    const timestamps = result.timestamp;
-    const quote = result.indicators.quote[0];
-
-    const candles = timestamps
-      .map((t, i) => ({
-        time: t,
-        open: quote.open[i],
-        high: quote.high[i],
-        low: quote.low[i],
-        close: quote.close[i],
-      }))
-      .filter(c => c.open && c.high && c.low && c.close); // ← filter nulls
-
-    candleSeries.setData(candles);
-
-    const entryTime = Math.floor(new Date(trade.entryTimestamp) / 1000);
-    const exitTime  = Math.floor(new Date(trade.exitTimestamp)  / 1000);
-
-    const isLong = String(trade.side).toLowerCase() === "long";
-
-    candleSeries.setMarkers([
-      {
-        time: entryTime,
-        position: isLong ? "belowBar" : "aboveBar",
-        color: isLong ? "green" : "red",
-        shape: isLong ? "arrowUp" : "arrowDown",
-        text: `Entry @ ${Number(trade.entryPrice).toFixed(2)}`,
-      },
-      {
-        time: exitTime,
-        position: isLong ? "aboveBar" : "belowBar",
-        color: isLong ? "red" : "green",
-        shape: isLong ? "arrowDown" : "arrowUp",
-        text: `Exit @ ${Number(trade.exitPrice).toFixed(2)}`,
-      },
-    ]);
-      candleSeries.createPriceLine({
-        price: Number(trade.entryPrice),
-        color: isLong ? "green" : "red",
-        lineWidth: 1,
-        lineStyle: 2, // dashed
-        axisLabelVisible: true,
-        title: "Entry",
-      });
-
-      candleSeries.createPriceLine({
-        price: Number(trade.exitPrice),
-        color: isLong ? "red" : "green",
-        lineWidth: 1,
-        lineStyle: 2, // dashed
-        axisLabelVisible: true,
-        title: "Exit",
-      });
-    chart.timeScale().setVisibleRange({
-      from: entryTime - 10800,
-      to:   exitTime  + 10800,
-    });
-
-  } catch (err) {
-    console.error("Failed to fetch candles", err);
-    chartEl.innerHTML = `<p style="color:red;">Chart unavailable for ${trade.symbol}</p>`;
+  // Try saved image first
+  if (trade.chart_image) {
+    chartEl.innerHTML = `
+      <img 
+        src="data:image/png;base64,${trade.chart_image}" 
+        style="width:100%; border-radius:6px;"
+      />`;
+    return;
   }
+
+  // Try live chart
+  if (typeof LightweightCharts !== "undefined") {
+    // ... your existing LightweightCharts code ...
+    return;
+  }
+
+  // Placeholder fallback
+  chartEl.innerHTML = `
+    <div style="height:350px; display:flex; align-items:center; 
+                justify-content:center; background:#f5f5f5; 
+                border-radius:6px; color:#999;">
+      📊 No chart available for this trade
+    </div>`;
 }
 </script>
 
