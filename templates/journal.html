@@ -756,8 +756,8 @@ async function showTradeChart(trade, containerId) {
         title: "Exit",
       });
     chart.timeScale().setVisibleRange({
-      from: entryTime - 3600,
-      to:   exitTime  + 3600,
+      from: entryTime - 10800,
+      to:   exitTime  + 10800,
     });
 
   } catch (err) {
