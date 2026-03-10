@@ -359,7 +359,7 @@ function toggleTradeDetails(tr, trade){
           <select class="trade-strategy">${strategyOptions}</select>
           <div class="strategy-tag-container" style="margin-top:6px;">${renderStrategyTag(trade.key_strategies_id)}</div>
 
-          <h4>Setups</h4>
+          <h4 class="setup-add-title">Setups</h4>
           <select class="setup-add">
             <option value="">+ Add setup</option>
             ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}

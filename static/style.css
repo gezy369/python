@@ -655,9 +655,11 @@ tr.trade-details-row td {
 }
 
 /*--------------------*/
+.setup-add-title{
+  margin-top: 20px;
+}
 .setup-add{
   width:100%;
-  margin-top: 10px;
 }
 .trade-strategy{
   width:100%;
