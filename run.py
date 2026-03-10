@@ -153,7 +153,7 @@ def fetch_yahoo(symbol):
 def upload_file():
     if request.method == "GET":
         return render_template("upload.html")
-    
+
     try:
         # ---------- FILE ----------
         if "file" not in request.files:
@@ -171,8 +171,6 @@ def upload_file():
 
         # ---------- READ CSV ----------
         df = pd.read_csv(file)
-
-        # Your existing CSV handler
         df_imported_trades = csv_handler(df)
 
         # ---------- ADD ACCOUNT TO ALL TRADES ----------
@@ -196,43 +194,33 @@ def upload_file():
         records = df_imported_trades.to_dict(orient="records")
         response = supabase.table("trades").insert(records).execute()
 
-        # ---------- GENERATE CHARTS ----------       ← ADD FROM HERE
-inserted_trades = response.data or []
+        # ---------- GENERATE CHARTS ----------
+        inserted_trades = response.data or []
 
-for trade in inserted_trades:
-    try:
-        chart_b64 = generate_chart_base64(
-            symbol=trade["symbol"],
-            entry_time=datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
-            exit_time=datetime.strptime(trade["exitTimestamp"],  "%Y-%m-%d %H:%M:%S"),
-            entry_price=float(trade["entryPrice"]),
-            exit_price=float(trade["exitPrice"]),
-            side=trade["side"]
-        )
-
-        if chart_b64:
-            supabase.table("trades") \
-                .update({"chart_image": chart_b64}) \
-                .eq("id", trade["id"]) \
-                .execute()
-
+        for trade in inserted_trades:
+            try:
+                chart_b64 = generate_chart_base64(
+                    symbol=trade["symbol"],
+                    entry_time=datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
+                    exit_time=datetime.strptime(trade["exitTimestamp"],   "%Y-%m-%d %H:%M:%S"),
+                    entry_price=float(trade["entryPrice"]),
+                    exit_price=float(trade["exitPrice"]),
+                    side=trade["side"]
+                )
+                if chart_b64:
+                    supabase.table("trades") \
+                        .update({"chart_image": chart_b64}) \
+                        .eq("id", trade["id"]) \
+                        .execute()
             except Exception as e:
                 print(f"Chart generation failed for trade {trade.get('id')}: {e}")
-                continue                              # ← TO HERE
-
-        print(response)
+                continue
 
         return jsonify({
             "rows": data,
             "columns": columns
         })
-        print(response)
 
-        return jsonify({
-            "rows": data,
-            "columns": columns
-        })
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
