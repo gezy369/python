@@ -649,14 +649,13 @@ tr.trade-details-row td {
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
-
 .dashboard-card h4 {
   margin-bottom: 12px;
 }
 
 /*--------------------*/
-.setup-add-title{
-  margin-top: 20px;
+.strategy-tag-container{
+  margin-bottom: 20px;
 }
 .setup-add{
   width:100%;
