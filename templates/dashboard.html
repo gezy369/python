@@ -352,7 +352,14 @@ document.addEventListener("click", e => {
   window.location.href = `/journal?from=${date}&to=${date}`;
 });
 
-renderCalendar();
+function waitForAccount() {
+  return new Promise(resolve => {
+    if (window.accountSelectorReady) return resolve();
+    document.addEventListener("accountReady", resolve, { once: true });
+  });
+}
+
+waitForAccount().then(() => renderCalendar());
 
 </script>
 
