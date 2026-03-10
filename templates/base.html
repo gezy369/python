@@ -25,33 +25,36 @@
     </label>
   </div>
 
-  <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    const select = document.getElementById("accountSelect");
-    if (!select) return;
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const select = document.getElementById("accountSelect");
+  if (!select) return;
 
-    const res = await fetch("/api/accounts");
-    const accounts = await res.json();
+  const res = await fetch("/api/accounts");
+  const accounts = await res.json();
 
-    select.innerHTML = `<option value="">All accounts</option>`;
-
-    accounts.forEach(acc => {
-      const opt = document.createElement("option");
-      opt.value = acc.id;
-      opt.textContent = acc.name;
-      select.appendChild(opt);
-    });
-
-    // restore last selected account
-    const saved = localStorage.getItem("selectedAccountId");
-    if (saved) select.value = saved;
-
-    // persist selection
-    select.addEventListener("change", () => {
-      localStorage.setItem("selectedAccountId", select.value);
-    });
+  select.innerHTML = `<option value="">All accounts</option>`;
+  accounts.forEach(acc => {
+    const opt = document.createElement("option");
+    opt.value = acc.id;
+    opt.textContent = acc.name;
+    select.appendChild(opt);
   });
-  </script>
+
+  // restore last selected account
+  const saved = localStorage.getItem("selectedAccountId");
+  if (saved) select.value = saved;
+
+  // persist selection
+  select.addEventListener("change", () => {
+    localStorage.setItem("selectedAccountId", select.value);
+  });
+
+  // ✅ Signal that the account selector is ready
+  window.accountSelectorReady = true;
+  document.dispatchEvent(new Event("accountReady"));
+});
+</script>
 
     <a class="menu-item" href="{{ url_for('dashboard') }}">
       📊 Dashboard

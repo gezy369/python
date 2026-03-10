@@ -133,12 +133,20 @@ const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDa
 const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n < 0 ? `($${f})` : `$${f}`; };
 
 /* ---------------- FETCH DATA ---------------- */
+function waitForAccount() {
+  return new Promise(resolve => {
+    if (window.accountSelectorReady) return resolve();
+    document.addEventListener("accountReady", resolve, { once: true });
+  });
+}
+
 Promise.all([
   fetch("/api/strategies").then(r => r.json()),
   fetch("/api/setups").then(r => r.json()),
   fetch("/api/trade_setups").then(r => r.json()),
-  fetch("/api/trades").then(r => r.json())
-]).then(([strategies, setups, tradeSetups, trades]) => {
+]).then(async ([strategies, setups, tradeSetups]) => {
+
+  await waitForAccount(); // ✅ wait for account selector to be populated
 
   STRATEGIES = strategies;
   SETUPS = setups;
@@ -187,6 +195,10 @@ Promise.all([
 
       strategyContainer.appendChild(btn);
     });
+
+  const trades = await fetchFilteredTrades({
+    account: accountSelect?.value  // ✅ now guaranteed to have the right value
+  });
 
   // Attach setups to trades
   originalData = trades.map(t => ({
