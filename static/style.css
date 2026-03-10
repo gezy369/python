@@ -653,3 +653,12 @@ tr.trade-details-row td {
 .dashboard-card h4 {
   margin-bottom: 12px;
 }
+
+/*--------------------*/
+.setup-add{
+  width:100%;
+  margin-top: 10px;
+}
+.trade-strategy{
+  width:100%;
+}
