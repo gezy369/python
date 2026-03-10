@@ -720,11 +720,41 @@ async function showTradeChart(trade, containerId) {
     const entryTime = Math.floor(new Date(trade.entryTimestamp) / 1000);
     const exitTime  = Math.floor(new Date(trade.exitTimestamp)  / 1000);
 
-    candleSeries.setMarkers([
-      { time: entryTime, position: "belowBar", color: "green", shape: "arrowUp",   text: "Entry" },
-      { time: exitTime,  position: "aboveBar", color: "red",   shape: "arrowDown", text: "Exit"  },
-    ]);
+    const isLong = String(trade.side).toLowerCase() === "long";
 
+    candleSeries.setMarkers([
+      {
+        time: entryTime,
+        position: isLong ? "belowBar" : "aboveBar",
+        color: isLong ? "green" : "red",
+        shape: isLong ? "arrowUp" : "arrowDown",
+        text: `Entry @ ${Number(trade.entryPrice).toFixed(2)}`,
+      },
+      {
+        time: exitTime,
+        position: isLong ? "aboveBar" : "belowBar",
+        color: isLong ? "red" : "green",
+        shape: isLong ? "arrowDown" : "arrowUp",
+        text: `Exit @ ${Number(trade.exitPrice).toFixed(2)}`,
+      },
+    ]);
+      candleSeries.createPriceLine({
+        price: Number(trade.entryPrice),
+        color: isLong ? "green" : "red",
+        lineWidth: 1,
+        lineStyle: 2, // dashed
+        axisLabelVisible: true,
+        title: "Entry",
+      });
+
+      candleSeries.createPriceLine({
+        price: Number(trade.exitPrice),
+        color: isLong ? "red" : "green",
+        lineWidth: 1,
+        lineStyle: 2, // dashed
+        axisLabelVisible: true,
+        title: "Exit",
+      });
     chart.timeScale().setVisibleRange({
       from: entryTime - 3600,
       to:   exitTime  + 3600,
