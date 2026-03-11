@@ -240,6 +240,32 @@ function resetFilters() {
   applyFiltersAndRender();
 }
 
+/* ------------------ DELETE ----------------- */
+async function deleteSelected() {
+  const checked = [...document.querySelectorAll(".row-select:checked")];
+  
+  if (!checked.length) {
+    alert("No trades selected.");
+    return;
+  }
+
+  if (!confirm(`Delete ${checked.length} trade(s)?`)) return;
+
+  const ids = checked.map(cb => Number(cb.dataset.id));
+
+  const res = await fetch("/api/trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
+  });
+
+  if (res.ok) {
+    originalData = originalData.filter(t => !ids.includes(t.id));
+    applyFiltersAndRender();
+  } else {
+    alert("Delete failed.");
+  }
+}
 /* ---------------- HEADERS ---------------- */
 function buildHeaders(){
   const tr = document.getElementById("headerRow"); tr.innerHTML="";
