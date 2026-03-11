@@ -259,11 +259,6 @@ button {
   opacity: 1;
 }
 
-/* ===== Misc ===== */
-.muted {
-  opacity: 0.6;
-}
-
 .new-account-row input {
   border: 1px dashed #aaa;
   background: transparent;
@@ -417,9 +412,6 @@ tr.trade-details-row td {
   margin-bottom:10px;
 }
 
-
-
-
 /* ---------- CALENDAR ----------*/
 .calendar-controls {
   display: flex;
@@ -484,15 +476,6 @@ tr.trade-details-row td {
   max-width: 700px;   /* 👈 adjust to taste (800–1000px works well) */
   margin: 0 auto;     /* center */
   padding-bottom: 6px;
-}
-
-.calendar-month-total {
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 18px;              /* 👈 THIS controls spacing */
-  font-size: 14px;
 }
 
 .calendar-month-total {
@@ -632,10 +615,15 @@ tr.trade-details-row td {
 /*--------------------*/
 .strategy-tag-container{
   margin-bottom: 20px;
+  margin-top:6px
 }
 .setup-add{
   width:100%;
 }
 .trade-strategy{
   width:100%;
+}
+
+.setup-tag-container{
+  margin-top:6px
 }
