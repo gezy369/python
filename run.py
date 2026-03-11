@@ -69,7 +69,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             "Low":    quote["low"],
             "Close":  quote["close"],
             "Volume": quote.get("volume", [0] * len(timestamps))
-        }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("America/New_York"))
+        }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
 
         df = df.dropna()
 
@@ -77,10 +77,11 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Empty DataFrame for {yahoo_symbol}")
             return None
 
-        # Localize entry/exit to New York time
+        # Localize entry/exit
         from zoneinfo import ZoneInfo
-        entry_ts = pd.Timestamp(entry_time).tz_localize(ZoneInfo("America/New_York"))
-        exit_ts  = pd.Timestamp(exit_time).tz_localize(ZoneInfo("America/New_York"))
+
+        entry_ts = pd.Timestamp(entry_time).tz_localize(ZoneInfo("Europe/Paris"))
+        exit_ts  = pd.Timestamp(exit_time).tz_localize(ZoneInfo("Europe/Paris"))
 
         # Filter to ±2 hours around the trade
         df = df[
