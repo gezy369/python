@@ -311,8 +311,8 @@ def upload_file():
             try:
                 chart_b64 = generate_chart_base64(
                     symbol      = trade["symbol"],
-                    entry_time  = datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
-                    exit_time   = datetime.strptime(trade["exitTimestamp"],  "%Y-%m-%d %H:%M:%S"),
+                    entry_time  = datetime.fromisoformat(trade["entryTimestamp"]),
+                    exit_time   = datetime.fromisoformat(trade["exitTimestamp"]),   
                     entry_price = float(trade["entryPrice"]),
                     exit_price  = float(trade["exitPrice"]),
                     side        = trade["side"]
