@@ -350,7 +350,12 @@ def delete_trades():
     if not ids:
         return {"error": "No IDs provided"}, 400
 
+    # Delete linked setups first
+    supabase.table("trade_setup").delete().in_("key_trade_id", ids).execute()
+
+    # Then delete the trades
     supabase.table("trades").delete().in_("id", ids).execute()
+
     return {"deleted": len(ids)}
 
 
