@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from utils.functions import csv_handler, filter_trades
 import os
 import io, base64
 import pandas as pd
