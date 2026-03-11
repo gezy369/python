@@ -32,6 +32,114 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+# ===== CHART GENERATION =====
+
+def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side):
+    try:
+        yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
+        trade_date = entry_time.date()
+
+        period1 = int((datetime.combine(trade_date, datetime.min.time()) - timedelta(days=1)).timestamp())
+        period2 = int((datetime.combine(trade_date, datetime.min.time()) + timedelta(days=2)).timestamp())
+
+        url = (
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+            f"?interval=5m&period1={period1}&period2={period2}"
+        )
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+            "Referer": "https://finance.yahoo.com",
+        }
+
+        r = requests.get(url, headers=headers, timeout=10)
+        if not r.ok:
+            print(f"Yahoo returned {r.status_code} for {yahoo_symbol}")
+            return None
+
+        data = r.json()
+        result = data["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        quote = result["indicators"]["quote"][0]
+
+        # Build DataFrame in UTC then convert to New York time
+        df = pd.DataFrame({
+            "Open":   quote["open"],
+            "High":   quote["high"],
+            "Low":    quote["low"],
+            "Close":  quote["close"],
+            "Volume": quote.get("volume", [0] * len(timestamps))
+        }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("America/New_York"))
+
+        df = df.dropna()
+
+        if df.empty:
+            print(f"Empty DataFrame for {yahoo_symbol}")
+            return None
+
+        # Localize entry/exit to New York time
+        entry_ts = pd.Timestamp(entry_time).tz_localize("America/New_York")
+        exit_ts  = pd.Timestamp(exit_time).tz_localize("America/New_York")
+
+        # Filter to ±2 hours around the trade
+        df = df[
+            (df.index >= entry_ts - timedelta(hours=2)) &
+            (df.index <= exit_ts  + timedelta(hours=2))
+        ]
+
+        if df.empty:
+            print(f"No candles in trade window for {yahoo_symbol}")
+            return None
+
+        is_long     = str(side).lower() == "long"
+        entry_color = "green" if is_long else "red"
+        exit_color  = "red"   if is_long else "green"
+
+        # Find nearest candle index for entry/exit markers
+        entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
+        exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
+
+        apds = [
+            mpf.make_addplot(
+                [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
+                type="scatter", markersize=120,
+                marker="^" if is_long else "v",
+                color=entry_color
+            ),
+            mpf.make_addplot(
+                [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
+                type="scatter", markersize=120,
+                marker="v" if is_long else "^",
+                color=exit_color
+            ),
+        ]
+
+        hlines = dict(
+            hlines=[entry_price, exit_price],
+            colors=[entry_color, exit_color],
+            linestyle="--",
+            linewidths=1
+        )
+
+        buf = io.BytesIO()
+        mpf.plot(
+            df,
+            type="candle",
+            style="charles",
+            addplot=apds,
+            hlines=hlines,
+            tight_layout=True,
+            savefig=dict(fname=buf, format="png", dpi=100),
+            figsize=(10, 5)
+        )
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+
+    except Exception as e:
+        print(f"Chart generation failed for {symbol}: {e}")
+        return None
+
+
 # ===== ROUTES =====
 
 @app.route("/")
@@ -43,30 +151,26 @@ def dashboard():
 def journal():
     return render_template("journal.html")
 
+
 # Fetch all the trades in the DB
 @app.get("/api/trades")
 def api_trades():
-    
     try:
         # ---------- QUERY PARAMS ----------
-        account_id = request.args.get("account")
-        date_from = request.args.get("from")
-        date_to = request.args.get("to")
+        account_id  = request.args.get("account")
+        date_from   = request.args.get("from")
+        date_to     = request.args.get("to")
         strategy_id = request.args.get("strategy")
-        setup_ids = request.args.getlist("setups")
+        setup_ids   = request.args.getlist("setups")
 
         # ---------- FETCH TRADES ----------
         trades_res = supabase.table("trades").select("*").execute()
         trades = trades_res.data or []
 
-
-
         # TEST TEST TEST TEST
         print("FILTER PARAMS:", account_id, date_from, date_to, strategy_id, setup_ids)
         print("TRADES BEFORE:", len(trades))
         # TEST TEST TEST TEST
-
-
 
         if not trades:
             return jsonify([])
@@ -101,7 +205,6 @@ def api_trades():
         print("TRADES AFTER:", len(trades))
         return jsonify(trades)
 
-
     except Exception as e:
         print("api/trades error:", e)
         return jsonify({"error": str(e)}), 500
@@ -109,27 +212,35 @@ def api_trades():
 
 @app.route("/charts")
 def charts():
-
     return render_template("charts.html")
+
+
 # ===== CHARTING =====
 @app.route("/api/yahoo/<symbol>")
 def fetch_yahoo(symbol):
     try:
-        from datetime import datetime, timedelta
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
-        
-        # Get date from query param, default to today
-        date_str = request.args.get("date")  # expects YYYY-MM-DD
+
+        date_str    = request.args.get("date")
+        interval    = request.args.get("interval", "5m")
+        range_param = request.args.get("range", None)
+
         if date_str:
+            # Journal mode: fetch around a specific trade date
             trade_date = datetime.strptime(date_str, "%Y-%m-%d")
+            period1 = int((trade_date - timedelta(days=1)).timestamp())
+            period2 = int((trade_date + timedelta(days=1)).timestamp())
+            url = (
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+                f"?interval={interval}&period1={period1}&period2={period2}"
+            )
         else:
-            trade_date = datetime.utcnow()
-
-        # Fetch a window: day before to day after the trade
-        period1 = int((trade_date - timedelta(days=1)).timestamp())
-        period2 = int((trade_date + timedelta(days=1)).timestamp())
-
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=5m&period1={period1}&period2={period2}"
+            # Charts page mode: use range
+            r = range_param or "1d"
+            url = (
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+                f"?interval={interval}&range={r}"
+            )
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -176,74 +287,76 @@ def upload_file():
         # ---------- ADD ACCOUNT TO ALL TRADES ----------
         df_imported_trades["key_trading_accounts"] = account_id
 
-        # ---------- PREVIEW DATA ----------
-        data = df_imported_trades.to_dict(orient="records")
+        # ---------- PREVIEW DATA (before timestamp formatting) ----------
+        data    = df_imported_trades.to_dict(orient="records")
         columns = list(df_imported_trades.columns)
 
         # ---------- FORMAT TIMESTAMPS ----------
         df_imported_trades["entryTimestamp"] = (
-            df_imported_trades["entryTimestamp"]
-            .dt.strftime("%Y-%m-%d %H:%M:%S")
+            df_imported_trades["entryTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
         )
         df_imported_trades["exitTimestamp"] = (
-            df_imported_trades["exitTimestamp"]
-            .dt.strftime("%Y-%m-%d %H:%M:%S")
+            df_imported_trades["exitTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
         )
 
         # ---------- INSERT INTO SUPABASE ----------
-        records = df_imported_trades.to_dict(orient="records")
+        records  = df_imported_trades.to_dict(orient="records")
         response = supabase.table("trades").insert(records).execute()
 
         # ---------- GENERATE CHARTS ----------
         inserted_trades = response.data or []
+        print(f"Inserted {len(inserted_trades)} trades, generating charts...")
 
         for trade in inserted_trades:
             try:
                 chart_b64 = generate_chart_base64(
-                    symbol=trade["symbol"],
-                    entry_time=datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
-                    exit_time=datetime.strptime(trade["exitTimestamp"],   "%Y-%m-%d %H:%M:%S"),
-                    entry_price=float(trade["entryPrice"]),
-                    exit_price=float(trade["exitPrice"]),
-                    side=trade["side"]
+                    symbol      = trade["symbol"],
+                    entry_time  = datetime.strptime(trade["entryTimestamp"], "%Y-%m-%d %H:%M:%S"),
+                    exit_time   = datetime.strptime(trade["exitTimestamp"],  "%Y-%m-%d %H:%M:%S"),
+                    entry_price = float(trade["entryPrice"]),
+                    exit_price  = float(trade["exitPrice"]),
+                    side        = trade["side"]
                 )
                 if chart_b64:
                     supabase.table("trades") \
                         .update({"chart_image": chart_b64}) \
                         .eq("id", trade["id"]) \
                         .execute()
+                    print(f"Chart saved for trade {trade['id']}")
+                else:
+                    print(f"No chart generated for trade {trade['id']} ({trade['symbol']})")
+
             except Exception as e:
                 print(f"Chart generation failed for trade {trade.get('id')}: {e}")
                 continue
 
         return jsonify({
-            "rows": data,
+            "rows":    data,
             "columns": columns
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+
 # ===== TRADES DELETE =====
 @app.delete("/api/trades")
 def delete_trades():
     data = request.json
-    ids = data.get("ids", [])
+    ids  = data.get("ids", [])
 
     if not ids:
         return {"error": "No IDs provided"}, 400
 
     supabase.table("trades").delete().in_("id", ids).execute()
-
     return {"deleted": len(ids)}
-
 
 
 # ===== SETTINGS =====
 @app.route("/accounts")
 def settings():
-
     return render_template("settings.html")
+
 
 @app.get("/api/accounts")
 def get_accounts():
@@ -256,11 +369,13 @@ def get_accounts():
     )
     return jsonify(response.data or [])
 
+
 @app.post("/api/accounts")
 def add_account():
     data = request.json
     supabase.table("trading_accounts").insert(data).execute()
     return {"ok": True}
+
 
 @app.patch("/api/trades/<id>")
 def update_trade(id):
@@ -288,13 +403,14 @@ def delete_account(id):
         .execute()
     return {"ok": True}
 
+
 @app.get("/api/strategies")
 def get_strategies():
     try:
         response = (
             supabase.table("strategies")
-            .select("id, strategy_name, color")   # include color
-            .order("strategy_name")              # correct column name
+            .select("id, strategy_name, color")
+            .order("strategy_name")
             .execute()
         )
         return jsonify(response.data or [])
@@ -316,7 +432,6 @@ def get_setups():
     return jsonify(response.data or [])
 
 
-
 @app.post("/api/trade_setup")
 def add_trade_setup():
     data = request.json
@@ -331,10 +446,10 @@ def add_trade_setup():
     )
     return jsonify(response.data[0])
 
+
 @app.get("/api/trade_setups")
 def get_trade_setups():
     try:
-        # fetch all trade_setup links
         response = supabase.table("trade_setup").select("*").execute()
         return jsonify(response.data or [])
     except Exception as e:
@@ -342,11 +457,9 @@ def get_trade_setups():
         return jsonify({"error": str(e)}), 500
 
 
-
-
 @app.delete("/api/trade_setups")
 def delete_trade_setup():
-    data = request.json
+    data     = request.json
     trade_id = data.get("trade_id")
     setup_id = data.get("setup_id")
 
@@ -360,10 +473,6 @@ def delete_trade_setup():
         .execute()
 
     return {"ok": True}
-
-
-
-
 
 
 # ===== ENTRY POINT =====
