@@ -355,7 +355,7 @@ function toggleTradeDetails(tr, trade){
           <div><strong>Qty:</strong> ${trade.qty}</div>
           <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
           <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
-          <div><strong>PnL:</strong> ${formatPnL(trade.pnl)}</div>
+          <div><strong>PnL:</strong> <span class="${Number(trade.pnl) >= 0 ? 'pnl-positive' : 'pnl-negative'}">${formatPnL(trade.pnl)}</span></div>
 
           <div style="margin-top:10px;">
             <textarea
@@ -702,7 +702,7 @@ async function showTradeChart(trade, containerId) {
     chartEl.innerHTML = `
       <img 
         src="data:image/png;base64,${trade.chart_image}" 
-        style="width:100%; border-radius:6px;"
+        style="width:100%; height:350px; object-fit:contain; border-radius:6px;"
       />`;
     return;
   }
