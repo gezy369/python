@@ -78,8 +78,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             return None
 
         # Localize entry/exit to New York time
-        entry_ts = pd.Timestamp(entry_time).tz_localize("America/New_York")
-        exit_ts  = pd.Timestamp(exit_time).tz_localize("America/New_York")
+        entry_ts = pd.Timestamp(entry_time).tz_localize("UTC")
+        exit_ts  = pd.Timestamp(exit_time).tz_localize("UTC")
 
         # Filter to ±2 hours around the trade
         df = df[
