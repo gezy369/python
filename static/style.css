@@ -1,5 +1,5 @@
 .main {
-  max-width: 500px;
+  max-width: 1000px;
 }
 
 /* ===== GLOBAL ===== */
@@ -614,6 +614,10 @@ tr.trade-details-row td {
 }
 .dashboard-card h4 {
   margin-bottom: 12px;
+}
+
+#monthlyStats, #accountStats {
+  max-width: 500px;
 }
 
 /*--------------------*/
