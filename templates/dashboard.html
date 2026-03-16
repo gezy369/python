@@ -173,11 +173,12 @@ async function renderCalendar() {
   document.getElementById("calendarMonthTotal").innerHTML = `
     <strong>Month total</strong>
     <span>${monthlyTotal.trades} trades</span>
-    <span class="${monthlyTotal.pnl>=0?"positive":"negative"}">
+
+    <span class="${monthlyTotal.pnl>=0?"positive":"negative"}" style="font-family: var(--font-mono)">
       ${monthlyTotal.pnl>=0?"+":""}$${monthlyTotal.pnl.toFixed(2)}
     </span>
   `;
-  
+
   isRendering = false;
 
   if (pendingRender) {
@@ -333,11 +334,9 @@ function buildMonthlyDailyEquity(trades) {
   document.querySelector("#monthlyStats .stats-content").innerHTML = `
     <h4>${MONTHS[month]} ${year}</h4>
     <div>Trades: <strong>${monthlyTrades.length}</strong></div>
-    <div>PnL:
-      <span class="${m.pnl>=0?"positive":"negative"}">
-        ${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}
-      </span>
-    </div>
+    <div>PnL: <span class="${m.pnl>=0?"positive":"negative"}" style="font-family: var(--font-mono)">
+      ${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}
+    </span></div>
     <div>Win Rate: ${m.winRate}%</div>
     <div>Avg Win: +$${m.avgWin.toFixed(2)}</div>
     <div>Avg Loss: $${m.avgLoss.toFixed(2)}</div>
