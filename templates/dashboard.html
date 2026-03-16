@@ -34,6 +34,9 @@
 </div>
 
 <script>
+/* Fix the calendar display when changing the caldendar quickly */
+let isRendering = false;
+let pendingRender = false;
 
 const accountSelect = document.getElementById("accountSelect");
 if (accountSelect) {
@@ -72,6 +75,12 @@ updateCalendarLabel();
 /* ===================== RENDER CALENDAR ===================== */
 
 async function renderCalendar() {
+  if (isRendering) {
+    pendingRender = true;
+    return;
+  }
+  isRendering = true;
+  pendingRender = false;
 
   calendarEl.innerHTML = "";
 
@@ -168,6 +177,12 @@ async function renderCalendar() {
       ${monthlyTotal.pnl>=0?"+":""}$${monthlyTotal.pnl.toFixed(2)}
     </span>
   `;
+  
+  isRendering = false;
+
+  if (pendingRender) {
+    renderCalendar();
+  }
 }
 
 /* ===================== DASHBOARD STATS ===================== */

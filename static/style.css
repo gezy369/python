@@ -1,3 +1,7 @@
+.main {
+  max-width: 1000px;
+}
+
 /* ===== GLOBAL ===== */
 body {
   margin: 0;
