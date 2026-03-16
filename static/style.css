@@ -477,7 +477,7 @@ tr.trade-details-row td {
 }
 
 .calendar-wrapper {
-  max-width: 700px;   /* 👈 adjust to taste (800–1000px works well) */
+  max-width: 600px;   /* 👈 adjust to taste (800–1000px works well) */
   margin: 0 auto;     /* center */
   padding-bottom: 6px;
 }
