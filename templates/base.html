@@ -5,50 +5,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<!-- Include lightweight-charts (non-standalone, exposes LightweightCharts globally) -->
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script src="{{ url_for('static', filename='js/trade.js') }}"></script>
-<script>
-(async () => {
-  try {
-    const res = await fetch("https://api.polygon.io/v1/marketstatus/upcoming?apiKey=6rdLRUwlnX57vXQBzS2p1nz4x0Ce_7ZS");
-    const data = await res.json();
-
-    // Filter only NYSE/stock market holidays, next 4
-    const holidays = data
-      .filter(h => h.exchange === "NYSE" || h.name)
-      .slice(0, 4);
-
-    const container = document.getElementById("holidayItems");
-    if (!holidays.length) {
-      container.innerHTML = `<span style="color:#6b7280;">No upcoming holidays found.</span>`;
-      return;
-    }
-
-    const today = new Date();
-    container.innerHTML = holidays.map((h, i) => {
-      const date = new Date(h.date);
-      const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
-      const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const sep = i < holidays.length - 1 ? `<span class="holiday-separator">·</span>` : "";
-      return `
-        <span class="holiday-item">
-          <span>${h.name}</span>
-          <span style="color:#9ca3af;">${label}</span>
-          <span class="holiday-days">${diffDays}d</span>
-        </span>${sep}`;
-    }).join("");
-  } catch (e) {
-    document.getElementById("holidayItems").innerHTML =
-      `<span style="color:#6b7280;">Could not load holidays.</span>`;
-  }
-})();
-</script>
 
 <body>
 <div class="app">
 
-  <!-- MENU (VISIBLE EVERYWHERE) -->
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <h1>Trading Futures</h1>
 
@@ -77,16 +40,13 @@
         select.appendChild(opt);
       });
 
-      // restore last selected account
       const saved = localStorage.getItem("selectedAccountId");
       if (saved) select.value = saved;
 
-      // persist selection
       select.addEventListener("change", () => {
         localStorage.setItem("selectedAccountId", select.value);
       });
 
-      // ✅ Signal that the account selector is ready
       window.accountSelectorReady = true;
       document.dispatchEvent(new Event("accountReady"));
     });
@@ -125,11 +85,51 @@
       </span>
     </div>
 
-  <!-- PAGE CONTENT -->
-  <div class="main">
-    {% block content %}{% endblock %}
+    <!-- PAGE CONTENT -->
+    <div class="main">
+      {% block content %}{% endblock %}
+    </div>
+
   </div>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const res = await fetch("https://api.polygon.io/v1/marketstatus/upcoming?apiKey=6rdLRUwlnX57vXQBzS2p1nz4x0Ce_7ZS");
+    const data = await res.json();
+
+    const holidays = data
+      .filter(h => h.exchange === "NYSE" || h.name)
+      .filter((h, i, arr) => arr.findIndex(x => x.date === h.date) === i)
+      .slice(0, 4);
+
+    const container = document.getElementById("holidayItems");
+    if (!holidays.length) {
+      container.innerHTML = `<span style="color:#6b7280;">No upcoming holidays found.</span>`;
+      return;
+    }
+
+    const today = new Date();
+    container.innerHTML = holidays.map((h, i) => {
+      const date = new Date(h.date);
+      const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+      const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const sep = i < holidays.length - 1 ? `<span class="holiday-separator">·</span>` : "";
+      return `
+        <span class="holiday-item">
+          <span>${h.name}</span>
+          <span style="color:#9ca3af;">${label}</span>
+          <span class="holiday-days">${diffDays}d</span>
+        </span>${sep}`;
+    }).join("");
+  } catch (e) {
+    document.getElementById("holidayItems").innerHTML =
+      `<span style="color:#6b7280;">Could not load holidays.</span>`;
+  }
+});
+</script>
+
 </body>
 </html>
