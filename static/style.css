@@ -635,3 +635,42 @@ tr.trade-details-row td {
 .setup-tag-container{
   margin-top:6px
 }
+
+/* ===== HOLIDAY BANNER ===== */
+.holiday-banner {
+  background: #2d3a47;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #374151;
+  flex-shrink: 0;
+}
+
+.holiday-banner .holiday-label {
+  font-weight: bold;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.holiday-banner .holiday-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.holiday-banner .holiday-separator {
+  color: #4b5563;
+  margin: 0 2px;
+}
+
+.holiday-banner .holiday-days {
+  background: #374151;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #fbbf24;
+}
