@@ -36,23 +36,10 @@
   </div>
 </div>
 
-<!-- ── VISUAL ROW 1: Donut + PnL Distribution ── -->
+<!-- ── VISUAL ROW 1: Target Chart ── -->
 <div class="dashboard-charts-row" style="margin-top:20px;">
 
-  <div class="dashboard-card" style="flex:1; max-width:220px;">
-    <div class="card-label">Win / Loss</div>
-    <div style="position:relative; height:160px; display:flex; align-items:center; justify-content:center;">
-      <canvas id="donutChart"></canvas>
-      <div id="donutCenter" class="donut-center"></div>
-    </div>
-  </div>
-
-  <div class="dashboard-card" style="flex:2;">
-    <div class="card-label">PnL Distribution</div>
-    <canvas id="pnlDistChart" height="150"></canvas>
-  </div>
-
-  <div class="dashboard-card" style="flex:2;">
+  <div class="dashboard-card" style="flex:1;">
     <div class="card-label">Cumulative PnL vs Target</div>
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
       <label style="font-size:11px; color:var(--text-muted);">Daily target $</label>
@@ -66,12 +53,12 @@
 
 </div>
 
-<!-- ── VISUAL ROW 2: Hour heatmap + Day of week + Duration ── -->
+<!-- ── VISUAL ROW 2: Scatter + Day of week + Duration ── -->
 <div class="dashboard-charts-row" style="margin-top:16px;">
 
   <div class="dashboard-card" style="flex:2;">
-    <div class="card-label">Win Rate by Hour</div>
-    <canvas id="hourChart" height="140"></canvas>
+    <div class="card-label">PnL by Hour (Full Account)</div>
+    <canvas id="hourScatterChart" height="140"></canvas>
   </div>
 
   <div class="dashboard-card" style="flex:1.4;">
@@ -143,28 +130,6 @@
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 10px;
-}
-
-/* ── DONUT CENTER ── */
-.donut-center {
-  position: absolute;
-  text-align: center;
-  pointer-events: none;
-}
-
-.donut-center .d-pct {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--text-primary);
-  display: block;
-}
-
-.donut-center .d-label {
-  font-size: 10px;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* ── DURATION STATS ── */
@@ -310,10 +275,8 @@ async function renderCalendar() {
 
 let monthlyChartInstance = null;
 let accountChartInstance = null;
-let donutChartInstance   = null;
-let pnlDistInstance      = null;
 let targetChartInstance  = null;
-let hourChartInstance    = null;
+let hourScatterInstance  = null;
 let dowChartInstance     = null;
 
 /* ===================== DASHBOARD STATS ===================== */
@@ -404,23 +367,15 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     return { avg: fmt(avg), min: fmt(min), max: fmt(max), count: withDur.length };
   }
 
-  /* ── hour win rate ── */
-  function hourWinRate(trades) {
-    const hours = {};
+  /* ── hour PnL scatter data ── */
+  function hourPnLScatter(trades) {
+    const points = [];
     trades.forEach(t => {
       const h = new Date(t.entryTimestamp).getHours();
-      if (!hours[h]) hours[h] = { wins: 0, total: 0 };
-      hours[h].total++;
-      if (Number(t.pnl) > 0) hours[h].wins++;
+      const pnl = Number(t.pnl) || 0;
+      points.push({ x: h, y: pnl });
     });
-    const labels = [], data = [], counts = [];
-    Object.keys(hours).sort((a,b)=>+a-+b).forEach(h => {
-      const label = `${String(h).padStart(2,'0')}:00`;
-      labels.push(label);
-      data.push(+(hours[h].wins / hours[h].total * 100).toFixed(1));
-      counts.push(hours[h].total);
-    });
-    return { labels, data, counts };
+    return points;
   }
 
   /* ── day-of-week win rate ── */
@@ -437,23 +392,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       labels: days,
       data: buckets.map(b => b.total ? +(b.wins/b.total*100).toFixed(1) : 0),
       counts: buckets.map(b => b.total)
-    };
-  }
-
-  /* ── PnL distribution ── */
-  function pnlDistribution(trades) {
-    if (!trades.length) return { labels:[], data:[], colors:[] };
-    const pnls  = trades.map(t => Number(t.pnl)||0);
-    const mn    = Math.floor(Math.min(...pnls) / 50) * 50;
-    const mx    = Math.ceil(Math.max(...pnls)  / 50) * 50;
-    const buckets = {};
-    for (let b = mn; b <= mx; b += 50) buckets[b] = 0;
-    pnls.forEach(p => { const b = Math.floor(p/50)*50; buckets[b] = (buckets[b]||0)+1; });
-    const labels = Object.keys(buckets).map(Number).sort((a,b)=>a-b);
-    return {
-      labels: labels.map(l => `$${l}`),
-      data:   labels.map(l => buckets[l]),
-      colors: labels.map(l => l >= 0 ? "rgba(52,195,143,0.7)" : "rgba(229,83,83,0.7)")
     };
   }
 
@@ -486,9 +424,8 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   const dd = maxDrawdown(accountEquity.data);
   const st = streaks(accountTrades);
   const dur = durationStats(accountTrades);
-  const hw  = hourWinRate(accountTrades);
+  const scatter = hourPnLScatter(accountTrades);
   const dw  = dowWinRate(accountTrades);
-  const dist = pnlDistribution(monthlyTrades);
 
   /* ===================== STAT PILLS ===================== */
 
@@ -595,74 +532,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     }
   });
 
-  /* ===================== DONUT CHART ===================== */
-
-  if (donutChartInstance) donutChartInstance.destroy();
-  const winCount  = m.wins.length;
-  const lossCount = m.losses.length;
-  const flatCount = monthlyTrades.length - winCount - lossCount;
-
-  donutChartInstance = new Chart(document.getElementById("donutChart"), {
-    type: "doughnut",
-    data: {
-      labels: ["Wins", "Losses", "Flat"],
-      datasets: [{
-        data: [winCount, lossCount, flatCount],
-        backgroundColor: ["rgba(52,195,143,0.85)", "rgba(229,83,83,0.85)", "rgba(58,64,80,0.6)"],
-        borderColor: ["#34c38f","#e55353","#3a4050"],
-        borderWidth: 1,
-        hoverOffset: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      cutout: "68%",
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.raw} (${monthlyTrades.length ? (ctx.raw/monthlyTrades.length*100).toFixed(1) : 0}%)`
-          }
-        }
-      }
-    }
-  });
-
-  document.getElementById("donutCenter").innerHTML = `
-    <span class="d-pct">${m.winRate}%</span>
-    <span class="d-label">win rate</span>`;
-
-  /* ===================== PnL DISTRIBUTION ===================== */
-
-  if (pnlDistInstance) pnlDistInstance.destroy();
-  pnlDistInstance = new Chart(document.getElementById("pnlDistChart"), {
-    type: "bar",
-    data: {
-      labels: dist.labels,
-      datasets: [{
-        data: dist.data,
-        backgroundColor: dist.colors,
-        borderRadius: 4,
-        borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: { duration: 800 },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" } },
-          grid: { color: "rgba(255,255,255,0.04)" }
-        },
-        y: {
-          ticks: { color: "#5a6070", font: { size: 10 }, stepSize: 1 },
-          grid: { color: "rgba(255,255,255,0.04)" }
-        }
-      }
-    }
-  });
-
   /* ===================== TARGET CHART ===================== */
 
   function renderTargetChart() {
@@ -724,18 +593,21 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   renderTargetChart();
   document.getElementById("targetInput").addEventListener("change", renderTargetChart);
 
-  /* ===================== HOUR CHART ===================== */
+  /* ===================== HOUR SCATTER CHART ===================== */
 
-  if (hourChartInstance) hourChartInstance.destroy();
-  hourChartInstance = new Chart(document.getElementById("hourChart"), {
-    type: "bar",
+  if (hourScatterInstance) hourScatterInstance.destroy();
+  hourScatterInstance = new Chart(document.getElementById("hourScatterChart"), {
+    type: "scatter",
     data: {
-      labels: hw.labels,
       datasets: [{
-        data: hw.data,
-        backgroundColor: hw.data.map(v => v >= 60 ? "rgba(52,195,143,0.75)" : v >= 40 ? "rgba(91,142,245,0.75)" : "rgba(229,83,83,0.65)"),
-        borderRadius: 4,
-        borderSkipped: false
+        label: "Trades",
+        data: scatter,
+        backgroundColor: scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.6)" : "rgba(229,83,83,0.6)"),
+        borderColor: scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.8)" : "rgba(229,83,83,0.8)"),
+        borderWidth: 1,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0
       }]
     },
     options: {
@@ -745,18 +617,24 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
-              const i = ctx.dataIndex;
-              return ` ${ctx.raw}% win rate (${hw.counts[i]} trades)`;
+            label: ctx => {
+              const point = ctx.raw;
+              return ` Hour ${String(Math.floor(point.x)).padStart(2,'0')}:00 → $${point.y.toFixed(2)}`;
             }
           }
         }
       },
       scales: {
-        x: { ticks: { color: "#5a6070", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+        x: {
+          title: { display: true, text: "Hour of Day", color: "#5a6070", font: { size: 11, weight: 500 } },
+          min: 0,
+          max: 23,
+          ticks: { color: "#5a6070", font: { size: 10 }, stepSize: 2, callback: v => `${String(v).padStart(2,'0')}:00` },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        },
         y: {
-          min: 0, max: 100,
-          ticks: { color: "#5a6070", font: { size: 10 }, callback: v => `${v}%` },
+          title: { display: true, text: "PnL ($)", color: "#5a6070", font: { size: 11, weight: 500 } },
+          ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" }, callback: v => `$${v}` },
           grid: { color: "rgba(255,255,255,0.04)" }
         }
       }
