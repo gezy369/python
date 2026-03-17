@@ -275,11 +275,23 @@ function buildMonthlyDailyEquity(trades) {
       data: {
         labels: monthlyChartData.labels,
         datasets: [{
-          label: "Monthly Equity",
-          data: monthlyChartData.data,
-          tension: 0.35,
-          fill: false
-        }]
+        label: "Monthly Equity",
+        data: monthlyChartData.data,
+        tension: 0.35,
+        borderColor: "#5b8ef5",
+        borderWidth: 2,
+        fill: true,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return "transparent";
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, "rgba(91, 142, 245, 0.18)");
+          gradient.addColorStop(1, "rgba(91, 142, 245, 0)");
+          return gradient;
+        },
+        pointRadius: 0
+      }]
       },
       // Monthly chart — blue line
       options: {
@@ -292,7 +304,7 @@ function buildMonthlyDailyEquity(trades) {
             text: `${MONTHS[month].toUpperCase()} ${year}`,
             align: "start",
             color: "rgba(255,255,255,0.06)",
-            font: { size: 28, weight: "700", family: "'DM Sans', sans-serif" },
+            font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
             padding: { bottom: -30 }
           }
         },
@@ -316,10 +328,22 @@ function buildMonthlyDailyEquity(trades) {
       data: {
         labels: accountEquity.labels,
         datasets: [{
-          data: accountEquity.data,
-          tension: 0.35,
-          fill:false
-        }]
+        data: accountEquity.data,
+        tension: 0.35,
+        borderColor: "#34c38f",
+        borderWidth: 2,
+        fill: true,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return "transparent";
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, "rgba(52, 195, 143, 0.18)");
+          gradient.addColorStop(1, "rgba(52, 195, 143, 0)");
+          return gradient;
+        },
+        pointRadius: 0
+      }]
       },
       // Account chart — green line
       options: {
@@ -332,7 +356,7 @@ function buildMonthlyDailyEquity(trades) {
             text: "FULL ACCOUNT",
             align: "start",
             color: "rgba(255,255,255,0.06)",
-            font: { size: 28, weight: "700", family: "'DM Sans', sans-serif" },
+            font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
             padding: { bottom: -30 }
           }
         },
@@ -373,28 +397,22 @@ function buildMonthlyDailyEquity(trades) {
   const a = computeStats(accountTrades);
 
   document.querySelector("#monthlyStats .stats-content").innerHTML = `
-    <h4>${MONTHS[month]} ${year}</h4>
-    <div>Trades: <strong>${monthlyTrades.length}</strong></div>
-    <div>PnL: <span class="${m.pnl>=0?"positive":"negative"}" style="font-family: var(--font-mono)">
-      ${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}
-    </span></div>
-    <div>Win Rate: ${m.winRate}%</div>
-    <div>Avg Win: +$${m.avgWin.toFixed(2)}</div>
-    <div>Avg Loss: $${m.avgLoss.toFixed(2)}</div>
-  `;
+  <h4>${MONTHS[month]} ${year}</h4>
+  <div><span>Trades</span>     <strong>${monthlyTrades.length}</strong></div>
+  <div><span>PnL</span>        <strong class="${m.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}</strong></div>
+  <div><span>Win Rate</span>   <strong>${m.winRate}%</strong></div>
+  <div><span>Avg Win</span>    <strong class="positive" style="font-family:var(--font-mono)">+$${m.avgWin.toFixed(2)}</strong></div>
+  <div><span>Avg Loss</span>   <strong class="negative" style="font-family:var(--font-mono)">$${m.avgLoss.toFixed(2)}</strong></div>
+`;
 
-  document.querySelector("#accountStats .stats-content").innerHTML = `
-    <h4>Full Account</h4>
-    <div>Trades: <strong>${accountTrades.length}</strong></div>
-    <div>PnL:
-      <span class="${a.pnl>=0?"positive":"negative"}">
-        ${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}
-      </span>
-    </div>
-    <div>Win Rate: ${a.winRate}%</div>
-    <div>Avg Win: +$${a.avgWin.toFixed(2)}</div>
-    <div>Avg Loss: $${a.avgLoss.toFixed(2)}</div>
-  `;
+document.querySelector("#accountStats .stats-content").innerHTML = `
+  <h4>Full Account</h4>
+  <div><span>Trades</span>     <strong>${accountTrades.length}</strong></div>
+  <div><span>PnL</span>        <strong class="${a.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}</strong></div>
+  <div><span>Win Rate</span>   <strong>${a.winRate}%</strong></div>
+  <div><span>Avg Win</span>    <strong class="positive" style="font-family:var(--font-mono)">+$${a.avgWin.toFixed(2)}</strong></div>
+  <div><span>Avg Loss</span>   <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
+`;
 }
 
 /* ===================== CLICK DAY ===================== */
