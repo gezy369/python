@@ -21,6 +21,9 @@
   <div id="calendarMonthTotal" class="calendar-month-total"></div>
 </div>
 
+<!-- ── STAT PILLS ── -->
+<div class="stat-pills" id="statPills"></div>
+
 <div class="dashboard-stats">
   <div id="monthlyStats" class="dashboard-card">
     <canvas id="monthlyEquityChart" height="120"></canvas>
@@ -33,15 +36,170 @@
   </div>
 </div>
 
+<!-- ── VISUAL ROW 1: Donut + PnL Distribution ── -->
+<div class="dashboard-charts-row" style="margin-top:20px;">
+
+  <div class="dashboard-card" style="flex:1; max-width:220px;">
+    <div class="card-label">Win / Loss</div>
+    <div style="position:relative; height:160px; display:flex; align-items:center; justify-content:center;">
+      <canvas id="donutChart"></canvas>
+      <div id="donutCenter" class="donut-center"></div>
+    </div>
+  </div>
+
+  <div class="dashboard-card" style="flex:2;">
+    <div class="card-label">PnL Distribution</div>
+    <canvas id="pnlDistChart" height="150"></canvas>
+  </div>
+
+  <div class="dashboard-card" style="flex:2;">
+    <div class="card-label">Cumulative PnL vs Target</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <label style="font-size:11px; color:var(--text-muted);">Daily target $</label>
+      <input type="number" id="targetInput" value="200" min="0" step="50"
+        style="width:80px; background:var(--bg-active); border:1px solid var(--border-strong);
+               border-radius:var(--radius-sm); color:var(--text-primary); padding:3px 7px;
+               font-family:var(--font-mono); font-size:12px; outline:none;">
+    </div>
+    <canvas id="targetChart" height="130"></canvas>
+  </div>
+
+</div>
+
+<!-- ── VISUAL ROW 2: Hour heatmap + Day of week + Duration ── -->
+<div class="dashboard-charts-row" style="margin-top:16px;">
+
+  <div class="dashboard-card" style="flex:2;">
+    <div class="card-label">Win Rate by Hour</div>
+    <canvas id="hourChart" height="140"></canvas>
+  </div>
+
+  <div class="dashboard-card" style="flex:1.4;">
+    <div class="card-label">Win Rate by Day</div>
+    <canvas id="dowChart" height="140"></canvas>
+  </div>
+
+  <div class="dashboard-card" style="flex:1.4;">
+    <div class="card-label">Trade Duration</div>
+    <div id="durationStats" class="duration-stats"></div>
+  </div>
+
+</div>
+
+<style>
+/* ── STAT PILLS ── */
+.stat-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 600px;
+  margin-bottom: 16px;
+}
+
+.stat-pill {
+  flex: 1;
+  min-width: 120px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+}
+
+.stat-pill-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.stat-pill-value {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.stat-pill-value.positive { color: var(--accent-green); }
+.stat-pill-value.negative { color: var(--accent-red); }
+.stat-pill-value.neutral  { color: var(--accent-blue); }
+
+/* ── CHART ROW ── */
+.dashboard-charts-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-charts-row .dashboard-card {
+  min-width: 180px;
+}
+
+.card-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+/* ── DONUT CENTER ── */
+.donut-center {
+  position: absolute;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center .d-pct {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+}
+
+.donut-center .d-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── DURATION STATS ── */
+.duration-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dur-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dur-row:last-child { border-bottom: none; }
+
+.dur-val {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+</style>
+
 <script>
-/* Fix the calendar display when changing the caldendar quickly */
 let isRendering = false;
 let pendingRender = false;
 
 const accountSelect = document.getElementById("accountSelect");
-if (accountSelect) {
-  accountSelect.addEventListener("change", renderCalendar);
-}
+if (accountSelect) accountSelect.addEventListener("change", renderCalendar);
 
 const calendarEl = document.getElementById("tradingCalendar");
 
@@ -54,8 +212,7 @@ let currentDate = new Date();
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
-  calendarLabel.textContent =
-    `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  calendarLabel.textContent = `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
 }
 
 document.getElementById("prevMonth").onclick = () => {
@@ -75,50 +232,30 @@ updateCalendarLabel();
 /* ===================== RENDER CALENDAR ===================== */
 
 async function renderCalendar() {
-  if (isRendering) {
-    pendingRender = true;
-    return;
-  }
+  if (isRendering) { pendingRender = true; return; }
   isRendering = true;
   pendingRender = false;
 
   calendarEl.innerHTML = "";
 
   const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
+  const year  = currentDate.getFullYear();
 
-  const fromDate = new Date(year, month, 1);
-  const toDate   = new Date(year, month + 1, 0);
+  const from = new Date(year, month, 1).toISOString().slice(0,10);
+  const to   = new Date(year, month + 1, 0).toISOString().slice(0,10);
 
-  const from = fromDate.toISOString().slice(0,10);
-  const to   = toDate.toISOString().slice(0,10);
+  let monthlyTrades = await fetchFilteredTrades({ account: accountSelect?.value, from, to }) || [];
+  let accountTrades = await fetchFilteredTrades({ account: accountSelect?.value }) || [];
 
-  let monthlyTrades = await fetchFilteredTrades({
-    account: accountSelect?.value,
-    from,
-    to
-  }) || [];
-
-  let accountTrades = await fetchFilteredTrades({
-    account: accountSelect?.value
-  }) || [];
-
-  monthlyTrades = monthlyTrades.map(t => ({
-    ...t,
-    entryDate: new Date(t.entryTimestamp)
-  }));
-
-  accountTrades = accountTrades.map(t => ({
-    ...t,
-    entryDate: new Date(t.entryTimestamp)
-  }));
+  monthlyTrades = monthlyTrades.map(t => ({ ...t, entryDate: new Date(t.entryTimestamp) }));
+  accountTrades = accountTrades.map(t => ({ ...t, entryDate: new Date(t.entryTimestamp) }));
 
   renderDashboardStats(monthlyTrades, accountTrades, month, year);
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const firstDay    = new Date(year, month, 1);
+  const lastDay     = new Date(year, month + 1, 0);
   const startWeekday = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = lastDay.getDate();
+  const daysInMonth  = lastDay.getDate();
 
   ["Mon","Tue","Wed","Thu","Fri"].forEach(d => {
     const h = document.createElement("div");
@@ -127,292 +264,573 @@ async function renderCalendar() {
     calendarEl.appendChild(h);
   });
 
-  for (let i = 0; i < Math.min(startWeekday,5); i++) {
+  for (let i = 0; i < Math.min(startWeekday, 5); i++)
     calendarEl.appendChild(document.createElement("div"));
-  }
 
   const monthlyTotal = { trades: 0, pnl: 0 };
 
   for (let day = 1; day <= daysInMonth; day++) {
-
     const dateObj = new Date(year, month, day);
     if (dateObj.getDay() === 0 || dateObj.getDay() === 6) continue;
 
-    const isoDate = dateObj.toISOString().slice(0,10);
-
-    const dayTrades = monthlyTrades.filter(t =>
-      t.entryDate.toISOString().slice(0,10) === isoDate
-    );
-
+    const isoDate  = dateObj.toISOString().slice(0,10);
+    const dayTrades = monthlyTrades.filter(t => t.entryDate.toISOString().slice(0,10) === isoDate);
     const tradeCount = dayTrades.length;
-    const dayPnL = dayTrades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+    const dayPnL     = dayTrades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
 
     monthlyTotal.trades += tradeCount;
-    monthlyTotal.pnl += dayPnL;
+    monthlyTotal.pnl    += dayPnL;
 
-    const pnlClass =
-      tradeCount === 0 ? "day-flat" :
-      dayPnL > 0 ? "day-positive" :
-      dayPnL < 0 ? "day-negative" : "day-flat";
+    const pnlClass = tradeCount === 0 ? "day-flat" : dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
 
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
-
     cell.innerHTML = `
       <div class="calendar-date">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
       <div class="calendar-pnl ${dayPnL>0?"positive":dayPnL<0?"negative":""}">
         ${tradeCount ? `${dayPnL>=0?"+":""}$${dayPnL.toFixed(2)}` : ""}
-      </div>
-    `;
-
+      </div>`;
     calendarEl.appendChild(cell);
   }
 
   document.getElementById("calendarMonthTotal").innerHTML = `
     <strong>Month total</strong>
     <span>${monthlyTotal.trades} trades</span>
-
-    <span class="${monthlyTotal.pnl>=0?"positive":"negative"}" style="font-family: var(--font-mono)">
+    <span class="${monthlyTotal.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">
       ${monthlyTotal.pnl>=0?"+":""}$${monthlyTotal.pnl.toFixed(2)}
-    </span>
-  `;
+    </span>`;
 
   isRendering = false;
-
-  if (pendingRender) {
-    renderCalendar();
-  }
+  if (pendingRender) renderCalendar();
 }
 
-/* ===================== DASHBOARD STATS ===================== */
+/* ===================== CHART INSTANCES ===================== */
 
 let monthlyChartInstance = null;
 let accountChartInstance = null;
+let donutChartInstance   = null;
+let pnlDistInstance      = null;
+let targetChartInstance  = null;
+let hourChartInstance    = null;
+let dowChartInstance     = null;
+
+/* ===================== DASHBOARD STATS ===================== */
 
 function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
 
-  function buildEquity(trades, groupByDay=false) {
-
+  /* ── helpers ── */
+  function buildDailyEquity(trades) {
     const grouped = {};
-
     trades.forEach(t => {
-      const key = groupByDay
-        ? new Date(t.entryDate).toISOString().slice(0,10)
-        : `${t.entryDate.getTime()}_${Math.random()}`;
-
-      grouped[key] = (grouped[key] || 0) + (Number(t.pnl) || 0);
+      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
     });
-
-    const sortedKeys = Object.keys(grouped).sort((a,b)=> new Date(a)-new Date(b));
-
-    let cumulative = 0;
-    const labels = [];
-    const data = [];
-
-    sortedKeys.forEach(k => {
-      cumulative += grouped[k];
-      labels.push(k.slice(0,10));
-      data.push(cumulative);
-    });
-
+    const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
+    let cum = 0;
+    const labels = [], data = [];
+    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(cum); });
     return { labels, data };
   }
 
-  const monthlyEquity = buildEquity(monthlyTrades);
-  const accountEquity = buildEquity(accountTrades, true);
+  function buildAccountEquity(trades) {
+    const grouped = {};
+    trades.forEach(t => {
+      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
+    });
+    const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
+    let cum = 0;
+    const labels = [], data = [];
+    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(cum); });
+    return { labels, data };
+  }
 
-  const baseOptions = {
-    responsive: true,
-    animation: {
-      duration: 1000,
-      easing: 'easeOutQuart'
-    },
-    plugins: { legend: { display:false } },
-    scales: { x: { display:false } }
-  };
+  function computeStats(trades) {
+    const pnl    = trades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
+    const wins   = trades.filter(t => Number(t.pnl) > 0);
+    const losses = trades.filter(t => Number(t.pnl) < 0);
+    const avgWin  = wins.length   ? wins.reduce((s,t)=>s+Number(t.pnl),0)/wins.length   : 0;
+    const avgLoss = losses.length ? losses.reduce((s,t)=>s+Number(t.pnl),0)/losses.length : 0;
+    const winRate = trades.length ? (wins.length / trades.length * 100).toFixed(1) : 0;
+    const grossWin  = wins.reduce((s,t)=>s+Number(t.pnl),0);
+    const grossLoss = Math.abs(losses.reduce((s,t)=>s+Number(t.pnl),0));
+    const profitFactor = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : "∞";
+    return { pnl, wins, losses, avgWin, avgLoss, winRate, profitFactor };
+  }
 
-/* =========================
-   📅 MONTHLY DAILY EQUITY (LINE)
-========================== */
+  /* ── max drawdown ── */
+  function maxDrawdown(equity) {
+    let peak = -Infinity, maxDD = 0;
+    equity.forEach(v => {
+      if (v > peak) peak = v;
+      const dd = peak - v;
+      if (dd > maxDD) maxDD = dd;
+    });
+    return maxDD;
+  }
 
-function buildMonthlyDailyEquity(trades) {
+  /* ── streak ── */
+  function streaks(trades) {
+    const days = {};
+    trades.forEach(t => {
+      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      days[d] = (days[d] || 0) + (Number(t.pnl)||0);
+    });
+    const sorted = Object.values(days).map(Number);
+    let best = 0, worst = 0, cur = 0;
+    sorted.forEach(v => {
+      cur = v > 0 ? cur + 1 : (v < 0 ? 0 : cur);
+      if (cur > best) best = cur;
+    });
+    cur = 0;
+    sorted.forEach(v => {
+      cur = v < 0 ? cur + 1 : (v > 0 ? 0 : cur);
+      if (cur > worst) worst = cur;
+    });
+    return { best, worst };
+  }
 
-  const grouped = {};
+  /* ── duration ── */
+  function durationStats(trades) {
+    const withDur = trades.filter(t => t.exitTimestamp && t.entryTimestamp);
+    if (!withDur.length) return null;
+    const mins = withDur.map(t => (new Date(t.exitTimestamp) - new Date(t.entryTimestamp)) / 60000);
+    const avg  = mins.reduce((a,b)=>a+b,0) / mins.length;
+    const min  = Math.min(...mins);
+    const max  = Math.max(...mins);
+    const fmt  = m => m < 60 ? `${Math.round(m)}m` : `${Math.floor(m/60)}h ${Math.round(m%60)}m`;
+    return { avg: fmt(avg), min: fmt(min), max: fmt(max), count: withDur.length };
+  }
 
-  trades.forEach(t => {
-    const date = new Date(t.entryDate).toISOString().slice(0,10);
-    grouped[date] = (grouped[date] || 0) + (Number(t.pnl) || 0);
-  });
+  /* ── hour win rate ── */
+  function hourWinRate(trades) {
+    const hours = {};
+    trades.forEach(t => {
+      const h = new Date(t.entryTimestamp).getHours();
+      if (!hours[h]) hours[h] = { wins: 0, total: 0 };
+      hours[h].total++;
+      if (Number(t.pnl) > 0) hours[h].wins++;
+    });
+    const labels = [], data = [], counts = [];
+    Object.keys(hours).sort((a,b)=>+a-+b).forEach(h => {
+      const label = `${String(h).padStart(2,'0')}:00`;
+      labels.push(label);
+      data.push(+(hours[h].wins / hours[h].total * 100).toFixed(1));
+      counts.push(hours[h].total);
+    });
+    return { labels, data, counts };
+  }
 
-  const sortedDates = Object.keys(grouped).sort(
-    (a,b) => new Date(a) - new Date(b)
-  );
+  /* ── day-of-week win rate ── */
+  function dowWinRate(trades) {
+    const days = ["Mon","Tue","Wed","Thu","Fri"];
+    const buckets = days.map(() => ({ wins: 0, total: 0 }));
+    trades.forEach(t => {
+      const d = (new Date(t.entryTimestamp).getDay() + 6) % 7; // Mon=0
+      if (d > 4) return;
+      buckets[d].total++;
+      if (Number(t.pnl) > 0) buckets[d].wins++;
+    });
+    return {
+      labels: days,
+      data: buckets.map(b => b.total ? +(b.wins/b.total*100).toFixed(1) : 0),
+      counts: buckets.map(b => b.total)
+    };
+  }
 
-  let cumulative = 0;
-  const labels = [];
-  const data = [];
+  /* ── PnL distribution ── */
+  function pnlDistribution(trades) {
+    if (!trades.length) return { labels:[], data:[], colors:[] };
+    const pnls  = trades.map(t => Number(t.pnl)||0);
+    const mn    = Math.floor(Math.min(...pnls) / 50) * 50;
+    const mx    = Math.ceil(Math.max(...pnls)  / 50) * 50;
+    const buckets = {};
+    for (let b = mn; b <= mx; b += 50) buckets[b] = 0;
+    pnls.forEach(p => { const b = Math.floor(p/50)*50; buckets[b] = (buckets[b]||0)+1; });
+    const labels = Object.keys(buckets).map(Number).sort((a,b)=>a-b);
+    return {
+      labels: labels.map(l => `$${l}`),
+      data:   labels.map(l => buckets[l]),
+      colors: labels.map(l => l >= 0 ? "rgba(52,195,143,0.7)" : "rgba(229,83,83,0.7)")
+    };
+  }
 
-  sortedDates.forEach(d => {
-    cumulative += grouped[d];
-    labels.push(d);
-    data.push(cumulative);
-  });
+  /* ── target line ── */
+  function buildTargetData(trades, dailyTarget) {
+    const grouped = {};
+    trades.forEach(t => {
+      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      grouped[d] = (grouped[d] || 0) + (Number(t.pnl)||0);
+    });
+    const keys = Object.keys(grouped).sort((a,b)=>new Date(a)-new Date(b));
+    let cumActual = 0, cumTarget = 0;
+    const labels = [], actual = [], target = [];
+    keys.forEach((k, i) => {
+      cumActual += grouped[k];
+      cumTarget  = (i + 1) * dailyTarget;
+      labels.push(k);
+      actual.push(+cumActual.toFixed(2));
+      target.push(+cumTarget.toFixed(2));
+    });
+    return { labels, actual, target };
+  }
 
-  return { labels, data };
-}
+  /* ===================== COMPUTE ===================== */
 
-  // instead of: const monthlyEquity = buildMonthlyDailyEquity(monthlyTrades);
-  monthlyChartData = buildMonthlyDailyEquity(monthlyTrades);
+  const monthlyEquity = buildDailyEquity(monthlyTrades);
+  const accountEquity = buildAccountEquity(accountTrades);
+  const m  = computeStats(monthlyTrades);
+  const a  = computeStats(accountTrades);
+  const dd = maxDrawdown(accountEquity.data);
+  const st = streaks(accountTrades);
+  const dur = durationStats(accountTrades);
+  const hw  = hourWinRate(accountTrades);
+  const dw  = dowWinRate(accountTrades);
+  const dist = pnlDistribution(monthlyTrades);
+
+  /* ===================== STAT PILLS ===================== */
+
+  document.getElementById("statPills").innerHTML = `
+    <div class="stat-pill">
+      <div class="stat-pill-label">Best streak</div>
+      <div class="stat-pill-value positive">${st.best}d</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Worst streak</div>
+      <div class="stat-pill-value negative">${st.worst}d</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Max drawdown</div>
+      <div class="stat-pill-value negative">-$${dd.toFixed(2)}</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Profit factor</div>
+      <div class="stat-pill-value neutral">${a.profitFactor}</div>
+    </div>`;
+
+  /* ===================== EQUITY CHARTS ===================== */
 
   if (monthlyChartInstance) monthlyChartInstance.destroy();
-
-  monthlyChartInstance = new Chart(
-    document.getElementById("monthlyEquityChart"),
-    {
-      type: "line",
-      data: {
-        labels: monthlyChartData.labels,
-        datasets: [{
+  monthlyChartInstance = new Chart(document.getElementById("monthlyEquityChart"), {
+    type: "line",
+    data: {
+      labels: monthlyEquity.labels,
+      datasets: [{
         label: "Monthly Equity",
-        data: monthlyChartData.data,
+        data: monthlyEquity.data,
         tension: 0.35,
         borderColor: "#5b8ef5",
         borderWidth: 2,
         fill: true,
-        backgroundColor: (context) => {
-          const chart = context.chart;
-          const { ctx, chartArea } = chart;
+        backgroundColor: ctx => {
+          const { chartArea } = ctx.chart;
           if (!chartArea) return "transparent";
-          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          gradient.addColorStop(0, "rgba(91, 142, 245, 0.18)");
-          gradient.addColorStop(1, "rgba(91, 142, 245, 0)");
-          return gradient;
+          const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, "rgba(91,142,245,0.18)");
+          g.addColorStop(1, "rgba(91,142,245,0)");
+          return g;
         },
         pointRadius: 0
       }]
-      },
-      // Monthly chart — blue line
-      options: {
-        responsive: true,
-        animation: { duration: 1000, easing: "easeOutQuart" },
-        plugins: {
-          legend: { display: false },
-          title: {
-            display: true,
-            text: `${MONTHS[month].toUpperCase()} ${year}`,
-            align: "start",
-            color: "rgba(255,255,255,0.06)",
-            font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
-            padding: { bottom: -30 }
-          }
-        },
-        scales: {
-          x: { display: false },
-          y: { display: false, grid: { display: false } }
-        },
-        elements: {
-          line: { borderColor: "#5b8ef5", borderWidth: 2 },
-          point: { radius: 0 }
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 1000, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: `${MONTHS[month].toUpperCase()} ${year}`,
+          align: "start",
+          color: "rgba(255,255,255,0.06)",
+          font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
+          padding: { bottom: -30 }
         }
-      }
+      },
+      scales: { x: { display: false }, y: { display: false, grid: { display: false } } },
+      elements: { line: { borderColor: "#5b8ef5", borderWidth: 2 }, point: { radius: 0 } }
     }
-  );
+  });
 
   if (accountChartInstance) accountChartInstance.destroy();
-  accountChartInstance = new Chart(
-    document.getElementById("accountEquityChart"),
-    {
-      type: "line",
-      data: {
-        labels: accountEquity.labels,
-        datasets: [{
+  accountChartInstance = new Chart(document.getElementById("accountEquityChart"), {
+    type: "line",
+    data: {
+      labels: accountEquity.labels,
+      datasets: [{
         data: accountEquity.data,
         tension: 0.35,
         borderColor: "#34c38f",
         borderWidth: 2,
         fill: true,
-        backgroundColor: (context) => {
-          const chart = context.chart;
-          const { ctx, chartArea } = chart;
+        backgroundColor: ctx => {
+          const { chartArea } = ctx.chart;
           if (!chartArea) return "transparent";
-          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          gradient.addColorStop(0, "rgba(52, 195, 143, 0.18)");
-          gradient.addColorStop(1, "rgba(52, 195, 143, 0)");
-          return gradient;
+          const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, "rgba(52,195,143,0.18)");
+          g.addColorStop(1, "rgba(52,195,143,0)");
+          return g;
         },
         pointRadius: 0
       }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 1000, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: "FULL ACCOUNT",
+          align: "start",
+          color: "rgba(255,255,255,0.06)",
+          font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
+          padding: { bottom: -30 }
+        }
       },
-      // Account chart — green line
-      options: {
-        responsive: true,
-        animation: { duration: 1000, easing: "easeOutQuart" },
-        plugins: {
-          legend: { display: false },
-          title: {
-            display: true,
-            text: "FULL ACCOUNT",
-            align: "start",
-            color: "rgba(255,255,255,0.06)",
-            font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
-            padding: { bottom: -30 }
+      scales: { x: { display: false }, y: { display: false, grid: { display: false } } },
+      elements: { line: { borderColor: "#34c38f", borderWidth: 2 }, point: { radius: 0 } }
+    }
+  });
+
+  /* ===================== DONUT CHART ===================== */
+
+  if (donutChartInstance) donutChartInstance.destroy();
+  const winCount  = m.wins.length;
+  const lossCount = m.losses.length;
+  const flatCount = monthlyTrades.length - winCount - lossCount;
+
+  donutChartInstance = new Chart(document.getElementById("donutChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Wins", "Losses", "Flat"],
+      datasets: [{
+        data: [winCount, lossCount, flatCount],
+        backgroundColor: ["rgba(52,195,143,0.85)", "rgba(229,83,83,0.85)", "rgba(58,64,80,0.6)"],
+        borderColor: ["#34c38f","#e55353","#3a4050"],
+        borderWidth: 1,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: "68%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} (${monthlyTrades.length ? (ctx.raw/monthlyTrades.length*100).toFixed(1) : 0}%)`
           }
-        },
-        scales: {
-          x: { display: false },
-          y: { display: false, grid: { display: false } }
-        },
-        elements: {
-          line: { borderColor: "#34c38f", borderWidth: 2 },
-          point: { radius: 0 }
         }
       }
     }
-  );
+  });
 
-  function computeStats(trades) {
+  document.getElementById("donutCenter").innerHTML = `
+    <span class="d-pct">${m.winRate}%</span>
+    <span class="d-label">win rate</span>`;
 
-    const pnl = trades.reduce((s,t)=>s+(Number(t.pnl)||0),0);
-    const wins = trades.filter(t=>Number(t.pnl)>0);
-    const losses = trades.filter(t=>Number(t.pnl)<0);
+  /* ===================== PnL DISTRIBUTION ===================== */
 
-    const avgWin = wins.length
-      ? wins.reduce((s,t)=>s+Number(t.pnl),0)/wins.length
-      : 0;
+  if (pnlDistInstance) pnlDistInstance.destroy();
+  pnlDistInstance = new Chart(document.getElementById("pnlDistChart"), {
+    type: "bar",
+    data: {
+      labels: dist.labels,
+      datasets: [{
+        data: dist.data,
+        backgroundColor: dist.colors,
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 800 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" } },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        },
+        y: {
+          ticks: { color: "#5a6070", font: { size: 10 }, stepSize: 1 },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        }
+      }
+    }
+  });
 
-    const avgLoss = losses.length
-      ? losses.reduce((s,t)=>s+Number(t.pnl),0)/losses.length
-      : 0;
+  /* ===================== TARGET CHART ===================== */
 
-    const winRate = trades.length
-      ? (wins.length / trades.length * 100).toFixed(1)
-      : 0;
+  function renderTargetChart() {
+    const dailyTarget = parseFloat(document.getElementById("targetInput").value) || 200;
+    const td = buildTargetData(monthlyTrades, dailyTarget);
 
-    return { pnl, avgWin, avgLoss, winRate };
+    if (targetChartInstance) targetChartInstance.destroy();
+    targetChartInstance = new Chart(document.getElementById("targetChart"), {
+      type: "line",
+      data: {
+        labels: td.labels,
+        datasets: [
+          {
+            label: "Actual",
+            data: td.actual,
+            borderColor: "#5b8ef5",
+            borderWidth: 2,
+            tension: 0.35,
+            fill: true,
+            backgroundColor: ctx => {
+              const { chartArea } = ctx.chart;
+              if (!chartArea) return "transparent";
+              const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+              g.addColorStop(0, "rgba(91,142,245,0.15)");
+              g.addColorStop(1, "rgba(91,142,245,0)");
+              return g;
+            },
+            pointRadius: 0
+          },
+          {
+            label: "Target",
+            data: td.target,
+            borderColor: "rgba(232,169,74,0.6)",
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            tension: 0,
+            fill: false,
+            pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 800 },
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "#5a6070", font: { size: 10 }, boxWidth: 12, padding: 10 }
+          }
+        },
+        scales: {
+          x: { ticks: { color: "#5a6070", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+          y: { ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" }, callback: v => `$${v}` }, grid: { color: "rgba(255,255,255,0.04)" } }
+        }
+      }
+    });
   }
 
-  const m = computeStats(monthlyTrades);
-  const a = computeStats(accountTrades);
+  renderTargetChart();
+  document.getElementById("targetInput").addEventListener("change", renderTargetChart);
+
+  /* ===================== HOUR CHART ===================== */
+
+  if (hourChartInstance) hourChartInstance.destroy();
+  hourChartInstance = new Chart(document.getElementById("hourChart"), {
+    type: "bar",
+    data: {
+      labels: hw.labels,
+      datasets: [{
+        data: hw.data,
+        backgroundColor: hw.data.map(v => v >= 60 ? "rgba(52,195,143,0.75)" : v >= 40 ? "rgba(91,142,245,0.75)" : "rgba(229,83,83,0.65)"),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 800 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const i = ctx.dataIndex;
+              return ` ${ctx.raw}% win rate (${hw.counts[i]} trades)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#5a6070", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: "#5a6070", font: { size: 10 }, callback: v => `${v}%` },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        }
+      }
+    }
+  });
+
+  /* ===================== DAY OF WEEK CHART ===================== */
+
+  if (dowChartInstance) dowChartInstance.destroy();
+  dowChartInstance = new Chart(document.getElementById("dowChart"), {
+    type: "bar",
+    data: {
+      labels: dw.labels,
+      datasets: [{
+        data: dw.data,
+        backgroundColor: dw.data.map(v => v >= 60 ? "rgba(52,195,143,0.75)" : v >= 40 ? "rgba(91,142,245,0.75)" : "rgba(229,83,83,0.65)"),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 800 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.raw}% win rate (${dw.counts[ctx.dataIndex]} trades)`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#5a6070", font: { size: 11 } }, grid: { display: false } },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: "#5a6070", font: { size: 10 }, callback: v => `${v}%` },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        }
+      }
+    }
+  });
+
+  /* ===================== DURATION STATS ===================== */
+
+  const durationEl = document.getElementById("durationStats");
+  if (dur) {
+    durationEl.innerHTML = `
+      <div class="dur-row"><span>Avg hold</span> <span class="dur-val">${dur.avg}</span></div>
+      <div class="dur-row"><span>Shortest</span> <span class="dur-val">${dur.min}</span></div>
+      <div class="dur-row"><span>Longest</span>  <span class="dur-val">${dur.max}</span></div>
+      <div class="dur-row"><span>Tracked</span>  <span class="dur-val">${dur.count} trades</span></div>`;
+  } else {
+    durationEl.innerHTML = `<div style="color:var(--text-faint); font-size:12px; margin-top:10px;">No exit timestamps found.<br>Add exitTimestamp to your trades.</div>`;
+  }
+
+  /* ===================== STATS CARDS ===================== */
 
   document.querySelector("#monthlyStats .stats-content").innerHTML = `
-  <h4>${MONTHS[month]} ${year}</h4>
-  <div><span>Trades</span>     <strong>${monthlyTrades.length}</strong></div>
-  <div><span>PnL</span>        <strong class="${m.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}</strong></div>
-  <div><span>Win Rate</span>   <strong>${m.winRate}%</strong></div>
-  <div><span>Avg Win</span>    <strong class="positive" style="font-family:var(--font-mono)">+$${m.avgWin.toFixed(2)}</strong></div>
-  <div><span>Avg Loss</span>   <strong class="negative" style="font-family:var(--font-mono)">$${m.avgLoss.toFixed(2)}</strong></div>
-`;
+    <h4>${MONTHS[month]} ${year}</h4>
+    <div><span>Trades</span>    <strong>${monthlyTrades.length}</strong></div>
+    <div><span>PnL</span>       <strong class="${m.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}</strong></div>
+    <div><span>Win Rate</span>  <strong>${m.winRate}%</strong></div>
+    <div><span>Avg Win</span>   <strong class="positive" style="font-family:var(--font-mono)">+$${m.avgWin.toFixed(2)}</strong></div>
+    <div><span>Avg Loss</span>  <strong class="negative" style="font-family:var(--font-mono)">$${m.avgLoss.toFixed(2)}</strong></div>
+    <div><span>Profit factor</span> <strong style="color:var(--accent-blue)">${m.profitFactor}</strong></div>`;
 
-document.querySelector("#accountStats .stats-content").innerHTML = `
-  <h4>Full Account</h4>
-  <div><span>Trades</span>     <strong>${accountTrades.length}</strong></div>
-  <div><span>PnL</span>        <strong class="${a.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}</strong></div>
-  <div><span>Win Rate</span>   <strong>${a.winRate}%</strong></div>
-  <div><span>Avg Win</span>    <strong class="positive" style="font-family:var(--font-mono)">+$${a.avgWin.toFixed(2)}</strong></div>
-  <div><span>Avg Loss</span>   <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
-`;
+  document.querySelector("#accountStats .stats-content").innerHTML = `
+    <h4>Full Account</h4>
+    <div><span>Trades</span>    <strong>${accountTrades.length}</strong></div>
+    <div><span>PnL</span>       <strong class="${a.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}</strong></div>
+    <div><span>Win Rate</span>  <strong>${a.winRate}%</strong></div>
+    <div><span>Avg Win</span>   <strong class="positive" style="font-family:var(--font-mono)">+$${a.avgWin.toFixed(2)}</strong></div>
+    <div><span>Avg Loss</span>  <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
+    <div><span>Profit factor</span> <strong style="color:var(--accent-blue)">${a.profitFactor}</strong></div>`;
 }
 
 /* ===================== CLICK DAY ===================== */
@@ -433,7 +851,6 @@ function waitForAccount() {
 }
 
 waitForAccount().then(() => renderCalendar());
-
 </script>
 
 {% endblock %}
