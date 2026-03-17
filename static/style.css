@@ -385,19 +385,25 @@ body {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
   padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
 }
 
+/* Card title — large, faint, uppercase, sits behind the chart */
 .dashboard-card h4 {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
+/* Chart canvas wrapper — positioned so the title watermark shows through */
 .dashboard-card canvas {
-  margin-bottom: 12px;
+  display: block;
+  margin-bottom: 14px;
+  border-radius: var(--radius-md);
 }
 
 /* Stats rows inside dashboard cards */
@@ -415,20 +421,28 @@ body {
   border-bottom: none;
 }
 
-.stats-content strong {
+/* Right-aligned numbers — monospace, snapped to the right */
+.stats-content strong,
+.stats-content span {
   font-family: var(--font-mono);
   font-size: 11.5px;
   font-weight: 500;
   color: var(--text-secondary);
+  text-align: right;
+  min-width: 80px;               /* keeps all numbers column-aligned */
 }
 
+/* Card title inside stats-content (e.g. "March 2026") */
 .stats-content h4 {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
   margin-bottom: 10px;
-  letter-spacing: 0;
-  text-transform: none;
+  font-family: var(--font-ui);
+  min-width: unset;
+  text-align: left;
 }
 
 /* ===== POSITIVE / NEGATIVE ===== */

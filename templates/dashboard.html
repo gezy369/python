@@ -281,11 +281,29 @@ function buildMonthlyDailyEquity(trades) {
           fill: false
         }]
       },
+      // Monthly chart — blue line
       options: {
         responsive: true,
         animation: { duration: 1000, easing: "easeOutQuart" },
-        plugins: { legend: { display: false } },
-        scales: { x: { display: false } }
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: `${MONTHS[month].toUpperCase()} ${year}`,
+            align: "start",
+            color: "rgba(255,255,255,0.06)",
+            font: { size: 28, weight: "700", family: "'DM Sans', sans-serif" },
+            padding: { bottom: -30 }
+          }
+        },
+        scales: {
+          x: { display: false },
+          y: { display: false, grid: { display: false } }
+        },
+        elements: {
+          line: { borderColor: "#5b8ef5", borderWidth: 2 },
+          point: { radius: 0 }
+        }
       }
     }
   );
@@ -303,7 +321,30 @@ function buildMonthlyDailyEquity(trades) {
           fill:false
         }]
       },
-      options: baseOptions
+      // Account chart — green line
+      options: {
+        responsive: true,
+        animation: { duration: 1000, easing: "easeOutQuart" },
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: "FULL ACCOUNT",
+            align: "start",
+            color: "rgba(255,255,255,0.06)",
+            font: { size: 28, weight: "700", family: "'DM Sans', sans-serif" },
+            padding: { bottom: -30 }
+          }
+        },
+        scales: {
+          x: { display: false },
+          y: { display: false, grid: { display: false } }
+        },
+        elements: {
+          line: { borderColor: "#34c38f", borderWidth: 2 },
+          point: { radius: 0 }
+        }
+      }
     }
   );
 
