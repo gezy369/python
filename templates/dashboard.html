@@ -6,64 +6,85 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<h2>Monthly Trading Calendar</h2>
-
-<div class="calendar-controls-modern">
-  <button id="prevMonth" class="cal-nav">◀</button>
-  <div class="calendar-current">
-    <span id="calendarLabel"></span>
-  </div>
-  <button id="nextMonth" class="cal-nav">▶</button>
-</div>
-
-<div class="calendar-wrapper">
-  <div id="tradingCalendar" class="calendar-grid"></div>
-  <div id="calendarMonthTotal" class="calendar-month-total"></div>
+<!-- ── HEADER ROW ── -->
+<div style="display:flex; align-items:baseline; justify-content:space-between; max-width:1100px; margin-bottom:20px;">
+  <h2 style="margin-bottom:0;">Dashboard</h2>
+  <span id="lastUpdated" style="font-family:var(--font-mono); font-size:10px; color:var(--text-faint);"></span>
 </div>
 
 <!-- ── STAT PILLS ── -->
 <div class="stat-pills" id="statPills"></div>
 
-<div class="dashboard-stats">
-  <div id="monthlyStats" class="dashboard-card">
-    <canvas id="monthlyEquityChart" height="120"></canvas>
-    <div class="stats-content"></div>
-  </div>
+<!-- ── MAIN GRID: Calendar + Year heatmap ── -->
+<div class="dash-main-grid">
 
-  <div id="accountStats" class="dashboard-card">
-    <canvas id="accountEquityChart" height="120"></canvas>
-    <div class="stats-content"></div>
-  </div>
-</div>
-
-<!-- ── VISUAL ROW 1: Target Chart ── -->
-<div class="dashboard-charts-row" style="margin-top:20px;">
-
-  <div class="dashboard-card" style="flex:1;">
-    <div class="card-label">Cumulative PnL vs Target</div>
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-      <label style="font-size:11px; color:var(--text-muted);">Daily target $</label>
-      <input type="number" id="targetInput" value="200" min="0" step="50"
-        style="width:80px; background:var(--bg-active); border:1px solid var(--border-strong);
-               border-radius:var(--radius-sm); color:var(--text-primary); padding:3px 7px;
-               font-family:var(--font-mono); font-size:12px; outline:none;">
+  <!-- LEFT: Calendar -->
+  <div class="dash-left">
+    <div class="section-label">
+      <div class="calendar-controls-modern" style="margin-bottom:12px;">
+        <button id="prevMonth" class="cal-nav">◀</button>
+        <div class="calendar-current"><span id="calendarLabel"></span></div>
+        <button id="nextMonth" class="cal-nav">▶</button>
+      </div>
     </div>
-    <canvas id="targetChart" height="130"></canvas>
+    <div class="calendar-wrapper" style="max-width:none; margin-bottom:0;">
+      <div id="tradingCalendar" class="calendar-grid"></div>
+      <div id="calendarMonthTotal" class="calendar-month-total"></div>
+    </div>
   </div>
 
+  <!-- RIGHT: Month stats + equity chart -->
+  <div class="dash-right">
+
+    <!-- Month vs Year equity curves -->
+    <div class="dashboard-card" style="margin-bottom:14px;">
+      <div class="card-header-row">
+        <div class="card-label">Equity Curve</div>
+        <div class="curve-toggle">
+          <button class="curve-btn active" data-curve="month">Month</button>
+          <button class="curve-btn" data-curve="year">Year</button>
+        </div>
+      </div>
+      <canvas id="equityChart" style="width:100%;height:110px;display:block;"></canvas>
+    </div>
+
+    <!-- Two stat cards side by side -->
+    <div style="display:flex; gap:12px;">
+      <div id="monthlyStats" class="dashboard-card" style="flex:1;">
+        <div class="stats-content"></div>
+      </div>
+      <div id="accountStats" class="dashboard-card" style="flex:1;">
+        <div class="stats-content"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<!-- ── VISUAL ROW 2: Scatter + Day of week + Duration ── -->
-<div class="dashboard-charts-row" style="margin-top:16px;">
+<!-- ── YEAR OVERVIEW HEATMAP ── -->
+<div class="dashboard-card year-heatmap-card" style="margin-top:16px; max-width:1100px;">
+  <div class="card-header-row">
+    <div class="card-label">Year at a Glance — <span id="heatmapYear"></span></div>
+    <div style="display:flex; gap:16px; font-size:11px; color:var(--text-muted); align-items:center;">
+      <span style="display:flex; align-items:center; gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(52,195,143,0.8);display:inline-block;"></span>Profit</span>
+      <span style="display:flex; align-items:center; gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(229,83,83,0.8);display:inline-block;"></span>Loss</span>
+      <span style="display:flex; align-items:center; gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--bg-elevated);border:1px solid var(--border-default);display:inline-block;"></span>No trades</span>
+    </div>
+  </div>
+  <div id="yearHeatmap" class="year-heatmap-grid"></div>
+</div>
+
+<!-- ── BOTTOM ROW: Charts ── -->
+<div class="dashboard-charts-row" style="margin-top:16px; max-width:1100px;">
 
   <div class="dashboard-card" style="flex:2;">
     <div class="card-label">PnL by Hour (Full Account)</div>
-    <canvas id="hourScatterChart" height="140"></canvas>
+    <canvas id="hourScatterChart" height="130"></canvas>
   </div>
 
   <div class="dashboard-card" style="flex:1.4;">
     <div class="card-label">Win Rate by Day</div>
-    <canvas id="dowChart" height="140"></canvas>
+    <canvas id="dowChart" height="130"></canvas>
   </div>
 
   <div class="dashboard-card" style="flex:1.4;">
@@ -74,18 +95,76 @@
 </div>
 
 <style>
+/* ── LAYOUT ── */
+.dash-main-grid {
+  display: flex;
+  gap: 20px;
+  max-width: 1100px;
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.dash-left  { flex: 0 0 auto; width: 420px; }
+.dash-right { flex: 1; min-width: 0; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+/* ── CARD HEADER ROW ── */
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* ── CURVE TOGGLE ── */
+.curve-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.curve-btn {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  margin-top: 0;
+  transition: all 0.15s;
+}
+
+.curve-btn:hover { color: var(--text-secondary); border-color: var(--border-accent); }
+
+.curve-btn.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+
 /* ── STAT PILLS ── */
 .stat-pills {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  max-width: 600px;
+  max-width: 1100px;
   margin-bottom: 16px;
 }
 
 .stat-pill {
   flex: 1;
-  min-width: 120px;
+  min-width: 110px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -112,6 +191,87 @@
 .stat-pill-value.negative { color: var(--accent-red); }
 .stat-pill-value.neutral  { color: var(--accent-blue); }
 
+/* ── CARD LABEL ── */
+.card-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ── YEAR HEATMAP ── */
+.year-heatmap-card { padding: 16px 18px; }
+
+.year-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.heatmap-month {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-month-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+  margin-bottom: 3px;
+}
+
+.heatmap-month-pnl {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-align: center;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.heatmap-month-pnl.pos { color: var(--accent-green); }
+.heatmap-month-pnl.neg { color: var(--accent-red); }
+.heatmap-month-pnl.flat { color: var(--text-faint); }
+
+.heatmap-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  cursor: default;
+  transition: transform 0.1s;
+  position: relative;
+}
+
+.heatmap-cell:hover { transform: scale(1.3); z-index: 10; }
+
+.heatmap-cell.pos-1  { background: rgba(52,195,143,0.25); border-color: rgba(52,195,143,0.2); }
+.heatmap-cell.pos-2  { background: rgba(52,195,143,0.50); border-color: rgba(52,195,143,0.35); }
+.heatmap-cell.pos-3  { background: rgba(52,195,143,0.80); border-color: rgba(52,195,143,0.6); }
+.heatmap-cell.neg-1  { background: rgba(229,83,83,0.25);  border-color: rgba(229,83,83,0.2); }
+.heatmap-cell.neg-2  { background: rgba(229,83,83,0.50);  border-color: rgba(229,83,83,0.35); }
+.heatmap-cell.neg-3  { background: rgba(229,83,83,0.80);  border-color: rgba(229,83,83,0.6); }
+.heatmap-cell.no-trade { background: var(--bg-elevated); border-color: var(--border-subtle); cursor: default; }
+.heatmap-cell.future   { background: transparent; border-color: transparent; }
+
+/* Month bar at bottom of heatmap */
+.heatmap-month-bar {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
 /* ── CHART ROW ── */
 .dashboard-charts-row {
   display: flex;
@@ -119,18 +279,7 @@
   flex-wrap: wrap;
 }
 
-.dashboard-charts-row .dashboard-card {
-  min-width: 180px;
-}
-
-.card-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: 10px;
-}
+.dashboard-charts-row .dashboard-card { min-width: 180px; }
 
 /* ── DURATION STATS ── */
 .duration-stats {
@@ -172,6 +321,7 @@ const MONTHS = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
 ];
+const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 let currentDate = new Date();
 const calendarLabel = document.getElementById("calendarLabel");
@@ -193,6 +343,10 @@ document.getElementById("nextMonth").onclick = () => {
 };
 
 updateCalendarLabel();
+
+/* ── last updated ── */
+document.getElementById("lastUpdated").textContent =
+  `Updated ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
 /* ===================== RENDER CALENDAR ===================== */
 
@@ -216,9 +370,10 @@ async function renderCalendar() {
   accountTrades = accountTrades.map(t => ({ ...t, entryDate: new Date(t.entryTimestamp) }));
 
   renderDashboardStats(monthlyTrades, accountTrades, month, year);
+  renderYearHeatmap(accountTrades, year);
 
-  const firstDay    = new Date(year, month, 1);
-  const lastDay     = new Date(year, month + 1, 0);
+  const firstDay     = new Date(year, month, 1);
+  const lastDay      = new Date(year, month + 1, 0);
   const startWeekday = (firstDay.getDay() + 6) % 7;
   const daysInMonth  = lastDay.getDate();
 
@@ -238,7 +393,7 @@ async function renderCalendar() {
     const dateObj = new Date(year, month, day);
     if (dateObj.getDay() === 0 || dateObj.getDay() === 6) continue;
 
-    const isoDate  = dateObj.toISOString().slice(0,10);
+    const isoDate   = dateObj.toISOString().slice(0,10);
     const dayTrades = monthlyTrades.filter(t => t.entryDate.toISOString().slice(0,10) === isoDate);
     const tradeCount = dayTrades.length;
     const dayPnL     = dayTrades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
@@ -271,19 +426,204 @@ async function renderCalendar() {
   if (pendingRender) renderCalendar();
 }
 
+/* ===================== YEAR HEATMAP ===================== */
+
+function renderYearHeatmap(allTrades, year) {
+  document.getElementById("heatmapYear").textContent = year;
+
+  const dailyPnL = {};
+  allTrades.forEach(t => {
+    const d = new Date(t.entryDate).toISOString().slice(0,10);
+    dailyPnL[d] = (dailyPnL[d] || 0) + (Number(t.pnl) || 0);
+  });
+
+  /* find max abs pnl for scaling intensity */
+  const values = Object.values(dailyPnL).map(Math.abs);
+  const maxPnL = values.length ? Math.max(...values) : 1;
+
+  const today = new Date();
+  const grid  = document.getElementById("yearHeatmap");
+  grid.innerHTML = "";
+
+  for (let m = 0; m < 12; m++) {
+    const col = document.createElement("div");
+    col.className = "heatmap-month";
+
+    const label = document.createElement("div");
+    label.className = "heatmap-month-label";
+    label.textContent = MONTHS_SHORT[m];
+    col.appendChild(label);
+
+    const daysDiv = document.createElement("div");
+    daysDiv.className = "heatmap-days";
+
+    let monthPnL = 0;
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, m, d);
+      const dow     = dateObj.getDay();
+      if (dow === 0 || dow === 6) continue; /* skip weekends */
+
+      const iso  = dateObj.toISOString().slice(0,10);
+      const pnl  = dailyPnL[iso];
+      const cell = document.createElement("div");
+
+      if (dateObj > today) {
+        cell.className = "heatmap-cell future";
+      } else if (pnl === undefined) {
+        cell.className = "heatmap-cell no-trade";
+        cell.title = iso;
+      } else {
+        monthPnL += pnl;
+        const intensity = Math.min(Math.ceil(Math.abs(pnl) / maxPnL * 3), 3);
+        cell.className  = `heatmap-cell ${pnl >= 0 ? "pos" : "neg"}-${intensity}`;
+        cell.title      = `${iso}: ${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`;
+        cell.style.cursor = "pointer";
+        cell.addEventListener("click", () => {
+          window.location.href = `/journal?from=${iso}&to=${iso}`;
+        });
+      }
+
+      daysDiv.appendChild(cell);
+    }
+
+    col.appendChild(daysDiv);
+
+    /* month bar + pnl total */
+    const bar = document.createElement("div");
+    bar.className = "heatmap-month-bar";
+    bar.style.background = monthPnL > 0
+      ? `rgba(52,195,143,${Math.min(0.3 + Math.abs(monthPnL)/maxPnL*0.7, 1)})`
+      : monthPnL < 0
+        ? `rgba(229,83,83,${Math.min(0.3 + Math.abs(monthPnL)/maxPnL*0.7, 1)})`
+        : "var(--border-default)";
+    col.appendChild(bar);
+
+    const pnlLabel = document.createElement("div");
+    pnlLabel.className = `heatmap-month-pnl ${monthPnL > 0 ? "pos" : monthPnL < 0 ? "neg" : "flat"}`;
+    pnlLabel.textContent = monthPnL !== 0
+      ? `${monthPnL >= 0 ? "+" : ""}$${Math.abs(monthPnL) >= 1000
+          ? (monthPnL/1000).toFixed(1)+"k"
+          : monthPnL.toFixed(0)}`
+      : "—";
+    col.appendChild(pnlLabel);
+
+    grid.appendChild(col);
+  }
+}
+
 /* ===================== CHART INSTANCES ===================== */
 
-let monthlyChartInstance = null;
-let accountChartInstance = null;
-let targetChartInstance  = null;
+let equityRedrawPending = false;
 let hourScatterInstance  = null;
 let dowChartInstance     = null;
+
+let monthlyEquityData = null;
+let yearEquityData    = null;
+let activeCurve       = "month";
+
+/* ── curve toggle ── */
+document.querySelectorAll(".curve-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".curve-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeCurve = btn.dataset.curve;
+    drawEquityChart(activeCurve);
+  });
+});
+
+function drawEquityChart(mode) {
+  const d = mode === "month" ? monthlyEquityData : yearEquityData;
+  const canvas = document.getElementById("equityChart");
+  if (!d || !d.data.length) { canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height); return; }
+
+  const color  = mode === "month" ? "#5b8ef5" : "#34c38f";
+  const gradRgb = mode === "month" ? "91,142,245" : "52,195,143";
+  const title  = mode === "month"
+    ? `${MONTHS[currentDate.getMonth()].toUpperCase()} ${currentDate.getFullYear()}`
+    : `${currentDate.getFullYear()}`;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.parentElement.offsetWidth || 400;
+  const H   = 110;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + "px";
+  canvas.style.height = H + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  /* watermark */
+  ctx.save();
+  ctx.font = "700 24px 'DM Sans', sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.045)";
+  ctx.fillText(title, 8, 26);
+  ctx.restore();
+
+  /* y-axis ticks on right */
+  const vals = d.data;
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const pad = { top: 10, bottom: 6, left: 4, right: 42 };
+
+  const toX = i => pad.left + (i / (vals.length - 1)) * (W - pad.left - pad.right);
+  const toY = v => pad.top + (1 - (v - minV) / range) * (H - pad.top - pad.bottom);
+
+  /* y tick labels */
+  ctx.save();
+  ctx.font = `10px 'IBM Plex Mono', monospace`;
+  ctx.fillStyle = "#3a4050";
+  ctx.textAlign = "right";
+  [minV, (minV+maxV)/2, maxV].forEach(v => {
+    const y = toY(v);
+    ctx.fillText(`$${Math.round(v)}`, W - 2, y + 3);
+    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  /* gradient fill — all the way to bottom of canvas */
+  const grad = ctx.createLinearGradient(0, pad.top, 0, H);
+  grad.addColorStop(0,   `rgba(${gradRgb},0.22)`);
+  grad.addColorStop(1,   `rgba(${gradRgb},0)`);
+
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(vals[0]));
+  for (let i = 1; i < vals.length; i++) {
+    const cpx = (toX(i-1) + toX(i)) / 2;
+    ctx.bezierCurveTo(cpx, toY(vals[i-1]), cpx, toY(vals[i]), toX(i), toY(vals[i]));
+  }
+  ctx.lineTo(toX(vals.length - 1), H);
+  ctx.lineTo(toX(0), H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* line */
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(vals[0]));
+  for (let i = 1; i < vals.length; i++) {
+    const cpx = (toX(i-1) + toX(i)) / 2;
+    ctx.bezierCurveTo(cpx, toY(vals[i-1]), cpx, toY(vals[i]), toX(i), toY(vals[i]));
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = "round";
+  ctx.stroke();
+}
 
 /* ===================== DASHBOARD STATS ===================== */
 
 function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
 
-  /* ── helpers ── */
   function buildDailyEquity(trades) {
     const grouped = {};
     trades.forEach(t => {
@@ -293,20 +633,22 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
     let cum = 0;
     const labels = [], data = [];
-    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(cum); });
+    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(+cum.toFixed(2)); });
     return { labels, data };
   }
 
-  function buildAccountEquity(trades) {
+  function buildYearEquity(trades, year) {
     const grouped = {};
     trades.forEach(t => {
-      const d = new Date(t.entryDate).toISOString().slice(0,10);
-      grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
+      const d = new Date(t.entryDate);
+      if (d.getFullYear() !== year) return;
+      const key = d.toISOString().slice(0,10);
+      grouped[key] = (grouped[key] || 0) + (Number(t.pnl) || 0);
     });
     const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
     let cum = 0;
     const labels = [], data = [];
-    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(cum); });
+    keys.forEach(k => { cum += grouped[k]; labels.push(k); data.push(+cum.toFixed(2)); });
     return { labels, data };
   }
 
@@ -323,7 +665,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     return { pnl, wins, losses, avgWin, avgLoss, winRate, profitFactor };
   }
 
-  /* ── max drawdown ── */
   function maxDrawdown(equity) {
     let peak = -Infinity, maxDD = 0;
     equity.forEach(v => {
@@ -334,7 +675,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     return maxDD;
   }
 
-  /* ── streak ── */
   function streaks(trades) {
     const days = {};
     trades.forEach(t => {
@@ -343,93 +683,81 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     });
     const sorted = Object.values(days).map(Number);
     let best = 0, worst = 0, cur = 0;
-    sorted.forEach(v => {
-      cur = v > 0 ? cur + 1 : (v < 0 ? 0 : cur);
-      if (cur > best) best = cur;
-    });
+    sorted.forEach(v => { cur = v > 0 ? cur+1 : (v<0?0:cur); if(cur>best) best=cur; });
     cur = 0;
-    sorted.forEach(v => {
-      cur = v < 0 ? cur + 1 : (v > 0 ? 0 : cur);
-      if (cur > worst) worst = cur;
-    });
+    sorted.forEach(v => { cur = v < 0 ? cur+1 : (v>0?0:cur); if(cur>worst) worst=cur; });
     return { best, worst };
   }
 
-  /* ── duration ── */
   function durationStats(trades) {
     const withDur = trades.filter(t => t.exitTimestamp && t.entryTimestamp);
     if (!withDur.length) return null;
     const mins = withDur.map(t => (new Date(t.exitTimestamp) - new Date(t.entryTimestamp)) / 60000);
     const avg  = mins.reduce((a,b)=>a+b,0) / mins.length;
-    const min  = Math.min(...mins);
-    const max  = Math.max(...mins);
     const fmt  = m => m < 60 ? `${Math.round(m)}m` : `${Math.floor(m/60)}h ${Math.round(m%60)}m`;
-    return { avg: fmt(avg), min: fmt(min), max: fmt(max), count: withDur.length };
+    return { avg: fmt(avg), min: fmt(Math.min(...mins)), max: fmt(Math.max(...mins)), count: withDur.length };
   }
 
-  /* ── hour PnL scatter data ── */
   function hourPnLScatter(trades) {
-    const points = [];
-    trades.forEach(t => {
-      const h = new Date(t.entryTimestamp).getHours();
-      const pnl = Number(t.pnl) || 0;
-      points.push({ x: h, y: pnl });
-    });
-    return points;
+    return trades.map(t => ({ x: new Date(t.entryTimestamp).getHours(), y: Number(t.pnl)||0 }));
   }
 
-  /* ── day-of-week win rate ── */
   function dowWinRate(trades) {
     const days = ["Mon","Tue","Wed","Thu","Fri"];
     const buckets = days.map(() => ({ wins: 0, total: 0 }));
     trades.forEach(t => {
-      const d = (new Date(t.entryTimestamp).getDay() + 6) % 7; // Mon=0
+      const d = (new Date(t.entryTimestamp).getDay() + 6) % 7;
       if (d > 4) return;
       buckets[d].total++;
       if (Number(t.pnl) > 0) buckets[d].wins++;
     });
     return {
       labels: days,
-      data: buckets.map(b => b.total ? +(b.wins/b.total*100).toFixed(1) : 0),
+      data:   buckets.map(b => b.total ? +(b.wins/b.total*100).toFixed(1) : 0),
       counts: buckets.map(b => b.total)
     };
   }
 
-  /* ── target line ── */
-  function buildTargetData(trades, dailyTarget) {
-    const grouped = {};
-    trades.forEach(t => {
-      const d = new Date(t.entryDate).toISOString().slice(0,10);
-      grouped[d] = (grouped[d] || 0) + (Number(t.pnl)||0);
-    });
-    const keys = Object.keys(grouped).sort((a,b)=>new Date(a)-new Date(b));
-    let cumActual = 0, cumTarget = 0;
-    const labels = [], actual = [], target = [];
-    keys.forEach((k, i) => {
-      cumActual += grouped[k];
-      cumTarget  = (i + 1) * dailyTarget;
-      labels.push(k);
-      actual.push(+cumActual.toFixed(2));
-      target.push(+cumTarget.toFixed(2));
-    });
-    return { labels, actual, target };
-  }
+  /* ── year trades ── */
+  const yearTrades = accountTrades.filter(t => new Date(t.entryTimestamp).getFullYear() === year);
 
-  /* ===================== COMPUTE ===================== */
+  /* ── compute ── */
+  monthlyEquityData = buildDailyEquity(monthlyTrades);
+  yearEquityData    = buildYearEquity(accountTrades, year);
 
-  const monthlyEquity = buildDailyEquity(monthlyTrades);
-  const accountEquity = buildAccountEquity(accountTrades);
-  const m  = computeStats(monthlyTrades);
-  const a  = computeStats(accountTrades);
-  const dd = maxDrawdown(accountEquity.data);
-  const st = streaks(accountTrades);
+  const accountEquity = buildDailyEquity(accountTrades);
+  const m   = computeStats(monthlyTrades);
+  const a   = computeStats(accountTrades);
+  const y   = computeStats(yearTrades);
+  const dd  = maxDrawdown(accountEquity.data);
+  const st  = streaks(accountTrades);
   const dur = durationStats(accountTrades);
   const scatter = hourPnLScatter(accountTrades);
   const dw  = dowWinRate(accountTrades);
 
-  /* ===================== STAT PILLS ===================== */
+  /* ── equity chart ── */
+  drawEquityChart(activeCurve);
 
+  /* ── stat pills — all-time first, then year-level metrics ── */
+  const allTimeFmt = Math.abs(a.pnl)>=1000?(a.pnl/1000).toFixed(1)+"k":a.pnl.toFixed(0);
   document.getElementById("statPills").innerHTML = `
+    <div class="stat-pill" style="border-color:var(--border-accent);background:var(--bg-elevated);">
+      <div class="stat-pill-label" style="color:var(--text-muted);">All-time PnL</div>
+      <div class="stat-pill-value ${a.pnl>=0?"positive":"negative"}">${a.pnl>=0?"+":""}$${allTimeFmt}</div>
+    </div>
+    <div style="width:1px;background:var(--border-default);align-self:stretch;margin:0 2px;flex-shrink:0;"></div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Year PnL</div>
+      <div class="stat-pill-value ${y.pnl>=0?"positive":"negative"}">${y.pnl>=0?"+":""}$${Math.abs(y.pnl)>=1000?(y.pnl/1000).toFixed(1)+"k":y.pnl.toFixed(0)}</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Year trades</div>
+      <div class="stat-pill-value neutral">${yearTrades.length}</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">Year win rate</div>
+      <div class="stat-pill-value neutral">${y.winRate}%</div>
+    </div>
     <div class="stat-pill">
       <div class="stat-pill-label">Best streak</div>
       <div class="stat-pill-value positive">${st.best}d</div>
@@ -440,174 +768,44 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     </div>
     <div class="stat-pill">
       <div class="stat-pill-label">Max drawdown</div>
-      <div class="stat-pill-value negative">-$${dd.toFixed(2)}</div>
+      <div class="stat-pill-value negative">-$${dd.toFixed(0)}</div>
     </div>
     <div class="stat-pill">
       <div class="stat-pill-label">Profit factor</div>
       <div class="stat-pill-value neutral">${a.profitFactor}</div>
     </div>`;
 
-  /* ===================== EQUITY CHARTS ===================== */
+  /* ── stats cards ── */
+  document.querySelector("#monthlyStats .stats-content").innerHTML = `
+    <h4>${MONTHS[month]} ${year}</h4>
+    <div><span>Trades</span>       <strong>${monthlyTrades.length}</strong></div>
+    <div><span>PnL</span>          <strong class="${m.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}</strong></div>
+    <div><span>Win rate</span>     <strong>${m.winRate}%</strong></div>
+    <div><span>Avg win</span>      <strong class="positive" style="font-family:var(--font-mono)">+$${m.avgWin.toFixed(2)}</strong></div>
+    <div><span>Avg loss</span>     <strong class="negative" style="font-family:var(--font-mono)">$${m.avgLoss.toFixed(2)}</strong></div>
+    <div><span>Profit factor</span><strong style="color:var(--accent-blue)">${m.profitFactor}</strong></div>`;
 
-  if (monthlyChartInstance) monthlyChartInstance.destroy();
-  monthlyChartInstance = new Chart(document.getElementById("monthlyEquityChart"), {
-    type: "line",
-    data: {
-      labels: monthlyEquity.labels,
-      datasets: [{
-        label: "Monthly Equity",
-        data: monthlyEquity.data,
-        tension: 0.15,
-        borderColor: "#5b8ef5",
-        borderWidth: 2,
-        fill: true,
-        backgroundColor: ctx => {
-          const { chartArea } = ctx.chart;
-          if (!chartArea) return "transparent";
-          const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, "rgba(91,142,245,0.18)");
-          g.addColorStop(1, "rgba(91,142,245,0)");
-          return g;
-        },
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: { duration: 1000, easing: "easeOutQuart" },
-      plugins: {
-        legend: { display: false },
-        title: {
-          display: true,
-          text: `${MONTHS[month].toUpperCase()} ${year}`,
-          align: "start",
-          color: "rgba(255,255,255,0.06)",
-          font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
-          padding: { bottom: -30 }
-        }
-      },
-      scales: { x: { display: false }, y: { display: false, grid: { display: false } } },
-      elements: { line: { borderColor: "#5b8ef5", borderWidth: 2 }, point: { radius: 0 } }
-    }
-  });
+  document.querySelector("#accountStats .stats-content").innerHTML = `
+    <h4>Full Account</h4>
+    <div><span>Trades</span>       <strong>${accountTrades.length}</strong></div>
+    <div><span>PnL</span>          <strong class="${a.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}</strong></div>
+    <div><span>Win rate</span>     <strong>${a.winRate}%</strong></div>
+    <div><span>Avg win</span>      <strong class="positive" style="font-family:var(--font-mono)">+$${a.avgWin.toFixed(2)}</strong></div>
+    <div><span>Avg loss</span>     <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
+    <div><span>Profit factor</span><strong style="color:var(--accent-blue)">${a.profitFactor}</strong></div>`;
 
-  if (accountChartInstance) accountChartInstance.destroy();
-  accountChartInstance = new Chart(document.getElementById("accountEquityChart"), {
-    type: "line",
-    data: {
-      labels: accountEquity.labels,
-      datasets: [{
-        data: accountEquity.data,
-        tension: 0.35,
-        borderColor: "#34c38f",
-        borderWidth: 2,
-        fill: true,
-        backgroundColor: ctx => {
-          const { chartArea } = ctx.chart;
-          if (!chartArea) return "transparent";
-          const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, "rgba(52,195,143,0.18)");
-          g.addColorStop(1, "rgba(52,195,143,0)");
-          return g;
-        },
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: { duration: 1000, easing: "easeOutQuart" },
-      plugins: {
-        legend: { display: false },
-        title: {
-          display: true,
-          text: "FULL ACCOUNT",
-          align: "start",
-          color: "rgba(255,255,255,0.06)",
-          font: { size: 20, weight: "700", family: "'DM Sans', sans-serif" },
-          padding: { bottom: -30 }
-        }
-      },
-      scales: { x: { display: false }, y: { display: false, grid: { display: false } } },
-      elements: { line: { borderColor: "#34c38f", borderWidth: 2 }, point: { radius: 0 } }
-    }
-  });
-
-  /* ===================== TARGET CHART ===================== */
-
-  function renderTargetChart() {
-    const dailyTarget = parseFloat(document.getElementById("targetInput").value) || 200;
-    const td = buildTargetData(monthlyTrades, dailyTarget);
-
-    if (targetChartInstance) targetChartInstance.destroy();
-    targetChartInstance = new Chart(document.getElementById("targetChart"), {
-      type: "line",
-      data: {
-        labels: td.labels,
-        datasets: [
-          {
-            label: "Actual",
-            data: td.actual,
-            borderColor: "#5b8ef5",
-            borderWidth: 2,
-            tension: 0.35,
-            fill: true,
-            backgroundColor: ctx => {
-              const { chartArea } = ctx.chart;
-              if (!chartArea) return "transparent";
-              const g = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-              g.addColorStop(0, "rgba(91,142,245,0.15)");
-              g.addColorStop(1, "rgba(91,142,245,0)");
-              return g;
-            },
-            pointRadius: 0
-          },
-          {
-            label: "Target",
-            data: td.target,
-            borderColor: "rgba(232,169,74,0.6)",
-            borderWidth: 1.5,
-            borderDash: [5, 4],
-            tension: 0,
-            fill: false,
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        animation: { duration: 800 },
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: "#5a6070", font: { size: 10 }, boxWidth: 12, padding: 10 }
-          }
-        },
-        scales: {
-          x: { ticks: { color: "#5a6070", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
-          y: { ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" }, callback: v => `$${v}` }, grid: { color: "rgba(255,255,255,0.04)" } }
-        }
-      }
-    });
-  }
-
-  renderTargetChart();
-  document.getElementById("targetInput").addEventListener("change", renderTargetChart);
-
-  /* ===================== HOUR SCATTER CHART ===================== */
-
+  /* ── hour scatter ── */
   if (hourScatterInstance) hourScatterInstance.destroy();
   hourScatterInstance = new Chart(document.getElementById("hourScatterChart"), {
     type: "scatter",
     data: {
       datasets: [{
-        label: "Trades",
         data: scatter,
-        backgroundColor: scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.6)" : "rgba(229,83,83,0.6)"),
-        borderColor: scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.8)" : "rgba(229,83,83,0.8)"),
+        backgroundColor: scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.55)" : "rgba(229,83,83,0.55)"),
+        borderColor:     scatter.map(p => p.y >= 0 ? "rgba(52,195,143,0.8)"  : "rgba(229,83,83,0.8)"),
         borderWidth: 1,
         pointRadius: 4,
-        pointHoverRadius: 6,
-        tension: 0
+        pointHoverRadius: 6
       }]
     },
     options: {
@@ -615,25 +813,15 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       animation: { duration: 800 },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const point = ctx.raw;
-              return ` Hour ${String(Math.floor(point.x)).padStart(2,'0')}:00 → $${point.y.toFixed(2)}`;
-            }
-          }
-        }
+        tooltip: { callbacks: { label: ctx => ` ${String(Math.floor(ctx.raw.x)).padStart(2,'0')}:00 → $${ctx.raw.y.toFixed(2)}` } }
       },
       scales: {
         x: {
-          title: { display: true, text: "Hour of Day", color: "#5a6070", font: { size: 11, weight: 500 } },
-          min: 0,
-          max: 23,
+          min: 0, max: 23,
           ticks: { color: "#5a6070", font: { size: 10 }, stepSize: 2, callback: v => `${String(v).padStart(2,'0')}:00` },
           grid: { color: "rgba(255,255,255,0.04)" }
         },
         y: {
-          title: { display: true, text: "PnL ($)", color: "#5a6070", font: { size: 11, weight: 500 } },
           ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" }, callback: v => `$${v}` },
           grid: { color: "rgba(255,255,255,0.04)" }
         }
@@ -641,8 +829,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     }
   });
 
-  /* ===================== DAY OF WEEK CHART ===================== */
-
+  /* ── day of week ── */
   if (dowChartInstance) dowChartInstance.destroy();
   dowChartInstance = new Chart(document.getElementById("dowChart"), {
     type: "bar",
@@ -650,7 +837,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       labels: dw.labels,
       datasets: [{
         data: dw.data,
-        backgroundColor: dw.data.map(v => v >= 60 ? "rgba(52,195,143,0.75)" : v >= 40 ? "rgba(91,142,245,0.75)" : "rgba(229,83,83,0.65)"),
+        backgroundColor: dw.data.map(v => v>=60?"rgba(52,195,143,0.75)":v>=40?"rgba(91,142,245,0.75)":"rgba(229,83,83,0.65)"),
         borderRadius: 4,
         borderSkipped: false
       }]
@@ -660,55 +847,26 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       animation: { duration: 800 },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.raw}% win rate (${dw.counts[ctx.dataIndex]} trades)`
-          }
-        }
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% win rate (${dw.counts[ctx.dataIndex]} trades)` } }
       },
       scales: {
         x: { ticks: { color: "#5a6070", font: { size: 11 } }, grid: { display: false } },
-        y: {
-          min: 0, max: 100,
-          ticks: { color: "#5a6070", font: { size: 10 }, callback: v => `${v}%` },
-          grid: { color: "rgba(255,255,255,0.04)" }
-        }
+        y: { min: 0, max: 100, ticks: { color: "#5a6070", font: { size: 10 }, callback: v => `${v}%` }, grid: { color: "rgba(255,255,255,0.04)" } }
       }
     }
   });
 
-  /* ===================== DURATION STATS ===================== */
-
+  /* ── duration ── */
   const durationEl = document.getElementById("durationStats");
   if (dur) {
     durationEl.innerHTML = `
-      <div class="dur-row"><span>Avg hold</span> <span class="dur-val">${dur.avg}</span></div>
-      <div class="dur-row"><span>Shortest</span> <span class="dur-val">${dur.min}</span></div>
-      <div class="dur-row"><span>Longest</span>  <span class="dur-val">${dur.max}</span></div>
-      <div class="dur-row"><span>Tracked</span>  <span class="dur-val">${dur.count} trades</span></div>`;
+      <div class="dur-row"><span>Avg hold</span>  <span class="dur-val">${dur.avg}</span></div>
+      <div class="dur-row"><span>Shortest</span>  <span class="dur-val">${dur.min}</span></div>
+      <div class="dur-row"><span>Longest</span>   <span class="dur-val">${dur.max}</span></div>
+      <div class="dur-row"><span>Tracked</span>   <span class="dur-val">${dur.count} trades</span></div>`;
   } else {
-    durationEl.innerHTML = `<div style="color:var(--text-faint); font-size:12px; margin-top:10px;">No exit timestamps found.<br>Add exitTimestamp to your trades.</div>`;
+    durationEl.innerHTML = `<div style="color:var(--text-faint);font-size:12px;margin-top:10px;">No exit timestamps found.</div>`;
   }
-
-  /* ===================== STATS CARDS ===================== */
-
-  document.querySelector("#monthlyStats .stats-content").innerHTML = `
-    <h4>${MONTHS[month]} ${year}</h4>
-    <div><span>Trades</span>    <strong>${monthlyTrades.length}</strong></div>
-    <div><span>PnL</span>       <strong class="${m.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${m.pnl>=0?"+":""}$${m.pnl.toFixed(2)}</strong></div>
-    <div><span>Win Rate</span>  <strong>${m.winRate}%</strong></div>
-    <div><span>Avg Win</span>   <strong class="positive" style="font-family:var(--font-mono)">+$${m.avgWin.toFixed(2)}</strong></div>
-    <div><span>Avg Loss</span>  <strong class="negative" style="font-family:var(--font-mono)">$${m.avgLoss.toFixed(2)}</strong></div>
-    <div><span>Profit factor</span> <strong style="color:var(--accent-blue)">${m.profitFactor}</strong></div>`;
-
-  document.querySelector("#accountStats .stats-content").innerHTML = `
-    <h4>Full Account</h4>
-    <div><span>Trades</span>    <strong>${accountTrades.length}</strong></div>
-    <div><span>PnL</span>       <strong class="${a.pnl>=0?"positive":"negative"}" style="font-family:var(--font-mono)">${a.pnl>=0?"+":""}$${a.pnl.toFixed(2)}</strong></div>
-    <div><span>Win Rate</span>  <strong>${a.winRate}%</strong></div>
-    <div><span>Avg Win</span>   <strong class="positive" style="font-family:var(--font-mono)">+$${a.avgWin.toFixed(2)}</strong></div>
-    <div><span>Avg Loss</span>  <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
-    <div><span>Profit factor</span> <strong style="color:var(--accent-blue)">${a.profitFactor}</strong></div>`;
 }
 
 /* ===================== CLICK DAY ===================== */
