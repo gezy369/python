@@ -699,7 +699,17 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   }
 
   function hourPnLScatter(trades) {
-    return trades.map(t => ({ x: new Date(t.entryTimestamp).getHours(), y: Number(t.pnl)||0 }));
+    return trades.map(t => {
+      const d = new Date(t.entryTimestamp);
+      const x = d.getHours() + Math.floor(d.getMinutes() / 15) * 0.25;
+      return { x, y: Number(t.pnl)||0 };
+    });
+  }
+
+  function scatterXRange(points) {
+    if (!points.length) return { min: 8, max: 17 };
+    const xs = points.map(p => p.x);
+    return { min: Math.floor(Math.min(...xs)), max: Math.ceil(Math.max(...xs)) };
   }
 
   function dowWinRate(trades) {
@@ -795,6 +805,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     <div><span>Profit factor</span><strong style="color:var(--accent-blue)">${a.profitFactor}</strong></div>`;
 
   /* ── hour scatter ── */
+  const xRange = scatterXRange(scatter);
   if (hourScatterInstance) hourScatterInstance.destroy();
   hourScatterInstance = new Chart(document.getElementById("hourScatterChart"), {
     type: "scatter",
@@ -813,12 +824,33 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       animation: { duration: 800 },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${String(Math.floor(ctx.raw.x)).padStart(2,'0')}:00 → $${ctx.raw.y.toFixed(2)}` } }
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const h  = Math.floor(ctx.raw.x);
+              const m  = Math.round((ctx.raw.x - h) * 60);
+              const ts = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+              return ` ${ts} → $${ctx.raw.y.toFixed(2)}`;
+            }
+          }
+        }
       },
       scales: {
         x: {
-          min: 0, max: 23,
-          ticks: { color: "#5a6070", font: { size: 10 }, stepSize: 2, callback: v => `${String(v).padStart(2,'0')}:00` },
+          min: xRange.min,
+          max: xRange.max,
+          ticks: {
+            color: "#5a6070",
+            font: { size: 10, family: "'IBM Plex Mono'" },
+            stepSize: 0.25,
+            callback: v => {
+              const h = Math.floor(v);
+              const m = Math.round((v - h) * 60);
+              if (m === 0)  return `${String(h).padStart(2,'0')}:00`;
+              if (m === 30) return `${String(h).padStart(2,'0')}:30`;
+              return '';
+            }
+          },
           grid: { color: "rgba(255,255,255,0.04)" }
         },
         y: {
