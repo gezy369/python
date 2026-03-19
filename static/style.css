@@ -881,3 +881,24 @@ tr.trade-details-row td {
 .setup-tag-container { margin-top: 6px; }
 .setup-add  { width: 100%; }
 .trade-strategy { width: 100%; }
+
+/* ===== LOGOUT ===== */
+.menu-item-logout {
+  color: var(--text-faint);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.menu-item-logout:hover {
+  color: var(--accent-red) !important;
+  background: var(--red-bg) !important;
+}
+
+.menu-item-logout svg {
+  transition: transform 0.15s;
+}
+
+.menu-item-logout:hover svg {
+  transform: translateX(2px);
+}
