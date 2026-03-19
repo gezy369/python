@@ -86,7 +86,21 @@ def auth_google():
 
 @app.route("/auth/callback")
 def auth_callback():
-    return render_template("auth_callback.html")
+    code = request.args.get("code")
+    
+    if not code:
+        return redirect(url_for("login"))
+    
+    try:
+        res = supabase.auth.exchange_code_for_session({"auth_code": code})
+        session["user"] = {
+            "id":    res.user.id,
+            "email": res.user.email
+        }
+        return redirect(url_for("dashboard"))
+    except Exception as e:
+        print("Auth callback error:", e)
+        return redirect(url_for("login"))
 
 
 @app.route("/logout")
