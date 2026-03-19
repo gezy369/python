@@ -302,14 +302,33 @@ def settings():
 @login_required
 def api_trades():
     try:
+        user_id     = session["user"]["id"]
         account_id  = request.args.get("account")
         date_from   = request.args.get("from")
         date_to     = request.args.get("to")
         strategy_id = request.args.get("strategy")
         setup_ids   = request.args.getlist("setups")
 
-        trades_res = supabase.table("trades").select("*").execute()
-        trades     = trades_res.data or []
+        # Get only this user's account IDs
+        accounts_res = (
+            supabase.table("trading_accounts")
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        user_account_ids = [a["id"] for a in (accounts_res.data or [])]
+
+        if not user_account_ids:
+            return jsonify([])
+
+        # Fetch only trades belonging to those accounts
+        trades_res = (
+            supabase.table("trades")
+            .select("*")
+            .in_("key_trading_accounts", user_account_ids)
+            .execute()
+        )
+        trades = trades_res.data or []
 
         if not trades:
             return jsonify([])
@@ -403,14 +422,22 @@ def delete_trades():
 @app.get("/api/accounts")
 @login_required
 def get_accounts():
-    response = supabase.table("trading_accounts").select("id, name").order("created_at").execute()
+    user_id  = session["user"]["id"]
+    response = (
+        supabase.table("trading_accounts")
+        .select("id, name")
+        .eq("user_id", user_id)
+        .order("created_at")
+        .execute()
+    )
     return jsonify(response.data or [])
 
 
 @app.post("/api/accounts")
 @login_required
 def add_account():
-    data = request.json
+    data            = request.json
+    data["user_id"] = session["user"]["id"]
     supabase.table("trading_accounts").insert(data).execute()
     return {"ok": True}
 
@@ -418,7 +445,8 @@ def add_account():
 @app.delete("/api/accounts/<id>")
 @login_required
 def delete_account(id):
-    supabase.table("trading_accounts").delete().eq("id", id).execute()
+    user_id = session["user"]["id"]
+    supabase.table("trading_accounts").delete().eq("id", id).eq("user_id", user_id).execute()
     return {"ok": True}
 
 
