@@ -465,7 +465,14 @@ def update_trade(id):
 @login_required
 def get_strategies():
     try:
-        response = supabase.table("strategies").select("id, strategy_name, color").order("strategy_name").execute()
+        user_id  = session["user"]["id"]
+        response = (
+            supabase.table("strategies")
+            .select("id, strategy_name, color")
+            .eq("user_id", user_id)
+            .order("strategy_name")
+            .execute()
+        )
         return jsonify(response.data or [])
     except Exception as e:
         print("Supabase /api/strategies error:", e)
@@ -475,7 +482,14 @@ def get_strategies():
 @app.get("/api/setups")
 @login_required
 def get_setups():
-    response = supabase.table("setups").select("id, setup_name, color").order("setup_name").execute()
+    user_id  = session["user"]["id"]
+    response = (
+        supabase.table("setups")
+        .select("id, setup_name, color")
+        .eq("user_id", user_id)
+        .order("setup_name")
+        .execute()
+    )
     return jsonify(response.data or [])
 
 
