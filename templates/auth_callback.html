@@ -1,0 +1,11 @@
+<script>
+  // Supabase puts the token in the URL hash after OAuth
+  const { createClient } = supabase;
+  // Parse hash, set cookie/session via a POST to your backend
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  fetch("/auth/session", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ access_token: params.get("access_token") })
+  }).then(() => window.location.href = "/");
+</script>
