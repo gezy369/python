@@ -79,7 +79,7 @@ def login():
 def auth_google():
     res = supabase.auth.sign_in_with_oauth({
         "provider": "google",
-        "options": {"redirect_to": "http://localhost:5000/auth/callback"}
+        "options": {"redirect_to": "https://journal-51c7.onrender.com/auth/callback"}
     })
     return redirect(res.url)
 
