@@ -1,11 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>Signing in...</title></head>
+<body>
 <script>
-  // Supabase puts the token in the URL hash after OAuth
-  const { createClient } = supabase;
-  // Parse hash, set cookie/session via a POST to your backend
+  // Token is in the URL hash, e.g. #access_token=xxx&refresh_token=yyy
   const params = new URLSearchParams(window.location.hash.slice(1));
-  fetch("/auth/session", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ access_token: params.get("access_token") })
-  }).then(() => window.location.href = "/");
+  const access_token  = params.get("access_token");
+  const refresh_token = params.get("refresh_token");
+
+  if (!access_token) {
+    document.body.innerText = "Login failed — no token received.";
+  } else {
+    fetch("/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token, refresh_token })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) window.location.href = "/";
+      else document.body.innerText = "Login failed: " + data.error;
+    });
+  }
 </script>
+<p style="font-family:sans-serif; color:#888;">Signing in...</p>
+</body>
+</html>

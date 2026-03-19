@@ -40,6 +40,24 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+@app.post("/auth/session")
+def auth_session():
+    data         = request.json
+    access_token = data.get("access_token")
+
+    if not access_token:
+        return jsonify({"error": "No token"}), 400
+
+    try:
+        # Tell Supabase to use this token and get the user from it
+        user = supabase.auth.get_user(access_token)
+        session["user"] = {
+            "id":    user.user.id,
+            "email": user.user.email
+        }
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 401
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
