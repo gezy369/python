@@ -106,7 +106,6 @@ def auth_callback():
 @app.route("/logout")
 def logout():
     session.clear()
-    supabase.auth.sign_out()
     return redirect(url_for("login"))
 
 
