@@ -85,6 +85,7 @@ const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","durati
 const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
 const pad = n => String(n).padStart(2,"0");
 const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const formatPnL  = v => { const n=Number(v)||0; const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n<0?`($${f})`:`$${f}`; };
 
 function waitForAccount() {
@@ -187,6 +188,7 @@ function buildRows(data) {
       const td=document.createElement("td");
       if (col==="select") { const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
       else if (col==="pnl") { const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
+      else if (col==="side") { td.textContent=row[col]??""; td.className=`side-${String(row[col]).toLowerCase()}`; }
       else if (col.includes("Timestamp")) td.textContent=formatDate(row[col]);
       else td.textContent=row[col]??"";
       tr.appendChild(td);
@@ -242,8 +244,8 @@ function toggleTradeDetails(tr, trade) {
             <span class="td-label">Symbol</span>   <span class="td-val">${trade.symbol}</span>
             <span class="td-label">Side</span>      <span class="td-val td-side-${String(trade.side).toLowerCase()}">${trade.side}</span>
             <span class="td-label">Qty</span>       <span class="td-val">${trade.qty}</span>
-            <span class="td-label">Entry</span>     <span class="td-val">${formatDate(trade.entryTimestamp)}</span>
-            <span class="td-label">Exit</span>      <span class="td-val">${formatDate(trade.exitTimestamp)}</span>
+            <span class="td-label">Entry</span>     <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
+            <span class="td-label">Exit</span>      <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
             <span class="td-label">Entry $</span>   <span class="td-val">${trade.entryPrice}</span>
             <span class="td-label">Exit $</span>    <span class="td-val">${trade.exitPrice}</span>
             <span class="td-label">PnL</span>       <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>

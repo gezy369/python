@@ -1033,8 +1033,8 @@ tr.trade-details-row td {
   text-align: right;
 }
 
-.td-side-long  { color: var(--accent-blue) !important; }
-.td-side-short { color: var(--accent-amber) !important; }
+.td-side-long,  .side-long  { color: var(--accent-blue)  !important; font-weight: 500; }
+.td-side-short, .side-short { color: var(--accent-amber) !important; font-weight: 500; }
 
 /* ===== TAG CONTAINERS ===== */
 .strategy-tag-container {
