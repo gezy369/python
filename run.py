@@ -23,9 +23,12 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ===== SUPABASE =====
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_URL         = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY         = os.environ.get("SUPABASE_KEY")          # anon key, kept for auth only
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # service role key for DB queries
+
+supabase      : Client = create_client(SUPABASE_URL, SUPABASE_KEY)           # auth only
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)   # all DB queries
 
 # ===== HELPERS =====
 def allowed_file(filename):
