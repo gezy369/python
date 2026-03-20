@@ -847,58 +847,208 @@ tr.trade-details-row td {
   margin-bottom: 10px;
 }
 
-/* ===== JOURNAL CHARTS ===== */
-.journal-chart-row {
+/* ===== JOURNAL CONTROLS ===== */
+.journal-controls {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  margin-top: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
+.journal-controls-left { display: flex; align-items: center; gap: 8px; }
+.journal-controls-right { display: flex; align-items: center; gap: 8px; }
+
+.date-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dark-input {
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+
+.dark-input:focus { border-color: var(--accent-blue); }
+
+.btn-danger {
+  background: var(--red-bg) !important;
+  border-color: var(--red-border) !important;
+  color: var(--accent-red) !important;
+}
+
+.btn-danger:hover {
+  background: rgba(229,83,83,0.14) !important;
+  border-color: var(--accent-red) !important;
+}
+
+/* ===== FILTER GROUP LABELS ===== */
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* ===== JOURNAL STATS ===== */
 .journal-stats {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .stat-block {
-  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.stat-block-label { color: var(--text-muted); }
+
+.stat-block-val {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
 }
 
 .chart-container { flex: 2; }
 
+/* ===== DARK SELECT & TEXTAREA ===== */
+.dark-select {
+  width: 100%;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 6px 28px 6px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6070'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+
+.dark-select:focus { border-color: var(--accent-blue); }
+.dark-select:hover { border-color: var(--border-accent); }
+
+.dark-textarea {
+  width: 100%;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 7px 9px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.dark-textarea:focus    { border-color: var(--accent-blue); }
+.dark-textarea::placeholder { color: var(--text-faint); }
+
+/* ===== 3-COLUMN TRADE DETAIL PANEL ===== */
+.td-grid {
+  display: grid;
+  grid-template-columns: 220px 200px 1fr;
+  gap: 0;
+}
+
+.td-col {
+  padding: 14px 16px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.td-col:last-child { border-right: none; }
+
+.td-col-chart { min-width: 0; }
+
+.td-section-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.td-info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  align-items: baseline;
+}
+
+.td-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.td-val {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.td-side-long  { color: var(--accent-blue) !important; }
+.td-side-short { color: var(--accent-amber) !important; }
+
 /* ===== TAG CONTAINERS ===== */
 .strategy-tag-container {
-  margin-bottom: 16px;
   margin-top: 6px;
+  margin-bottom: 10px;
+  min-height: 22px;
 }
 
-.setup-tag-container { margin-top: 6px; }
-.setup-add  { width: 100%; }
-.trade-strategy { width: 100%; }
-
-/* ===== LOGOUT ===== */
-.menu-item-logout {
-  color: var(--text-faint);
-  border-top: 1px solid var(--border-subtle);
-  margin-top: 4px;
-  padding-top: 14px;
+.setup-tag-container {
+  margin-top: 6px;
+  min-height: 22px;
 }
 
-.menu-item-logout:hover {
-  color: var(--accent-red) !important;
-  background: var(--red-bg) !important;
-}
+.setup-add, .trade-strategy { width: 100%; }
 
-.menu-item-logout svg {
-  transition: transform 0.15s;
-}
-
-.menu-item-logout:hover svg {
-  transform: translateX(2px);
-}
+/* Override old trade-details max-height for 3-col layout */
+.trade-details.open { max-height: 500px; }

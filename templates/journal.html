@@ -5,34 +5,39 @@
 <h2>Trade Journal</h2>
 
 <!-- ================= CONTROLS ================= -->
-<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-  <label>From: <input type="date" id="dateFrom"></label>
-  <label>To: <input type="date" id="dateTo"></label>
-  <button onclick="applyFiltersAndRender()">Apply Dates</button>
-  <button onclick="resetFilters()">Reset filters</button>
-
-  <div style="width:20px;"></div>
-
-  <!-- Delete button -->
-  <button onclick="deleteSelected()" style="background:#c0392b;color:white;">
-    Delete selected
-  </button>
+<div class="journal-controls">
+  <div class="journal-controls-left">
+    <div class="date-group">
+      <label class="date-label">From
+        <input type="date" id="dateFrom" class="dark-input">
+      </label>
+      <label class="date-label">To
+        <input type="date" id="dateTo" class="dark-input">
+      </label>
+      <button onclick="applyFiltersAndRender()">Apply</button>
+      <button onclick="resetFilters()">Reset</button>
+    </div>
+  </div>
+  <div class="journal-controls-right">
+    <button class="btn-danger" onclick="deleteSelected()">Delete selected</button>
+  </div>
 </div>
 
 <!-- Strategy and setup filters -->
 <div id="strategySetup">
-  <div>
-  Strategies <div id="strategyFilter" class="filter-buttons single"></div>
+  <div class="filter-group">
+    <span class="filter-group-label">Strategies</span>
+    <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
-
-  <div>
-  Setups <div id="setupFilter" class="filter-buttons multi"></div>
+  <div class="filter-group">
+    <span class="filter-group-label">Setups</span>
+    <div id="setupFilter" class="filter-buttons multi"></div>
   </div>
 </div>
+
 <!-- Table + Chart column -->
 <div style="display:flex; gap:20px; align-items:flex-start;">
 
-  <!-- Table -->
   <div style="flex:2;">
     <table id="tradeTable">
       <thead><tr id="headerRow"></tr></thead>
@@ -40,22 +45,14 @@
     </table>
   </div>
 
-  <!-- Chart + Stats column -->
-  <div style="flex:1; display:flex; flex-direction:column; gap:30px;">
-
-    <!-- PnL chart -->
+  <div style="flex:1; display:flex; flex-direction:column; gap:20px;">
     <div style="height:220px;">
       <canvas id="pnlChart"></canvas>
     </div>
-
-    <!-- Stats now INSIDE the same column -->
     <div id="journalStats" class="journal-stats"></div>
-
   </div>
 
 </div>
-
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -67,72 +64,29 @@ let STRATEGIES = [];
 let SETUPS = [];
 let dataReady = false;
 
-// STATS RENDER
 function renderJournalStats(data) {
   const statsEl = document.getElementById("journalStats");
   if (!statsEl) return;
-
   const totalTrades = data.length;
-
-  // Normalize side just in case (lowercase safety)
-  const longs = data.filter(t => 
-    String(t.side).toLowerCase() === "long"
-  );
-
-  const shorts = data.filter(t => 
-    String(t.side).toLowerCase() === "short"
-  );
-
-  const longCount = longs.length;
-  const shortCount = shorts.length;
-
-  const longPnL = longs.reduce((sum, t) => 
-    sum + (Number(t.pnl) || 0), 0
-  );
-
-  const shortPnL = shorts.reduce((sum, t) => 
-    sum + (Number(t.pnl) || 0), 0
-  );
-
-  const wins = data.filter(t => Number(t.pnl) > 0).length;
-
-  const winRate = totalTrades
-    ? ((wins / totalTrades) * 100).toFixed(1)
-    : 0;
-
+  const longs  = data.filter(t => String(t.side).toLowerCase() === "long");
+  const shorts = data.filter(t => String(t.side).toLowerCase() === "short");
+  const longPnL  = longs.reduce((s,t)  => s + (Number(t.pnl)||0), 0);
+  const shortPnL = shorts.reduce((s,t) => s + (Number(t.pnl)||0), 0);
+  const wins    = data.filter(t => Number(t.pnl) > 0).length;
+  const winRate = totalTrades ? ((wins/totalTrades)*100).toFixed(1) : 0;
   statsEl.innerHTML = `
-    <div class="stat-block">
-      <strong>Total trades:</strong> ${totalTrades}
-    </div>
-
-    <div class="stat-block">
-      <strong>Longs:</strong> ${longCount} —
-      <span class="${longPnL >= 0 ? "positive" : "negative"}">
-        ${longPnL >= 0 ? "+" : ""}$${longPnL.toFixed(2)}
-      </span>
-    </div>
-
-    <div class="stat-block">
-      <strong>Shorts:</strong> ${shortCount} —
-      <span class="${shortPnL >= 0 ? "positive" : "negative"}">
-        ${shortPnL >= 0 ? "+" : ""}$${shortPnL.toFixed(2)}
-      </span>
-    </div>
-
-    <div class="stat-block">
-      <strong>Win rate:</strong> ${winRate}%
-    </div>
-  `;
+    <div class="stat-block"><span class="stat-block-label">Total trades</span><span class="stat-block-val">${totalTrades}</span></div>
+    <div class="stat-block"><span class="stat-block-label">Longs</span><span class="stat-block-val">${longs.length} — <span class="${longPnL>=0?"positive":"negative"}">${longPnL>=0?"+":""}$${longPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Shorts</span><span class="stat-block-val">${shorts.length} — <span class="${shortPnL>=0?"positive":"negative"}">${shortPnL>=0?"+":""}$${shortPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Win rate</span><span class="stat-block-val">${winRate}%</span></div>`;
 }
 
-/* ---------------- COLUMNS & FORMAT ---------------- */
 const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
 const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
 const pad = n => String(n).padStart(2,"0");
 const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatPnL = v => { const n = Number(v)||0; const f = Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n < 0 ? `($${f})` : `$${f}`; };
+const formatPnL  = v => { const n=Number(v)||0; const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n<0?`($${f})`:`$${f}`; };
 
-/* ---------------- FETCH DATA ---------------- */
 function waitForAccount() {
   return new Promise(resolve => {
     if (window.accountSelectorReady) return resolve();
@@ -141,73 +95,47 @@ function waitForAccount() {
 }
 
 Promise.all([
-  fetch("/api/strategies").then(r => r.json()),
-  fetch("/api/setups").then(r => r.json()),
-  fetch("/api/trade_setups").then(r => r.json()),
+  fetch("/api/strategies").then(r=>r.json()),
+  fetch("/api/setups").then(r=>r.json()),
+  fetch("/api/trade_setups").then(r=>r.json()),
 ]).then(async ([strategies, setups, tradeSetups]) => {
-
-  await waitForAccount(); // ✅ wait for account selector to be populated
-
+  await waitForAccount();
   STRATEGIES = strategies;
   SETUPS = setups;
 
-  // ---------- SETUP FILTER ----------
   const setupContainer = document.getElementById("setupFilter");
-    setupContainer.innerHTML = "";
-
-    SETUPS.forEach(s => {
-      const btn = document.createElement("button");
-      btn.textContent = s.setup_name;
-      btn.dataset.id = s.id;
-      btn.style.background = s.color;   // 🎨 color applied
-
-      btn.onclick = () => {
-        btn.classList.toggle("active");
-        applyFiltersAndRender();
-      };
-
-      setupContainer.appendChild(btn);
-    });
-
-  // ---------- STRATEGY FILTER ----------
-    const strategyContainer = document.getElementById("strategyFilter");
-    strategyContainer.innerHTML = "";
-
-    STRATEGIES.forEach(s => {
-      const btn = document.createElement("button");
-      btn.textContent = s.strategy_name;
-      btn.dataset.id = s.id;
-      btn.style.background = s.color;   // 🎨 color applied
-
-      btn.onclick = () => {
-        const isActive = btn.classList.contains("active");
-
-        strategyContainer
-          .querySelectorAll("button")
-          .forEach(b => b.classList.remove("active"));
-
-        if (!isActive) {
-          btn.classList.add("active");
-        }
-
-        applyFiltersAndRender();
-      };
-
-      strategyContainer.appendChild(btn);
-    });
-
-  const trades = await fetchFilteredTrades({
-    account: accountSelect?.value  // ✅ now guaranteed to have the right value
+  setupContainer.innerHTML = "";
+  SETUPS.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.setup_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    btn.onclick = () => { btn.classList.toggle("active"); applyFiltersAndRender(); };
+    setupContainer.appendChild(btn);
   });
 
-  // Attach setups to trades
+  const strategyContainer = document.getElementById("strategyFilter");
+  strategyContainer.innerHTML = "";
+  STRATEGIES.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.strategy_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    btn.onclick = () => {
+      const isActive = btn.classList.contains("active");
+      strategyContainer.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      if (!isActive) btn.classList.add("active");
+      applyFiltersAndRender();
+    };
+    strategyContainer.appendChild(btn);
+  });
+
+  const trades = await fetchFilteredTrades({ account: accountSelect?.value });
   originalData = trades.map(t => ({
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
-    exitTimestamp: new Date(t.exitTimestamp),
-    setups: tradeSetups
-      .filter(ts => ts.key_trade_id === t.id)
-      .map(ts => ts.key_setup_id) // just IDs for now
+    exitTimestamp:  new Date(t.exitTimestamp),
+    setups: tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id)
   }));
 
   buildHeaders();
@@ -215,82 +143,51 @@ Promise.all([
   applyFiltersAndRender();
 });
 
-/* ---------------- RESET FILTERS ---------------- */
 function resetFilters() {
-  // reset date inputs
-  const dateFrom = document.getElementById("dateFrom");
-  const dateTo = document.getElementById("dateTo");
-  if (dateFrom) dateFrom.value = "";
-  if (dateTo) dateTo.value = "";
-
-  // remove active filter buttons
-  document
-    .querySelectorAll(".filter-buttons button")
-    .forEach(b => b.classList.remove("active"));
-
-  // clear column filters
-  document
-    .querySelectorAll("th input[data-col]")
-    .forEach(input => input.value = "");
-
-  // clear URL params (important!)
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  document.querySelectorAll(".filter-buttons button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll("th input[data-col]").forEach(i=>i.value="");
   window.history.replaceState({}, "", "/journal");
-
-  // re-render
   applyFiltersAndRender();
 }
 
-/* ------------------ DELETE ----------------- */
 async function deleteSelected() {
   const checked = [...document.querySelectorAll(".row-select:checked")];
-  
-  if (!checked.length) {
-    alert("No trades selected.");
-    return;
-  }
-
+  if (!checked.length) { alert("No trades selected."); return; }
   if (!confirm(`Delete ${checked.length} trade(s)?`)) return;
-
-  const ids = checked.map(cb => Number(cb.dataset.id));
-
-  const res = await fetch("/api/trades", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids })
-  });
-
-  if (res.ok) {
-    originalData = originalData.filter(t => !ids.includes(t.id));
-    applyFiltersAndRender();
-  } else {
-    alert("Delete failed.");
-  }
+  const ids = checked.map(cb=>Number(cb.dataset.id));
+  const res = await fetch("/api/trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ids}) });
+  if (res.ok) { originalData = originalData.filter(t=>!ids.includes(t.id)); applyFiltersAndRender(); }
+  else alert("Delete failed.");
 }
-/* ---------------- HEADERS ---------------- */
-function buildHeaders(){
+
+function buildHeaders() {
   const tr = document.getElementById("headerRow"); tr.innerHTML="";
-  COLUMN_ORDER.forEach(col=>{
+  COLUMN_ORDER.forEach(col => {
     const th = document.createElement("th");
-    if(col==="select"){
-      const cb=document.createElement("input"); cb.type="checkbox"; cb.onclick=e=>{ document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked); }; th.appendChild(cb);
+    if (col==="select") {
+      const cb=document.createElement("input"); cb.type="checkbox";
+      cb.onclick=e=>document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked);
+      th.appendChild(cb);
     } else {
-      th.textContent = COLUMN_NAMES[col] ?? col;
-      const input=document.createElement("input"); input.placeholder="Filter"; input.dataset.col=col; input.onkeyup=applyFiltersAndRender; th.append(document.createElement("br"), input);
+      th.textContent = COLUMN_NAMES[col]??col;
+      const input=document.createElement("input"); input.placeholder="Filter"; input.dataset.col=col; input.onkeyup=applyFiltersAndRender;
+      th.append(document.createElement("br"), input);
     }
     tr.appendChild(th);
   });
 }
 
-/* ---------------- RENDER ROWS ---------------- */
-function buildRows(data){
+function buildRows(data) {
   const tbody=document.querySelector("#tradeTable tbody"); tbody.innerHTML="";
-  data.forEach(row=>{
+  data.forEach(row => {
     const tr=document.createElement("tr"); tr.className="trade-row"; tr.onclick=()=>toggleTradeDetails(tr,row);
-    COLUMN_ORDER.forEach(col=>{
+    COLUMN_ORDER.forEach(col => {
       const td=document.createElement("td");
-      if(col==="select"){ const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
-      else if(col==="pnl"){ const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
-      else if(col.includes("Timestamp")) td.textContent=formatDate(row[col]);
+      if (col==="select") { const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
+      else if (col==="pnl") { const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
+      else if (col.includes("Timestamp")) td.textContent=formatDate(row[col]);
       else td.textContent=row[col]??"";
       tr.appendChild(td);
     });
@@ -298,457 +195,231 @@ function buildRows(data){
   });
 }
 
-/* ---------------- TAGS ---------------- */
-function renderStrategyTag(strategyId){
-  if(!strategyId) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
+function renderStrategyTag(strategyId) {
+  if (!strategyId) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
   const s=STRATEGIES.find(x=>x.id===strategyId); if(!s) return "";
   return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
 }
 
 function renderSetupTags(trade) {
   if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
-
   return trade.setups.map(id => {
-    const s = SETUPS.find(x => x.id === id);
-    if (!s) return "";
-
-    return `
-      <span class="setup-tag" style="background:${s.color};">
-        ${s.setup_name}
-        <span class="tag-remove"
-              onclick="removeSetup(event, ${trade.id}, ${id})">✕</span>
-      </span>
-    `;
+    const s=SETUPS.find(x=>x.id===id); if(!s) return "";
+    return `<span class="setup-tag" style="background:${s.color};">${s.setup_name}<span class="tag-remove" onclick="removeSetup(event,${trade.id},${id})">×</span></span>`;
   }).join("");
 }
 
-
-
-function removeSetup(e, tradeId, setupId){
+function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
-
-  fetch("/api/trade_setups", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      trade_id: tradeId,
-      setup_id: setupId
-    })
-  })
+  fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
   .then(() => {
-  const trade = originalData.find(t => t.id === tradeId);
-  trade.setups = trade.setups.filter(id => id !== setupId);
-
-  // re-render tags only
-  const container = openRow?.panel?.querySelector(".setup-tag-container");
-  if (container) {
-    container.innerHTML = renderSetupTags(trade);
-  }
-});
-
+    const trade=originalData.find(t=>t.id===tradeId);
+    trade.setups=trade.setups.filter(id=>id!==setupId);
+    const container=openRow?.panel?.querySelector(".setup-tag-container");
+    if (container) container.innerHTML=renderSetupTags(trade);
+  });
 }
 
-function refreshOpenTrade(){
-  if (!openRow) return;
-
-  const { tr, detailsTr } = openRow;
-  const tradeId = tr.querySelector(".row-select")?.dataset.id;
-  const trade = originalData.find(t => t.id == tradeId);
-
+/* ── DETAIL PANEL ── */
+function toggleTradeDetails(tr, trade) {
+  if (openRow && openRow.tr===tr) { closeDetails(); return; }
   closeDetails();
-  toggleTradeDetails(tr, trade);
-}
-
-
-/* ---------------- TOGGLE DETAILS ---------------- */
-function toggleTradeDetails(tr, trade){
-  if(openRow && openRow.tr===tr){ closeDetails(); return; }
-  closeDetails(); tr.classList.add("expanded");
+  tr.classList.add("expanded");
 
   const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
+
   const detailsTr=document.createElement("tr"); detailsTr.className="trade-details-row";
   const td=document.createElement("td"); td.colSpan=COLUMN_ORDER.length;
 
   td.innerHTML=`
     <div class="trade-details">
-      <div class="trade-details-grid">
-        <div>
+      <div class="td-grid">
 
-          <h4>Trade</h4>
-
-          <div><strong>Symbol:</strong> ${trade.symbol}</div>
-          <div><strong>Side:</strong> ${trade.side}</div>
-          <div><strong>Qty:</strong> ${trade.qty}</div>
-          <div><strong>Entry:</strong> ${formatDate(trade.entryTimestamp)}</div>
-          <div><strong>Exit:</strong> ${formatDate(trade.exitTimestamp)}</div>
-          <div><strong>PnL:</strong> <span class="${Number(trade.pnl) >= 0 ? 'pnl-positive' : 'pnl-negative'}">${formatPnL(trade.pnl)}</span></div>
-
-          <div style="margin-top:10px;">
-            <textarea
-              class="trade-notes"
-              rows="4"
-              style="width:100%; resize:vertical;"
-              placeholder="Write your trade notes here..."
-            >${trade.notes ?? ""}</textarea>
+        <!-- COL 1: Trade info + notes -->
+        <div class="td-col">
+          <div class="td-section-label">Trade details</div>
+          <div class="td-info-grid">
+            <span class="td-label">Symbol</span>   <span class="td-val">${trade.symbol}</span>
+            <span class="td-label">Side</span>      <span class="td-val td-side-${String(trade.side).toLowerCase()}">${trade.side}</span>
+            <span class="td-label">Qty</span>       <span class="td-val">${trade.qty}</span>
+            <span class="td-label">Entry</span>     <span class="td-val">${formatDate(trade.entryTimestamp)}</span>
+            <span class="td-label">Exit</span>      <span class="td-val">${formatDate(trade.exitTimestamp)}</span>
+            <span class="td-label">Entry $</span>   <span class="td-val">${trade.entryPrice}</span>
+            <span class="td-label">Exit $</span>    <span class="td-val">${trade.exitPrice}</span>
+            <span class="td-label">PnL</span>       <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
           </div>
-
+          <div style="margin-top:10px;">
+            <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
+            <textarea class="trade-notes dark-textarea" rows="4" placeholder="Add trade notes...">${trade.notes??""}</textarea>
+          </div>
         </div>
 
-        <div>
-          <h4>Strategy</h4>
-          <select class="trade-strategy">${strategyOptions}</select>
+        <!-- COL 2: Strategy, setups, quick stats -->
+        <div class="td-col">
+          <div class="td-section-label">Strategy</div>
+          <select class="trade-strategy dark-select">${strategyOptions}</select>
           <div class="strategy-tag-container">${renderStrategyTag(trade.key_strategies_id)}</div>
 
-          <h4>Setups</h4>
-          <select class="setup-add">
+          <div class="td-section-label" style="margin-top:10px;">Setups</div>
+          <select class="setup-add dark-select">
             <option value="">+ Add setup</option>
             ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
-          <div class="setup-tag-container">
-            ${renderSetupTags(trade)}
+          <div class="setup-tag-container">${renderSetupTags(trade)}</div>
+        </div>
+
+        <!-- COL 3: Chart -->
+        <div class="td-col td-col-chart">
+          <div class="td-section-label">Chart</div>
+          <div id="tradeChart-${trade.id}" style="height:340px;"></div>
         </div>
 
       </div>
-    </div>
-          
-        <div class="trade-chart">
-          <div id="tradeChart-${trade.id}" style="height:350px;"></div>
-        </div>
+    </div>`;
 
-    </div>
-  `;
-
-  detailsTr.appendChild(td); tr.after(detailsTr);
-  const panel = td.querySelector(".trade-details"); panel.offsetHeight; requestAnimationFrame(()=>panel.classList.add("open"));
+  detailsTr.appendChild(td);
+  tr.after(detailsTr);
+  const panel=td.querySelector(".trade-details");
+  panel.offsetHeight;
+  requestAnimationFrame(()=>panel.classList.add("open"));
   openRow={tr,detailsTr,panel};
-  
-  // ---------- CHART -----------
+
   showTradeChart(trade, `tradeChart-${trade.id}`);
 
-  // ---------- NOTES AUTOSAVE ----------
-  const notesEl = td.querySelector(".trade-notes");
-  let notesTimer = null;
-
+  /* notes autosave */
+  const notesEl=td.querySelector(".trade-notes");
+  let notesTimer=null;
   notesEl.addEventListener("input", () => {
     clearTimeout(notesTimer);
-
-    notesTimer = setTimeout(() => {
-      const value = notesEl.value;
-
-      fetch(`/api/trades/${trade.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: value })
-      });
-
-      trade.notes = value; // keep local state in sync
-    }, 600); // debounce (ms)
+    notesTimer=setTimeout(() => {
+      fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({notes:notesEl.value}) });
+      trade.notes=notesEl.value;
+    }, 600);
   });
 
-  // ---------- STRATEGY CHANGE ----------
+  /* strategy change */
   const strategySelect=td.querySelector(".trade-strategy");
   const strategyContainer=td.querySelector(".strategy-tag-container");
-  strategySelect.addEventListener("change", ()=>{
-    const val = strategySelect.value || null;
-    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key_strategies_id: val }) });
-    trade.key_strategies_id = val ? Number(val) : null;
-    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
+  strategySelect.addEventListener("change", () => {
+    const val=strategySelect.value||null;
+    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_strategies_id:val}) });
+    trade.key_strategies_id=val?Number(val):null;
+    strategyContainer.innerHTML=renderStrategyTag(trade.key_strategies_id);
     attachStrategyRemoveHandler(trade, strategyContainer);
   });
   attachStrategyRemoveHandler(trade, strategyContainer);
 
-  // ---------- SETUP ADD ----------
-  const setupSelect = td.querySelector(".setup-add");
-  const setupContainer = td.querySelector(".setup-tag-container");
-
+  /* setup add */
+  const setupSelect=td.querySelector(".setup-add");
+  const setupContainer=td.querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
-  const setupId = setupSelect.value;
-  if (!setupId) return;
-
-  await fetch("/api/trade_setup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      key_trade_id: trade.id,
-      key_setup_id: setupId
-    })
-  });
-
-    trade.setups.push(Number(setupId));   // ✅ keep IDs only
-
-    setupContainer.innerHTML = renderSetupTags(trade);
-    setupSelect.value = "";
+    const setupId=setupSelect.value; if(!setupId) return;
+    await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
+    trade.setups.push(Number(setupId));
+    setupContainer.innerHTML=renderSetupTags(trade);
+    setupSelect.value="";
   });
 
   attachSetupRemoveHandlers(trade, setupContainer);
 }
 
-/* --------------- ACCOUNT LISTENER ---------------- */
-const accountSelect = document.getElementById("accountSelect");
-
-if (accountSelect) {
-  accountSelect.addEventListener("change", () => {
-    applyFiltersAndRender();
-  });
-}
-
-/* ---------------- CHARTS -------------------- */
-function renderPnLChart(data) {
-  const ctx = document.getElementById("pnlChart");
-  if (!ctx) return;
-
-  // destroy previous chart
-  if (charts.pnl) charts.pnl.destroy();
-
-  // group pnl by date
-  const byDate = {};
-  data.forEach(t => {
-    const d = t.entryTimestamp.toISOString().slice(0, 10); // YYYY-MM-DD
-    byDate[d] = (byDate[d] || 0) + (Number(t.pnl) || 0);
-  });
-
-  const dates = Object.keys(byDate).sort();
-  let cumulative = 0;
-  const cumulativePnL = dates.map(d => {
-    cumulative += byDate[d];
-    return cumulative;
-  });
-
-  charts.pnl = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: dates,
-      datasets: [{
-        label: "Cumulative PnL",
-        data: cumulativePnL,
-        borderColor: "#2ecc71",
-        backgroundColor: "rgba(46, 204, 113, 0.15)",
-        tension: 0.25,
-        fill: true,
-        pointRadius: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          ticks: {
-            callback: v => `$${v.toLocaleString()}`
-          }
-        }
-      }
-    }
-  });
-}
+const accountSelect=document.getElementById("accountSelect");
+if (accountSelect) accountSelect.addEventListener("change", ()=>applyFiltersAndRender());
 
 function updatePnLChart(data) {
-  const ctx = document.getElementById("pnlChart");
-  if (!ctx) return;
-
-  // group PnL by date
-  const daily = {};
-  data.forEach(t => {
-    const d = t.entryTimestamp.toISOString().slice(0, 10);
-    daily[d] = (daily[d] || 0) + (Number(t.pnl) || 0);
-  });
-
-  const dates = Object.keys(daily).sort();
-  let cumulative = 0;
-  const values = dates.map(d => (cumulative += daily[d]));
-
-  // destroy previous chart
+  const ctx=document.getElementById("pnlChart"); if(!ctx) return;
   if (charts.pnl) charts.pnl.destroy();
-
-  charts.pnl = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: dates,
-      datasets: [{
-        label: "Cumulative PnL",
-        data: values,
-        borderColor: "#2ecc71",
-        backgroundColor: "rgba(46, 204, 113, 0.15)",
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          ticks: {
-            callback: v => `$${v.toLocaleString()}`
-          }
-        }
-      }
+  const daily={};
+  data.forEach(t=>{ const d=t.entryTimestamp.toISOString().slice(0,10); daily[d]=(daily[d]||0)+(Number(t.pnl)||0); });
+  const dates=Object.keys(daily).sort();
+  let cum=0;
+  const values=dates.map(d=>(cum+=daily[d], +cum.toFixed(2)));
+  charts.pnl=new Chart(ctx, {
+    type:"line",
+    data:{ labels:dates, datasets:[{ data:values, borderColor:"#34c38f", borderWidth:2,
+      fill:true, tension:0.3, pointRadius:0,
+      backgroundColor:ctx2=>{ const {chartArea}=ctx2.chart; if(!chartArea) return "transparent"; const g=ctx2.chart.ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom); g.addColorStop(0,"rgba(52,195,143,0.18)"); g.addColorStop(1,"rgba(52,195,143,0)"); return g; }
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{display:false}, y:{ ticks:{color:"#5a6070", font:{size:10,family:"'IBM Plex Mono'"}, callback:v=>`$${v}`}, grid:{color:"rgba(255,255,255,0.04)"} } }
     }
   });
 }
 
-/* ---------------- REMOVE STRATEGY ---------------- */
-function attachStrategyRemoveHandler(trade, container){
-  const tag = container.querySelector("[data-remove-strategy]");
-  if(tag){
-    tag.addEventListener("click", ()=>{
-      fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key_strategies_id: null }) });
-      trade.key_strategies_id = null;
-      container.innerHTML = renderStrategyTag(null);
-      attachStrategyRemoveHandler(trade, container);
-    });
-  }
+function attachStrategyRemoveHandler(trade, container) {
+  const tag=container.querySelector("[data-remove-strategy]");
+  if (tag) tag.addEventListener("click", ()=>{
+    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_strategies_id:null}) });
+    trade.key_strategies_id=null;
+    container.innerHTML=renderStrategyTag(null);
+    attachStrategyRemoveHandler(trade, container);
+  });
 }
 
-/* ---------------- REMOVE SETUP ---------------- */
-function attachSetupRemoveHandlers(trade, container){
+function attachSetupRemoveHandlers(trade, container) {
   container.querySelectorAll(".setup-tag").forEach(tag=>{
     tag.addEventListener("click", async ()=>{
-      const id = tag.dataset.tradeSetupId;
-      await fetch(`/api/trade_setup/${id}`, { method:"DELETE" });
-      trade.setups = trade.setups.filter(s => s.trade_setup_id != id);
-      container.innerHTML = renderSetupTags(trade.setups);
+      const id=tag.dataset.tradeSetupId;
+      await fetch(`/api/trade_setup/${id}`, {method:"DELETE"});
+      trade.setups=trade.setups.filter(s=>s.trade_setup_id!=id);
+      container.innerHTML=renderSetupTags(trade);
       attachSetupRemoveHandlers(trade, container);
     });
   });
 }
 
-/* ---------------- CLOSE DETAILS ---------------- */
-function closeDetails(){
-  if(!openRow) return;
-  const { tr, detailsTr, panel } = openRow;
+function closeDetails() {
+  if (!openRow) return;
+  const {tr,detailsTr,panel}=openRow;
   tr.classList.remove("expanded");
   panel.classList.remove("open");
-  setTimeout(()=>detailsTr.remove(),250);
+  setTimeout(()=>detailsTr.remove(), 250);
   openRow=null;
 }
 
-/* ---------------- FILTERS ---------------- */
 async function applyFiltersAndRender() {
-  if (!dataReady) return; // ← bail if data isn't loaded yet
-  const dateFrom = document.getElementById("dateFrom");
-  const dateTo = document.getElementById("dateTo");
+  if (!dataReady) return;
+  const from=document.getElementById("dateFrom")?.value||null;
+  const to=document.getElementById("dateTo")?.value||null;
+  let data=normalizeTrades(await fetchFilteredTrades({account:accountSelect?.value, from, to}));
 
-  const from = dateFrom?.value || null;
-  const to = dateTo?.value || null;
-
-  let data = normalizeTrades(
-    await fetchFilteredTrades({
-      account: accountSelect?.value,
-      from,
-      to
-    })
-  );
-
-  // ---------- COLUMN FILTERS ----------
-  document.querySelectorAll("th input[data-col]").forEach(input => {
+  document.querySelectorAll("th input[data-col]").forEach(input=>{
     if (!input.value) return;
-    const col = input.dataset.col;
-    const val = input.value.toLowerCase();
-
-    data = data.filter(r =>
-      String(r[col] ?? "").toLowerCase().includes(val)
-    );
+    const val=input.value.toLowerCase();
+    data=data.filter(r=>String(r[input.dataset.col]??"").toLowerCase().includes(val));
   });
 
-  // ---------- SETUP FILTER ----------
-  const selectedSetups = [
-    ...document.querySelectorAll("#setupFilter button.active")
-  ].map(b => Number(b.dataset.id));
+  const selectedSetups=[...document.querySelectorAll("#setupFilter button.active")].map(b=>Number(b.dataset.id));
+  if (selectedSetups.length) data=data.filter(t=>selectedSetups.some(id=>t.setups?.includes(id)));
 
-  if (selectedSetups.length) {
-    data = data.filter(t =>
-      selectedSetups.some(id => t.setups?.includes(id))
-    );
-  }
+  const activeStrategy=document.querySelector("#strategyFilter button.active");
+  if (activeStrategy) data=data.filter(t=>t.key_strategies_id===Number(activeStrategy.dataset.id));
 
-  // ---------- STRATEGY FILTER ----------
-  const activeStrategy = document.querySelector("#strategyFilter button.active");
-  if (activeStrategy) {
-    const strategyId = Number(activeStrategy.dataset.id);
-    data = data.filter(t => t.key_strategies_id === strategyId);
-  }
-
-  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
-
+  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
   updatePnLChart(data);
   renderJournalStats(data);
 }
 
-
-/* ==================== Journal: auto-apply date filters from URL ================== */
 function applyDateFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const from = params.get("from");
-  const to = params.get("to");
-
-  if (from) document.getElementById("dateFrom").value = from;
-  if (to) document.getElementById("dateTo").value = to;
+  const params=new URLSearchParams(window.location.search);
+  const from=params.get("from"); const to=params.get("to");
+  if (from) document.getElementById("dateFrom").value=from;
+  if (to)   document.getElementById("dateTo").value=to;
 }
-
 applyDateFromURL();
 
-
-/* ==================== CHART GENERATION ========================*/
-async function fetchYahooCandles(symbol) {
-
-  const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}=F?interval=5m&range=5d`;
-
-  const res = await fetch(url);
-  const json = await res.json();
-
-  const result = json.chart.result[0];
-
-  const timestamps = result.timestamp;
-  const quote = result.indicators.quote[0];
-
-  return timestamps.map((t,i)=>({
-    time: t,
-    open: quote.open[i],
-    high: quote.high[i],
-    low: quote.low[i],
-    close: quote.close[i]
-  }));
-}
-
-
 async function showTradeChart(trade, containerId) {
-  const chartEl = document.getElementById(containerId);
-  chartEl.innerHTML = "";
-
-  // Try saved image first
+  const chartEl=document.getElementById(containerId);
+  chartEl.innerHTML="";
   if (trade.chart_image) {
-    chartEl.innerHTML = `
-      <img 
-        src="data:image/png;base64,${trade.chart_image}" 
-        style="width:100%; height:350px; object-fit:contain; border-radius:6px;"
-      />`;
+    chartEl.innerHTML=`<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:340px;object-fit:contain;border-radius:6px;"/>`;
     return;
   }
-
-  // Try live chart
-  if (typeof LightweightCharts !== "undefined") {
-    // ... your existing LightweightCharts code ...
-    return;
-  }
-
-  // Placeholder fallback
-  chartEl.innerHTML = `
-    <div style="height:350px; display:flex; align-items:center; 
-                justify-content:center; background:#f5f5f5; 
-                border-radius:6px; color:#999;">
-      📊 No chart available for this trade
-    </div>`;
+  if (typeof LightweightCharts!=="undefined") { return; }
+  chartEl.innerHTML=`<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
 }
 </script>
-
-
 
 {% endblock %}
