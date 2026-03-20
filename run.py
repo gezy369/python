@@ -24,11 +24,11 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ===== SUPABASE =====
 SUPABASE_URL         = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY         = os.environ.get("SUPABASE_KEY")          # anon key, kept for auth only
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")  # service role key for DB queries
+SUPABASE_KEY         = os.environ.get("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-supabase      : Client = create_client(SUPABASE_URL, SUPABASE_KEY)           # auth only
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)   # all DB queries
+supabase      : Client = create_client(SUPABASE_URL, SUPABASE_KEY)          # auth only
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)  # all DB queries
 
 # ===== HELPERS =====
 def allowed_file(filename):
@@ -43,6 +43,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
 @app.post("/auth/session")
 def auth_session():
     data         = request.json
@@ -52,7 +53,6 @@ def auth_session():
         return jsonify({"error": "No token"}), 400
 
     try:
-        # Tell Supabase to use this token and get the user from it
         user = supabase.auth.get_user(access_token)
         session["user"] = {
             "id":    user.user.id,
@@ -61,6 +61,7 @@ def auth_session():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 401
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -90,10 +91,10 @@ def auth_google():
 @app.route("/auth/callback")
 def auth_callback():
     code = request.args.get("code")
-    
+
     if not code:
         return redirect(url_for("login"))
-    
+
     try:
         res = supabase.auth.exchange_code_for_session({"auth_code": code})
         session["user"] = {
@@ -136,10 +137,10 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Yahoo returned {r.status_code} for {yahoo_symbol}")
             return None
 
-        data      = r.json()
-        result    = data["chart"]["result"][0]
+        data       = r.json()
+        result     = data["chart"]["result"][0]
         timestamps = result["timestamp"]
-        quote     = result["indicators"]["quote"][0]
+        quote      = result["indicators"]["quote"][0]
 
         df = pd.DataFrame({
             "Open":   quote["open"],
@@ -262,7 +263,7 @@ def upload_file():
         df_imported_trades["exitTimestamp"]  = df_imported_trades["exitTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
 
         records  = df_imported_trades.to_dict(orient="records")
-        response = supabase.table("trades").insert(records).execute()
+        response = supabase_admin.table("trades").insert(records).execute()
 
         inserted_trades = response.data or []
         print(f"Inserted {len(inserted_trades)} trades, generating charts...")
@@ -278,7 +279,7 @@ def upload_file():
                     side        = trade["side"]
                 )
                 if chart_b64:
-                    supabase.table("trades").update({"chart_image": chart_b64}).eq("id", trade["id"]).execute()
+                    supabase_admin.table("trades").update({"chart_image": chart_b64}).eq("id", trade["id"]).execute()
                     print(f"Chart saved for trade {trade['id']}")
                 else:
                     print(f"No chart generated for trade {trade['id']} ({trade['symbol']})")
@@ -311,9 +312,8 @@ def api_trades():
         strategy_id = request.args.get("strategy")
         setup_ids   = request.args.getlist("setups")
 
-        # Get only this user's account IDs
         accounts_res = (
-            supabase.table("trading_accounts")
+            supabase_admin.table("trading_accounts")
             .select("id")
             .eq("user_id", user_id)
             .execute()
@@ -323,9 +323,8 @@ def api_trades():
         if not user_account_ids:
             return jsonify([])
 
-        # Fetch only trades belonging to those accounts
         trades_res = (
-            supabase.table("trades")
+            supabase_admin.table("trades")
             .select("*")
             .in_("key_trading_accounts", user_account_ids)
             .execute()
@@ -338,7 +337,7 @@ def api_trades():
         trade_ids = [t["id"] for t in trades]
 
         links_res = (
-            supabase.table("trade_setup")
+            supabase_admin.table("trade_setup")
             .select("key_trade_id, key_setup_id")
             .in_("key_trade_id", trade_ids)
             .execute()
@@ -416,8 +415,8 @@ def delete_trades():
     if not ids:
         return {"error": "No IDs provided"}, 400
 
-    supabase.table("trade_setup").delete().in_("key_trade_id", ids).execute()
-    supabase.table("trades").delete().in_("id", ids).execute()
+    supabase_admin.table("trade_setup").delete().in_("key_trade_id", ids).execute()
+    supabase_admin.table("trades").delete().in_("id", ids).execute()
     return {"deleted": len(ids)}
 
 
@@ -426,7 +425,7 @@ def delete_trades():
 def get_accounts():
     user_id  = session["user"]["id"]
     response = (
-        supabase.table("trading_accounts")
+        supabase_admin.table("trading_accounts")
         .select("id, name")
         .eq("user_id", user_id)
         .order("created_at")
@@ -440,7 +439,7 @@ def get_accounts():
 def add_account():
     data            = request.json
     data["user_id"] = session["user"]["id"]
-    supabase.table("trading_accounts").insert(data).execute()
+    supabase_admin.table("trading_accounts").insert(data).execute()
     return {"ok": True}
 
 
@@ -448,7 +447,7 @@ def add_account():
 @login_required
 def delete_account(id):
     user_id = session["user"]["id"]
-    supabase.table("trading_accounts").delete().eq("id", id).eq("user_id", user_id).execute()
+    supabase_admin.table("trading_accounts").delete().eq("id", id).eq("user_id", user_id).execute()
     return {"ok": True}
 
 
@@ -456,7 +455,7 @@ def delete_account(id):
 @login_required
 def update_trade(id):
     data     = request.json
-    response = supabase.table("trades").update(data).eq("id", id).execute()
+    response = supabase_admin.table("trades").update(data).eq("id", id).execute()
 
     if response.data is None:
         return {"error": "Update failed"}, 400
@@ -469,7 +468,7 @@ def get_strategies():
     try:
         user_id  = session["user"]["id"]
         response = (
-            supabase.table("strategies")
+            supabase_admin.table("strategies")
             .select("id, strategy_name, color")
             .eq("user_id", user_id)
             .order("strategy_name")
@@ -486,7 +485,7 @@ def get_strategies():
 def get_setups():
     user_id  = session["user"]["id"]
     response = (
-        supabase.table("setups")
+        supabase_admin.table("setups")
         .select("id, setup_name, color")
         .eq("user_id", user_id)
         .order("setup_name")
@@ -499,7 +498,7 @@ def get_setups():
 @login_required
 def add_trade_setup():
     data     = request.json
-    response = supabase.table("trade_setup").insert({
+    response = supabase_admin.table("trade_setup").insert({
         "key_trade_id": data["key_trade_id"],
         "key_setup_id": data["key_setup_id"]
     }).execute()
@@ -510,7 +509,7 @@ def add_trade_setup():
 @login_required
 def get_trade_setups():
     try:
-        response = supabase.table("trade_setup").select("*").execute()
+        response = supabase_admin.table("trade_setup").select("*").execute()
         return jsonify(response.data or [])
     except Exception as e:
         print("Supabase /api/trade_setups error:", e)
@@ -527,7 +526,7 @@ def delete_trade_setup():
     if not trade_id or not setup_id:
         return {"error": "Missing trade_id or setup_id"}, 400
 
-    supabase.table("trade_setup").delete().eq("key_trade_id", trade_id).eq("key_setup_id", setup_id).execute()
+    supabase_admin.table("trade_setup").delete().eq("key_trade_id", trade_id).eq("key_setup_id", setup_id).execute()
     return {"ok": True}
 
 
