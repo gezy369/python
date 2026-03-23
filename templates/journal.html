@@ -268,8 +268,8 @@ function toggleTradeDetails(tr, trade) {
 
         <!-- COL 3: Chart -->
         <div class="td-col td-col-chart">
-          <div class="td-section-label">Chart</div>
-          <div id="tradeChart-${trade.id}" style="height:340px;"></div>
+          <div class="td-section-label">Chart <span style="font-size:9px;color:var(--text-faint);font-weight:400;letter-spacing:0;text-transform:none;margin-left:4px;">click to expand</span></div>
+          <div id="tradeChart-${trade.id}" class="chart-clickable" style="height:340px;" onclick="openChartOverlay('${trade.id}', '${trade.symbol}', ${trade.entryPrice}, ${trade.exitPrice})"></div>
         </div>
 
       </div>
@@ -406,7 +406,43 @@ function applyDateFromURL() {
   if (from) document.getElementById("dateFrom").value=from;
   if (to)   document.getElementById("dateTo").value=to;
 }
-applyDateFromURL();
+function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
+  const source = document.getElementById(`tradeChart-${tradeId}`);
+  if (!source) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "chart-overlay";
+  overlay.id = "chartOverlay";
+
+  overlay.innerHTML = `
+    <div class="chart-overlay-inner">
+      <div class="chart-overlay-header">
+        <span class="chart-overlay-title">${symbol} — Entry ${entryPrice} · Exit ${exitPrice}</span>
+        <button class="chart-overlay-close" onclick="closeChartOverlay()">✕</button>
+      </div>
+      <div class="chart-overlay-body">
+        <div id="chartOverlayContent" style="height:100%;min-height:500px;"></div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeChartOverlay(); });
+  document.addEventListener("keydown", overlayKeyHandler);
+
+  const trade = originalData.find(t => t.id == tradeId);
+  if (trade) showTradeChart(trade, "chartOverlayContent");
+}
+
+function closeChartOverlay() {
+  const overlay = document.getElementById("chartOverlay");
+  if (overlay) overlay.remove();
+  document.removeEventListener("keydown", overlayKeyHandler);
+}
+
+function overlayKeyHandler(e) {
+  if (e.key === "Escape") closeChartOverlay();
+}
+
 
 async function showTradeChart(trade, containerId) {
   const chartEl=document.getElementById(containerId);

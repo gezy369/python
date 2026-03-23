@@ -1046,9 +1046,89 @@ tr.trade-details-row td {
 .setup-tag-container {
   margin-top: 6px;
   min-height: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .setup-add, .trade-strategy { width: 100%; }
 
 /* Override old trade-details max-height for 3-col layout */
 .trade-details.open { max-height: 500px; }
+
+/* ===== CHART FULLSCREEN OVERLAY ===== */
+.chart-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.chart-overlay-inner {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chart-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.chart-overlay-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.chart-overlay-close {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  margin-top: 0;
+  padding: 0;
+}
+
+.chart-overlay-close:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.chart-overlay-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 16px;
+  min-height: 0;
+}
+
+.chart-clickable {
+  cursor: zoom-in;
+  border-radius: var(--radius-md);
+  transition: opacity 0.15s;
+}
+
+.chart-clickable:hover { opacity: 0.88; }
