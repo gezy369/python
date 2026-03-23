@@ -241,13 +241,9 @@ function toggleTradeDetails(tr, trade) {
         <div class="td-col">
           <div class="td-section-label">Trade details</div>
           <div class="td-info-grid">
-            <span class="td-label">Symbol</span>   <span class="td-val">${trade.symbol}</span>
-            <span class="td-label">Side</span>      <span class="td-val td-side-${String(trade.side).toLowerCase()}">${trade.side}</span>
-            <span class="td-label">Qty</span>       <span class="td-val">${trade.qty}</span>
             <span class="td-label">Entry</span>     <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
             <span class="td-label">Exit</span>      <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
-            <span class="td-label">Entry $</span>   <span class="td-val">${trade.entryPrice}</span>
-            <span class="td-label">Exit $</span>    <span class="td-val">${trade.exitPrice}</span>
+            <span class="td-label">Duration</span>  <span class="td-val">${(()=>{ const s=Math.round((trade.exitTimestamp-trade.entryTimestamp)/1000); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const sc=s%60; return `${pad(h)}:${pad(m)}:${pad(sc)}`; })()}</span>
             <span class="td-label">PnL</span>       <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
           </div>
           <div style="margin-top:10px;">
