@@ -141,7 +141,7 @@ Promise.all([
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
     setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
-    emotions: emotionTrades.filter(et=>et.key_trade_id===t.id).map(et=>et.key_emotion_id)
+    emotions: emotionTrades.filter(et=>et.trade_id===t.id).map(et=>et.emotions_id)
   }));
 
   buildHeaders();
@@ -222,7 +222,7 @@ function renderEmotionTags(trade) {
   if (!trade.emotions?.length) return `<span class="setup-tag muted">None</span>`;
   return trade.emotions.map(id => {
     const e=EMOTIONS.find(x=>x.id===id); if(!e) return "";
-    return `<span class="setup-tag" style="background:${e.color||"#3a4050"};">${e.emotion_name}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
+    return `<span class="setup-tag" style="background:${e.color||"#3a4050"};">${e.emotion}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
   }).join("");
 }
 
@@ -239,7 +239,7 @@ function removeSetup(e, tradeId, setupId) {
 
 function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
-  fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotion_id:emotionId}) })
+  fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotions_id:emotionId}) })
   .then(() => {
     const trade=originalData.find(t=>t.id===tradeId);
     trade.emotions=trade.emotions.filter(id=>id!==emotionId);
@@ -280,7 +280,7 @@ function toggleTradeDetails(tr, trade) {
             <div class="td-section-label" style="margin-bottom:5px;">Emotions</div>
             <select class="emotion-add dark-select">
               <option value="">+ Add emotion</option>
-              ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion_name}</option>`).join("")}
+              ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
             <div class="emotion-tag-container setup-tag-container">${renderEmotionTags(trade)}</div>
           </div>
@@ -359,7 +359,7 @@ function toggleTradeDetails(tr, trade) {
   const emotionContainer=td.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
     const emotionId=emotionSelect.value; if(!emotionId) return;
-    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_emotion_id:emotionId}) });
+    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:emotionId}) });
     trade.emotions.push(Number(emotionId));
     emotionContainer.innerHTML=renderEmotionTags(trade);
     emotionSelect.value="";

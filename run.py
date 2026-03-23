@@ -539,9 +539,9 @@ def get_emotions():
         user_id  = session["user"]["id"]
         response = (
             supabase_admin.table("emotions")
-            .select("id, emotion_name, color")
+            .select("id, emotion, color")
             .eq("user_id", user_id)
-            .order("emotion_name")
+            .order("emotion")
             .execute()
         )
         return jsonify(response.data or [])
@@ -566,8 +566,8 @@ def get_emotions_trades():
 def add_emotion_trade():
     data     = request.json
     response = supabase_admin.table("emotions_trades").insert({
-        "key_trade_id":   data["key_trade_id"],
-        "key_emotion_id": data["key_emotion_id"]
+        "trade_id":   data["trade_id"],
+        "emotions_id": data["emotions_id"]
     }).execute()
     return jsonify(response.data[0])
 
@@ -577,12 +577,12 @@ def add_emotion_trade():
 def delete_emotion_trade():
     data       = request.json
     trade_id   = data.get("trade_id")
-    emotion_id = data.get("emotion_id")
+    emotion_id = data.get("emotions_id")
 
     if not trade_id or not emotion_id:
-        return {"error": "Missing trade_id or emotion_id"}, 400
+        return {"error": "Missing trade_id or emotions_id"}, 400
 
-    supabase_admin.table("emotions_trades").delete().eq("key_trade_id", trade_id).eq("key_emotion_id", emotion_id).execute()
+    supabase_admin.table("emotions_trades").delete().eq("trade_id", trade_id).eq("emotions_id", emotion_id).execute()
     return {"ok": True}
 
 
