@@ -100,8 +100,8 @@ Promise.all([
   fetch("/api/strategies").then(r=>r.json()),
   fetch("/api/setups").then(r=>r.json()),
   fetch("/api/trade_setups").then(r=>r.json()),
-  fetch("/api/emotions").then(r=>r.json()),
-  fetch("/api/emotions_trades").then(r=>r.json()),
+  fetch("/api/emotions").then(r=>r.json()).catch(()=>[]),
+  fetch("/api/emotions_trades").then(r=>r.json()).catch(()=>[]),
 ]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
   await waitForAccount();
   STRATEGIES = strategies;
@@ -147,6 +147,8 @@ Promise.all([
   buildHeaders();
   dataReady = true;
   applyFiltersAndRender();
+}).catch(err => {
+  console.error("Journal init failed:", err);
 });
 
 function resetFilters() {
