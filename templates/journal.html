@@ -213,7 +213,7 @@ function renderStrategyTag(strategyId) {
 function renderSetupTags(trade) {
   if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
   return trade.setups.map(id => {
-    const s=SETUPS.find(x=>x.id===id); if(!s) return "";
+    const s=SETUPS.find(x=>x.id==id); if(!s) return "";
     return `<span class="setup-tag" style="background:${s.color};">${s.setup_name}<span class="tag-remove" onclick="removeSetup(event,${trade.id},${id})">×</span></span>`;
   }).join("");
 }
@@ -221,7 +221,7 @@ function renderSetupTags(trade) {
 function renderEmotionTags(trade) {
   if (!trade.emotions?.length) return `<span class="setup-tag muted">None</span>`;
   return trade.emotions.map(id => {
-    const e=EMOTIONS.find(x=>x.id===id); if(!e) return "";
+    const e=EMOTIONS.find(x=>x.id==id); if(!e) return "";
     return `<span class="setup-tag" style="background:${e.color||"#3a4050"};">${e.emotion}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
   }).join("");
 }
@@ -359,7 +359,7 @@ function toggleTradeDetails(tr, trade) {
   const emotionContainer=td.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
     const emotionId=emotionSelect.value; if(!emotionId) return;
-    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:emotionId}) });
+    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
     trade.emotions.push(Number(emotionId));
     emotionContainer.innerHTML=renderEmotionTags(trade);
     emotionSelect.value="";
