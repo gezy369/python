@@ -62,6 +62,7 @@ let charts = {};
 let openRow = null;
 let STRATEGIES = [];
 let SETUPS = [];
+let EMOTIONS = [];
 let dataReady = false;
 
 function renderJournalStats(data) {
@@ -99,10 +100,13 @@ Promise.all([
   fetch("/api/strategies").then(r=>r.json()),
   fetch("/api/setups").then(r=>r.json()),
   fetch("/api/trade_setups").then(r=>r.json()),
-]).then(async ([strategies, setups, tradeSetups]) => {
+  fetch("/api/emotions").then(r=>r.json()),
+  fetch("/api/emotions_trades").then(r=>r.json()),
+]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
   await waitForAccount();
   STRATEGIES = strategies;
-  SETUPS = setups;
+  SETUPS     = setups;
+  EMOTIONS   = emotions;
 
   const setupContainer = document.getElementById("setupFilter");
   setupContainer.innerHTML = "";
@@ -136,7 +140,8 @@ Promise.all([
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
-    setups: tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id)
+    setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
+    emotions: emotionTrades.filter(et=>et.key_trade_id===t.id).map(et=>et.key_emotion_id)
   }));
 
   buildHeaders();
@@ -211,6 +216,14 @@ function renderSetupTags(trade) {
   }).join("");
 }
 
+function renderEmotionTags(trade) {
+  if (!trade.emotions?.length) return `<span class="setup-tag muted">None</span>`;
+  return trade.emotions.map(id => {
+    const e=EMOTIONS.find(x=>x.id===id); if(!e) return "";
+    return `<span class="setup-tag" style="background:${e.color||"#3a4050"};">${e.emotion_name}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
+  }).join("");
+}
+
 function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
   fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
@@ -219,6 +232,17 @@ function removeSetup(e, tradeId, setupId) {
     trade.setups=trade.setups.filter(id=>id!==setupId);
     const container=openRow?.panel?.querySelector(".setup-tag-container");
     if (container) container.innerHTML=renderSetupTags(trade);
+  });
+}
+
+function removeEmotion(e, tradeId, emotionId) {
+  e.stopPropagation();
+  fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotion_id:emotionId}) })
+  .then(() => {
+    const trade=originalData.find(t=>t.id===tradeId);
+    trade.emotions=trade.emotions.filter(id=>id!==emotionId);
+    const container=openRow?.panel?.querySelector(".emotion-tag-container");
+    if (container) container.innerHTML=renderEmotionTags(trade);
   });
 }
 
@@ -249,6 +273,14 @@ function toggleTradeDetails(tr, trade) {
           <div style="margin-top:10px;">
             <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
             <textarea class="trade-notes dark-textarea" rows="4" placeholder="Add trade notes...">${trade.notes??""}</textarea>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="td-section-label" style="margin-bottom:5px;">Emotions</div>
+            <select class="emotion-add dark-select">
+              <option value="">+ Add emotion</option>
+              ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion_name}</option>`).join("")}
+            </select>
+            <div class="emotion-tag-container setup-tag-container">${renderEmotionTags(trade)}</div>
           </div>
         </div>
 
@@ -319,6 +351,17 @@ function toggleTradeDetails(tr, trade) {
   });
 
   attachSetupRemoveHandlers(trade, setupContainer);
+
+  /* emotion add */
+  const emotionSelect=td.querySelector(".emotion-add");
+  const emotionContainer=td.querySelector(".emotion-tag-container");
+  emotionSelect.addEventListener("change", async () => {
+    const emotionId=emotionSelect.value; if(!emotionId) return;
+    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_emotion_id:emotionId}) });
+    trade.emotions.push(Number(emotionId));
+    emotionContainer.innerHTML=renderEmotionTags(trade);
+    emotionSelect.value="";
+  });
 }
 
 const accountSelect=document.getElementById("accountSelect");
