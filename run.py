@@ -27,8 +27,8 @@ SUPABASE_URL         = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY         = os.environ.get("SUPABASE_KEY")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-supabase      : Client = create_client(SUPABASE_URL, SUPABASE_KEY)          # auth only
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)  # all DB queries
+supabase      : Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # ===== HELPERS =====
 def allowed_file(filename):
@@ -527,6 +527,62 @@ def delete_trade_setup():
         return {"error": "Missing trade_id or setup_id"}, 400
 
     supabase_admin.table("trade_setup").delete().eq("key_trade_id", trade_id).eq("key_setup_id", setup_id).execute()
+    return {"ok": True}
+
+
+# ===== EMOTIONS =====
+
+@app.get("/api/emotions")
+@login_required
+def get_emotions():
+    try:
+        user_id  = session["user"]["id"]
+        response = (
+            supabase_admin.table("emotions")
+            .select("id, emotion_name, color")
+            .eq("user_id", user_id)
+            .order("emotion_name")
+            .execute()
+        )
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/emotions error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.get("/api/emotions_trades")
+@login_required
+def get_emotions_trades():
+    try:
+        response = supabase_admin.table("emotions_trades").select("*").execute()
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/emotions_trades error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/emotions_trades")
+@login_required
+def add_emotion_trade():
+    data     = request.json
+    response = supabase_admin.table("emotions_trades").insert({
+        "key_trade_id":   data["key_trade_id"],
+        "key_emotion_id": data["key_emotion_id"]
+    }).execute()
+    return jsonify(response.data[0])
+
+
+@app.delete("/api/emotions_trades")
+@login_required
+def delete_emotion_trade():
+    data       = request.json
+    trade_id   = data.get("trade_id")
+    emotion_id = data.get("emotion_id")
+
+    if not trade_id or not emotion_id:
+        return {"error": "Missing trade_id or emotion_id"}, 400
+
+    supabase_admin.table("emotions_trades").delete().eq("key_trade_id", trade_id).eq("key_emotion_id", emotion_id).execute()
     return {"ok": True}
 
 
