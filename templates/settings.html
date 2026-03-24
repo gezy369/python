@@ -6,31 +6,26 @@
 
 <div class="settings-container">
 
-  <!-- PROFILE -->
-  <div class="tile">
-    <h3>Profile</h3>
-    <p class="muted">Coming soon</p>
-  </div>
-
-  <!-- ACCOUNTS -->
+  <!-- ROW 1: Accounts (left) + Profile (right) -->
   <div class="tile">
     <h3>Trading Accounts</h3>
-
     <table class="settings-table">
       <tbody id="accountsBody"></tbody>
     </table>
-
     <div class="account-add-row" onclick="addAccountRow()">
       + Add trading account
     </div>
   </div>
 
-  <!-- STRATEGIES -->
+  <div class="tile">
+    <h3>Profile</h3>
+    <p class="muted">Coming soon</p>
+  </div>
+
+  <!-- ROW 2: Strategies (left) + Setups (right) -->
   <div class="tile">
     <h3>Strategies</h3>
-
     <div id="strategiesList" class="tag-list"></div>
-
     <div class="tag-add-row">
       <input id="newStrategyName" placeholder="New strategy...">
       <input type="color" id="newStrategyColor" value="#5b8ef5">
@@ -38,16 +33,25 @@
     </div>
   </div>
 
-  <!-- SETUPS -->
   <div class="tile">
     <h3>Setups</h3>
-
     <div id="setupsList" class="tag-list"></div>
-
     <div class="tag-add-row">
       <input id="newSetupName" placeholder="New setup...">
       <input type="color" id="newSetupColor" value="#34c38f">
       <button onclick="addSetup()">Add</button>
+    </div>
+  </div>
+
+  <!-- ROW 3: Emotions (full width or left-aligned) -->
+  <div class="tile tile-full">
+    <h3>Emotions</h3>
+    <p class="tile-subtitle">Tag trades with emotional states to identify behavioural patterns over time.</p>
+    <div id="emotionsList" class="tag-list"></div>
+    <div class="tag-add-row">
+      <input id="newEmotionName" placeholder="New emotion...">
+      <input type="color" id="newEmotionColor" value="#e8a94a">
+      <button onclick="addEmotion()">Add</button>
     </div>
   </div>
 
@@ -65,20 +69,17 @@ function loadAccounts() {
 
       data.forEach(acc => {
         const tr = document.createElement("tr");
-
         tr.innerHTML = `
           <td>
             <input value="${acc.name || ""}"
                    onchange="updateAccount('${acc.id}','name',this.value)">
           </td>
           <td>
-            <button class="btn-danger"
-                    onclick="deleteAccount('${acc.id}')">
+            <button class="btn-danger" onclick="deleteAccount('${acc.id}')">
               Delete
             </button>
           </td>
         `;
-
         tbody.appendChild(tr);
       });
     });
@@ -86,7 +87,6 @@ function loadAccounts() {
 
 function addAccountRow() {
   const tbody = document.getElementById("accountsBody");
-
   const tr = document.createElement("tr");
   tr.innerHTML = `<td><input placeholder="Account name"></td><td></td>`;
   tbody.appendChild(tr);
@@ -102,12 +102,9 @@ function addAccountRow() {
 
   function save() {
     if (saved) return;
-
     const name = input.value.trim();
     if (!name) return cleanup();
-
     saved = true;
-
     fetch("/api/accounts", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -119,7 +116,6 @@ function addAccountRow() {
     if (e.key === "Enter") save();
     if (e.key === "Escape") cleanup();
   });
-
   input.addEventListener("blur", save);
 }
 
@@ -137,13 +133,14 @@ function deleteAccount(id) {
 }
 
 /* ================= STRATEGIES ================= */
+
 function renderStrategies(data) {
   const container = document.getElementById("strategiesList");
   container.innerHTML = "";
 
   data.forEach(s => {
     const el = document.createElement("div");
-
+    el.className = "tag-edit-row";
     el.innerHTML = `
       <span class="strategy-tag" style="background:${s.color}">
         <input value="${s.strategy_name}"
@@ -153,25 +150,9 @@ function renderStrategies(data) {
       <input type="color" value="${s.color}"
              onchange="updateStrategyColor(${s.id}, this.value)">
     `;
-
     container.appendChild(el);
   });
 }
-
-
-async function addStrategy() {
-  const name = document.getElementById("newStrategyName").value;
-  const color = document.getElementById("newStrategyColor").value;
-
-  await fetch("/api/strategies", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ strategy_name: name, color })
-  });
-
-  loadStrategies();
-}
-
 
 async function loadStrategies() {
   const data = await fetch("/api/strategies").then(r => r.json());
@@ -181,9 +162,7 @@ async function loadStrategies() {
 function addStrategy() {
   const name = document.getElementById("newStrategyName").value;
   const color = document.getElementById("newStrategyColor").value;
-
   if (!name.trim()) return;
-
   fetch("/api/strategies", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -224,6 +203,7 @@ async function loadSetups() {
 
   data.forEach(s => {
     const el = document.createElement("div");
+    el.className = "tag-edit-row";
     el.innerHTML = `
       <span class="setup-tag" style="background:${s.color}">
         <input value="${s.setup_name}"
@@ -240,9 +220,7 @@ async function loadSetups() {
 function addSetup() {
   const name = document.getElementById("newSetupName").value;
   const color = document.getElementById("newSetupColor").value;
-
   if (!name.trim()) return;
-
   fetch("/api/setups", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -274,11 +252,75 @@ function deleteSetup(id) {
   fetch(`/api/setups/${id}`, { method: "DELETE" }).then(loadSetups);
 }
 
+/* ================= EMOTIONS ================= */
+
+async function loadEmotions() {
+  const data = await fetch("/api/emotions").then(r => r.json()).catch(() => []);
+  const container = document.getElementById("emotionsList");
+  container.innerHTML = "";
+
+  if (!data.length) {
+    container.innerHTML = `<span class="muted" style="font-size:12px;">No emotions yet. Add one below.</span>`;
+    return;
+  }
+
+  data.forEach(e => {
+    const el = document.createElement("div");
+    el.className = "tag-edit-row";
+    el.innerHTML = `
+      <span class="setup-tag" style="background:${e.color || '#3a4050'}">
+        <input value="${e.emotion}"
+               onchange="updateEmotion(${e.id}, this.value)">
+        <span class="tag-remove" onclick="deleteEmotion(${e.id})">×</span>
+      </span>
+      <input type="color" value="${e.color || '#3a4050'}"
+             onchange="updateEmotionColor(${e.id}, this.value)">
+    `;
+    container.appendChild(el);
+  });
+}
+
+function addEmotion() {
+  const name = document.getElementById("newEmotionName").value;
+  const color = document.getElementById("newEmotionColor").value;
+  if (!name.trim()) return;
+  fetch("/api/emotions", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ emotion: name, color })
+  }).then(() => {
+    document.getElementById("newEmotionName").value = "";
+    loadEmotions();
+  });
+}
+
+function updateEmotion(id, emotion) {
+  fetch(`/api/emotions/${id}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ emotion })
+  });
+}
+
+function updateEmotionColor(id, color) {
+  fetch(`/api/emotions/${id}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ color })
+  }).then(loadEmotions);
+}
+
+function deleteEmotion(id) {
+  if (!confirm("Delete this emotion?")) return;
+  fetch(`/api/emotions/${id}`, { method: "DELETE" }).then(loadEmotions);
+}
+
 /* ================= INIT ================= */
 
 loadAccounts();
 loadStrategies();
 loadSetups();
+loadEmotions();
 
 </script>
 

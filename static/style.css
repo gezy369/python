@@ -1165,3 +1165,124 @@ tr.trade-details-row td {
   gap: 6px;
   margin-top: 8px;
 }
+
+/* ===== SETTINGS PAGE ADDITIONS ===== */
+
+/* 2-column grid for settings, emotions tile spans both columns */
+.settings-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.tile-full {
+  grid-column: 1 / -1;
+}
+
+/* Subtle descriptor text under a tile heading */
+.tile-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  margin-top: -6px;
+  line-height: 1.5;
+}
+
+/* Inline tag edit row: tag pill + color picker side by side */
+.tag-edit-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 6px 6px 0;
+}
+
+.tag-edit-row .strategy-tag,
+.tag-edit-row .setup-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+}
+
+.tag-edit-row .strategy-tag input,
+.tag-edit-row .setup-tag input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  width: 90px;
+  outline: none;
+  padding: 0;
+}
+
+.tag-edit-row .strategy-tag input::placeholder,
+.tag-edit-row .setup-tag input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.tag-edit-row input[type="color"] {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  padding: 1px;
+  cursor: pointer;
+  outline: none;
+  margin-top: 0;
+}
+
+/* tag-add-row inputs consistent with settings style */
+.tag-add-row input[type="text"],
+.tag-add-row input:not([type="color"]) {
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  flex: 1;
+  transition: border-color 0.15s;
+}
+
+.tag-add-row input:not([type="color"]):focus {
+  border-color: var(--accent-blue);
+}
+
+.tag-add-row input[type="color"] {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  padding: 2px;
+  cursor: pointer;
+  outline: none;
+  margin-top: 0;
+}
+
+.tag-add-row button {
+  margin-top: 0;
+}
+
+/* tile h3 */
+.tile h3 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* muted helper */
+.muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
