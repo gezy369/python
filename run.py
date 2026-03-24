@@ -590,7 +590,7 @@ def delete_emotion_trade():
 if __name__ == "__main__":
     app.run(debug=True)
 
-    @app.post("/api/strategies")
+@app.post("/api/strategies")
 def add_strategy():
     data = request.json
     data["user_id"] = session["user"]["id"]
