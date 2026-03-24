@@ -589,3 +589,20 @@ def delete_emotion_trade():
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)
+
+    @app.post("/api/strategies")
+def add_strategy():
+    data = request.json
+    data["user_id"] = session["user"]["id"]
+    supabase_admin.table("strategies").insert(data).execute()
+    return {"ok": True}
+
+@app.patch("/api/strategies/<id>")
+def update_strategy(id):
+    supabase_admin.table("strategies").update(request.json).eq("id", id).execute()
+    return {"ok": True}
+
+@app.delete("/api/strategies/<id>")
+def delete_strategy(id):
+    supabase_admin.table("strategies").delete().eq("id", id).execute()
+    return {"ok": True}

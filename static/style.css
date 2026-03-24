@@ -1133,3 +1133,35 @@ tr.trade-details-row td {
 }
 
 .chart-clickable:hover { opacity: 0.88; }
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tag-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tag-edit input[type="text"] {
+  width: 90px;
+  font-size: 11px;
+}
+
+.tag-edit input[type="color"] {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.tag-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
