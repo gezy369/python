@@ -140,8 +140,9 @@ Promise.all([
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
-    setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
-    emotions: emotionTrades.filter(et=>et.trade_id===t.id).map(et=>et.emotions_id)
+    // FIX 1: use == (loose equality) to avoid string/number type mismatch from Supabase
+    setups:   tradeSetups.filter(ts => ts.key_trade_id == t.id).map(ts => ts.key_setup_id),
+    emotions: emotionTrades.filter(et => et.trade_id == t.id).map(et => et.emotions_id)
   }));
 
   buildHeaders();
@@ -230,10 +231,11 @@ function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
   fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
   .then(() => {
-    const trade=originalData.find(t=>t.id===tradeId);
-    trade.setups=trade.setups.filter(id=>id!==setupId);
+    const trade = originalData.find(t => t.id === tradeId);
+    // FIX 3: use loose equality so number/string mismatch doesn't prevent removal
+    trade.setups = trade.setups.filter(id => id != setupId);
     const container = openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
-    if (container) container.innerHTML=renderSetupTags(trade);
+    if (container) container.innerHTML = renderSetupTags(trade);
   });
 }
 
@@ -241,10 +243,11 @@ function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
   fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotions_id:emotionId}) })
   .then(() => {
-    const trade=originalData.find(t=>t.id===tradeId);
-    trade.emotions=trade.emotions.filter(id=>id!==emotionId);
-    const container=openRow?.panel?.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML=renderEmotionTags(trade);
+    const trade = originalData.find(t => t.id === tradeId);
+    // FIX 3: use loose equality so number/string mismatch doesn't prevent removal
+    trade.emotions = trade.emotions.filter(id => id != emotionId);
+    const container = openRow?.panel?.querySelector(".emotion-tag-container");
+    if (container) container.innerHTML = renderEmotionTags(trade);
   });
 }
 
@@ -342,27 +345,27 @@ function toggleTradeDetails(tr, trade) {
   attachStrategyRemoveHandler(trade, strategyContainer);
 
   /* setup add */
-  const setupSelect=td.querySelector(".setup-add");
+  // FIX 2: query setup container specifically from col 2 to avoid matching emotion container
+  const setupSelect = td.querySelector(".setup-add");
   const setupContainer = td.querySelectorAll(".td-col")[1].querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
-    const setupId=setupSelect.value; if(!setupId) return;
+    const setupId = setupSelect.value; if (!setupId) return;
     await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
     trade.setups.push(Number(setupId));
-    setupContainer.innerHTML=renderSetupTags(trade);
-    setupSelect.value="";
+    setupContainer.innerHTML = renderSetupTags(trade);
+    setupSelect.value = "";
+    // NOTE: no attachSetupRemoveHandlers call here — removeSetup() is handled via inline onclick in renderSetupTags
   });
 
-  attachSetupRemoveHandlers(trade, setupContainer);
-
   /* emotion add */
-  const emotionSelect=td.querySelector(".emotion-add");
-  const emotionContainer=td.querySelector(".emotion-tag-container");
+  const emotionSelect = td.querySelector(".emotion-add");
+  const emotionContainer = td.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
-    const emotionId=emotionSelect.value; if(!emotionId) return;
+    const emotionId = emotionSelect.value; if (!emotionId) return;
     await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
     trade.emotions.push(Number(emotionId));
-    emotionContainer.innerHTML=renderEmotionTags(trade);
-    emotionSelect.value="";
+    emotionContainer.innerHTML = renderEmotionTags(trade);
+    emotionSelect.value = "";
   });
 }
 
@@ -400,17 +403,8 @@ function attachStrategyRemoveHandler(trade, container) {
   });
 }
 
-function attachSetupRemoveHandlers(trade, container) {
-  container.querySelectorAll(".setup-tag").forEach(tag=>{
-    tag.addEventListener("click", async ()=>{
-      const id=tag.dataset.tradeSetupId;
-      await fetch(`/api/trade_setup/${id}`, {method:"DELETE"});
-      trade.setups=trade.setups.filter(s=>s.trade_setup_id!=id);
-      container.innerHTML=renderSetupTags(trade);
-      attachSetupRemoveHandlers(trade, container);
-    });
-  });
-}
+// FIX 2: attachSetupRemoveHandlers removed entirely — it was broken (used undefined tradeSetupId)
+// and redundant (renderSetupTags already uses inline onclick="removeSetup(...)").
 
 function closeDetails() {
   if (!openRow) return;
@@ -451,6 +445,7 @@ function applyDateFromURL() {
   if (from) document.getElementById("dateFrom").value=from;
   if (to)   document.getElementById("dateTo").value=to;
 }
+
 function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
   const source = document.getElementById(`tradeChart-${tradeId}`);
   if (!source) return;
@@ -487,7 +482,6 @@ function closeChartOverlay() {
 function overlayKeyHandler(e) {
   if (e.key === "Escape") closeChartOverlay();
 }
-
 
 async function showTradeChart(trade, containerId) {
   const chartEl=document.getElementById(containerId);
