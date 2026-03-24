@@ -232,7 +232,7 @@ function removeSetup(e, tradeId, setupId) {
   .then(() => {
     const trade=originalData.find(t=>t.id===tradeId);
     trade.setups=trade.setups.filter(id=>id!==setupId);
-    const container=openRow?.panel?.querySelector(".setup-tag-container");
+    const container = openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
     if (container) container.innerHTML=renderSetupTags(trade);
   });
 }
@@ -282,7 +282,7 @@ function toggleTradeDetails(tr, trade) {
               <option value="">+ Add emotion</option>
               ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
-            <div class="emotion-tag-container setup-tag-container">${renderEmotionTags(trade)}</div>
+            <div class="emotion-tag-container">${renderEmotionTags(trade)}</div>
           </div>
         </div>
 
@@ -343,7 +343,7 @@ function toggleTradeDetails(tr, trade) {
 
   /* setup add */
   const setupSelect=td.querySelector(".setup-add");
-  const setupContainer=td.querySelector(".setup-tag-container");
+  const setupContainer = td.querySelectorAll(".td-col")[1].querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
     const setupId=setupSelect.value; if(!setupId) return;
     await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
