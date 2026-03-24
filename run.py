@@ -590,6 +590,7 @@ def delete_emotion_trade():
 if __name__ == "__main__":
     app.run(debug=True)
 
+# ===== STRATEGIES =====
 @app.post("/api/strategies")
 def add_strategy():
     data = request.json
@@ -605,4 +606,41 @@ def update_strategy(id):
 @app.delete("/api/strategies/<id>")
 def delete_strategy(id):
     supabase_admin.table("strategies").delete().eq("id", id).execute()
+    return {"ok": True}
+
+# ===== SETUPS CRUD =====
+
+@app.post("/api/setups")
+@login_required
+def add_setup():
+    data = request.json
+    data["user_id"] = session["user"]["id"]
+
+    response = supabase_admin.table("setups").insert(data).execute()
+    return jsonify(response.data[0])
+
+
+@app.patch("/api/setups/<id>")
+@login_required
+def update_setup(id):
+    data = request.json
+
+    supabase_admin.table("setups") \
+        .update(data) \
+        .eq("id", id) \
+        .eq("user_id", session["user"]["id"]) \
+        .execute()
+
+    return {"ok": True}
+
+
+@app.delete("/api/setups/<id>")
+@login_required
+def delete_setup(id):
+    supabase_admin.table("setups") \
+        .delete() \
+        .eq("id", id) \
+        .eq("user_id", session["user"]["id"]) \
+        .execute()
+
     return {"ok": True}
