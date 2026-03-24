@@ -231,8 +231,8 @@ function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
   fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
   .then(() => {
-    const trade = originalData.find(t => t.id === tradeId);
-    // FIX 3: use loose equality so number/string mismatch doesn't prevent removal
+    const trade = originalData.find(t => t.id == tradeId);
+    if (!trade) return;
     trade.setups = trade.setups.filter(id => id != setupId);
     const container = openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
     if (container) container.innerHTML = renderSetupTags(trade);
@@ -243,8 +243,8 @@ function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
   fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotions_id:emotionId}) })
   .then(() => {
-    const trade = originalData.find(t => t.id === tradeId);
-    // FIX 3: use loose equality so number/string mismatch doesn't prevent removal
+    const trade = originalData.find(t => t.id == tradeId);
+    if (!trade) return;
     trade.emotions = trade.emotions.filter(id => id != emotionId);
     const container = openRow?.panel?.querySelector(".emotion-tag-container");
     if (container) container.innerHTML = renderEmotionTags(trade);
@@ -256,6 +256,16 @@ function toggleTradeDetails(tr, trade) {
   if (openRow && openRow.tr===tr) { closeDetails(); return; }
   closeDetails();
   tr.classList.add("expanded");
+
+  // The trade object from buildRows is a fresh API fetch — it may lack emotions/setups
+  // that were loaded at init time. Merge them from originalData.
+  const cached = originalData.find(t => t.id == trade.id);
+  if (cached) {
+    trade.setups   = cached.setups;
+    trade.emotions = cached.emotions;
+  }
+  trade.setups   = trade.setups   || [];
+  trade.emotions = trade.emotions || [];
 
   const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
 
@@ -345,26 +355,26 @@ function toggleTradeDetails(tr, trade) {
   attachStrategyRemoveHandler(trade, strategyContainer);
 
   /* setup add */
-  // FIX 2: query setup container specifically from col 2 to avoid matching emotion container
   const setupSelect = td.querySelector(".setup-add");
-  const setupContainer = td.querySelectorAll(".td-col")[1].querySelector(".setup-tag-container");
+  // Always re-query fresh so we never use a stale reference after innerHTML replacement
+  const getSetupContainer = () => openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
     const setupId = setupSelect.value; if (!setupId) return;
     await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
     trade.setups.push(Number(setupId));
-    setupContainer.innerHTML = renderSetupTags(trade);
+    const c = getSetupContainer(); if (c) c.innerHTML = renderSetupTags(trade);
     setupSelect.value = "";
-    // NOTE: no attachSetupRemoveHandlers call here — removeSetup() is handled via inline onclick in renderSetupTags
   });
 
   /* emotion add */
   const emotionSelect = td.querySelector(".emotion-add");
-  const emotionContainer = td.querySelector(".emotion-tag-container");
+  // Always re-query fresh so we never use a stale reference after innerHTML replacement
+  const getEmotionContainer = () => openRow?.panel?.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
     const emotionId = emotionSelect.value; if (!emotionId) return;
     await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
     trade.emotions.push(Number(emotionId));
-    emotionContainer.innerHTML = renderEmotionTags(trade);
+    const c = getEmotionContainer(); if (c) c.innerHTML = renderEmotionTags(trade);
     emotionSelect.value = "";
   });
 }
