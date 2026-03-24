@@ -443,6 +443,13 @@ def add_account():
     return {"ok": True}
 
 
+@app.patch("/api/accounts/<id>")
+@login_required
+def update_account(id):
+    supabase_admin.table("trading_accounts").update(request.json).eq("id", id).execute()
+    return {"ok": True}
+
+
 @app.delete("/api/accounts/<id>")
 @login_required
 def delete_account(id):
@@ -462,6 +469,8 @@ def update_trade(id):
     return {"ok": True}
 
 
+# ===== STRATEGIES =====
+
 @app.get("/api/strategies")
 @login_required
 def get_strategies():
@@ -480,6 +489,31 @@ def get_strategies():
         return jsonify({"error": str(e)}), 500
 
 
+@app.post("/api/strategies")
+@login_required
+def add_strategy():
+    data = request.json
+    data["user_id"] = session["user"]["id"]
+    supabase_admin.table("strategies").insert(data).execute()
+    return {"ok": True}
+
+
+@app.patch("/api/strategies/<id>")
+@login_required
+def update_strategy(id):
+    supabase_admin.table("strategies").update(request.json).eq("id", id).execute()
+    return {"ok": True}
+
+
+@app.delete("/api/strategies/<id>")
+@login_required
+def delete_strategy(id):
+    supabase_admin.table("strategies").delete().eq("id", id).execute()
+    return {"ok": True}
+
+
+# ===== SETUPS =====
+
 @app.get("/api/setups")
 @login_required
 def get_setups():
@@ -493,6 +527,39 @@ def get_setups():
     )
     return jsonify(response.data or [])
 
+
+@app.post("/api/setups")
+@login_required
+def add_setup():
+    data = request.json
+    data["user_id"] = session["user"]["id"]
+    response = supabase_admin.table("setups").insert(data).execute()
+    return jsonify(response.data[0])
+
+
+@app.patch("/api/setups/<id>")
+@login_required
+def update_setup(id):
+    supabase_admin.table("setups") \
+        .update(request.json) \
+        .eq("id", id) \
+        .eq("user_id", session["user"]["id"]) \
+        .execute()
+    return {"ok": True}
+
+
+@app.delete("/api/setups/<id>")
+@login_required
+def delete_setup(id):
+    supabase_admin.table("setups") \
+        .delete() \
+        .eq("id", id) \
+        .eq("user_id", session["user"]["id"]) \
+        .execute()
+    return {"ok": True}
+
+
+# ===== TRADE SETUPS (junction) =====
 
 @app.post("/api/trade_setup")
 @login_required
@@ -550,6 +617,51 @@ def get_emotions():
         return jsonify({"error": str(e)}), 500
 
 
+@app.post("/api/emotions")
+@login_required
+def add_emotion():
+    try:
+        data = request.json
+        data["user_id"] = session["user"]["id"]
+        response = supabase_admin.table("emotions").insert(data).execute()
+        return jsonify(response.data[0])
+    except Exception as e:
+        print("Supabase POST /api/emotions error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.patch("/api/emotions/<id>")
+@login_required
+def update_emotion(id):
+    try:
+        supabase_admin.table("emotions") \
+            .update(request.json) \
+            .eq("id", id) \
+            .eq("user_id", session["user"]["id"]) \
+            .execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"Supabase PATCH /api/emotions/{id} error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.delete("/api/emotions/<id>")
+@login_required
+def delete_emotion(id):
+    try:
+        supabase_admin.table("emotions") \
+            .delete() \
+            .eq("id", id) \
+            .eq("user_id", session["user"]["id"]) \
+            .execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"Supabase DELETE /api/emotions/{id} error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+# ===== EMOTIONS TRADES (junction) =====
+
 @app.get("/api/emotions_trades")
 @login_required
 def get_emotions_trades():
@@ -566,7 +678,7 @@ def get_emotions_trades():
 def add_emotion_trade():
     data     = request.json
     response = supabase_admin.table("emotions_trades").insert({
-        "trade_id":   data["trade_id"],
+        "trade_id":    data["trade_id"],
         "emotions_id": data["emotions_id"]
     }).execute()
     return jsonify(response.data[0])
@@ -589,58 +701,3 @@ def delete_emotion_trade():
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)
-
-# ===== STRATEGIES =====
-@app.post("/api/strategies")
-def add_strategy():
-    data = request.json
-    data["user_id"] = session["user"]["id"]
-    supabase_admin.table("strategies").insert(data).execute()
-    return {"ok": True}
-
-@app.patch("/api/strategies/<id>")
-def update_strategy(id):
-    supabase_admin.table("strategies").update(request.json).eq("id", id).execute()
-    return {"ok": True}
-
-@app.delete("/api/strategies/<id>")
-def delete_strategy(id):
-    supabase_admin.table("strategies").delete().eq("id", id).execute()
-    return {"ok": True}
-
-# ===== SETUPS CRUD =====
-
-@app.post("/api/setups")
-@login_required
-def add_setup():
-    data = request.json
-    data["user_id"] = session["user"]["id"]
-
-    response = supabase_admin.table("setups").insert(data).execute()
-    return jsonify(response.data[0])
-
-
-@app.patch("/api/setups/<id>")
-@login_required
-def update_setup(id):
-    data = request.json
-
-    supabase_admin.table("setups") \
-        .update(data) \
-        .eq("id", id) \
-        .eq("user_id", session["user"]["id"]) \
-        .execute()
-
-    return {"ok": True}
-
-
-@app.delete("/api/setups/<id>")
-@login_required
-def delete_setup(id):
-    supabase_admin.table("setups") \
-        .delete() \
-        .eq("id", id) \
-        .eq("user_id", session["user"]["id"]) \
-        .execute()
-
-    return {"ok": True}
