@@ -648,10 +648,13 @@ button:hover {
 }
 
 /* ===== SETTINGS ===== */
-.settings-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+/* Row 2: accounts tile stays 1fr, empty area fills the remaining 3fr */
+.settings-container .tile:nth-child(5) {
+  grid-column: 1;
+}
+ 
+.settings-empty-area {
+  grid-column: 2 / -1;
 }
 
 .settings-table {
@@ -1168,10 +1171,10 @@ tr.trade-details-row td {
 
 /* ===== SETTINGS PAGE ADDITIONS ===== */
 
-/* 2-column grid for settings, emotions tile spans both columns */
 .settings-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 20px;
 }
 
@@ -1286,3 +1289,107 @@ tr.trade-details-row td {
   color: var(--text-muted);
   font-size: 12px;
 }
+
+.tile h3 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+ 
+.tile-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  margin-top: -6px;
+  line-height: 1.5;
+}
+ 
+.tag-edit-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 6px 6px 0;
+}
+ 
+.tag-edit-row .strategy-tag,
+.tag-edit-row .setup-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+}
+ 
+.tag-edit-row .strategy-tag input,
+.tag-edit-row .setup-tag input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  width: 90px;
+  outline: none;
+  padding: 0;
+}
+ 
+.tag-edit-row input[type="color"] {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  padding: 1px;
+  cursor: pointer;
+  outline: none;
+  margin-top: 0;
+}
+ 
+.tag-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+ 
+.tag-add-row input:not([type="color"]) {
+  flex: 1;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+ 
+.tag-add-row input:not([type="color"]):focus {
+  border-color: var(--accent-blue);
+}
+ 
+.tag-add-row input[type="color"] {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  padding: 2px;
+  cursor: pointer;
+  outline: none;
+  margin-top: 0;
+}
+ 
+.tag-add-row button {
+  margin-top: 0;
+}
+ 
+.muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+ 
