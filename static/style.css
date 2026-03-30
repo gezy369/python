@@ -1259,7 +1259,7 @@ tr.trade-details-row td {
   font-size: 8px;
   font-weight: 600;
   font-style: normal;
-  color: var(--text-faint);
+  color: var(--text-muted);
   cursor: default;
   line-height: 1;
   transition: border-color 0.15s, color 0.15s;
