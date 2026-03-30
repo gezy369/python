@@ -1238,7 +1238,7 @@ tr.trade-details-row td {
   font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 /* ── Pill info tooltip ── */
