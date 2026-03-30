@@ -127,9 +127,7 @@ Promise.all([
     btn.dataset.id = s.id;
     btn.style.background = s.color;
     btn.onclick = () => {
-      const isActive = btn.classList.contains("active");
-      strategyContainer.querySelectorAll("button").forEach(b => b.classList.remove("active"));
-      if (!isActive) btn.classList.add("active");
+      btn.classList.toggle("active");
       applyFiltersAndRender();
     };
     strategyContainer.appendChild(btn);
@@ -140,9 +138,8 @@ Promise.all([
     ...t,
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
-    // FIX 1: use == (loose equality) to avoid string/number type mismatch from Supabase
-    setups:   tradeSetups.filter(ts => ts.key_trade_id == t.id).map(ts => ts.key_setup_id),
-    emotions: emotionTrades.filter(et => et.trade_id == t.id).map(et => et.emotions_id)
+    setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
+    emotions: emotionTrades.filter(et=>et.trade_id===t.id).map(et=>et.emotions_id)
   }));
 
   buildHeaders();
@@ -231,11 +228,10 @@ function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
   fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
   .then(() => {
-    const trade = originalData.find(t => t.id == tradeId);
-    if (!trade) return;
-    trade.setups = trade.setups.filter(id => id != setupId);
-    const container = openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
-    if (container) container.innerHTML = renderSetupTags(trade);
+    const trade=originalData.find(t=>t.id===tradeId);
+    trade.setups=trade.setups.filter(id=>id!==setupId);
+    const container=openRow?.panel?.querySelector(".setup-tag-container");
+    if (container) container.innerHTML=renderSetupTags(trade);
   });
 }
 
@@ -243,11 +239,10 @@ function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
   fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotions_id:emotionId}) })
   .then(() => {
-    const trade = originalData.find(t => t.id == tradeId);
-    if (!trade) return;
-    trade.emotions = trade.emotions.filter(id => id != emotionId);
-    const container = openRow?.panel?.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML = renderEmotionTags(trade);
+    const trade=originalData.find(t=>t.id===tradeId);
+    trade.emotions=trade.emotions.filter(id=>id!==emotionId);
+    const container=openRow?.panel?.querySelector(".emotion-tag-container");
+    if (container) container.innerHTML=renderEmotionTags(trade);
   });
 }
 
@@ -256,16 +251,6 @@ function toggleTradeDetails(tr, trade) {
   if (openRow && openRow.tr===tr) { closeDetails(); return; }
   closeDetails();
   tr.classList.add("expanded");
-
-  // The trade object from buildRows is a fresh API fetch — it may lack emotions/setups
-  // that were loaded at init time. Merge them from originalData.
-  const cached = originalData.find(t => t.id == trade.id);
-  if (cached) {
-    trade.setups   = cached.setups;
-    trade.emotions = cached.emotions;
-  }
-  trade.setups   = trade.setups   || [];
-  trade.emotions = trade.emotions || [];
 
   const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
 
@@ -295,7 +280,7 @@ function toggleTradeDetails(tr, trade) {
               <option value="">+ Add emotion</option>
               ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
-            <div class="emotion-tag-container">${renderEmotionTags(trade)}</div>
+            <div class="emotion-tag-container setup-tag-container">${renderEmotionTags(trade)}</div>
           </div>
         </div>
 
@@ -355,27 +340,27 @@ function toggleTradeDetails(tr, trade) {
   attachStrategyRemoveHandler(trade, strategyContainer);
 
   /* setup add */
-  const setupSelect = td.querySelector(".setup-add");
-  // Always re-query fresh so we never use a stale reference after innerHTML replacement
-  const getSetupContainer = () => openRow?.panel?.querySelectorAll(".td-col")?.[1]?.querySelector(".setup-tag-container");
+  const setupSelect=td.querySelector(".setup-add");
+  const setupContainer=td.querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
-    const setupId = setupSelect.value; if (!setupId) return;
+    const setupId=setupSelect.value; if(!setupId) return;
     await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
     trade.setups.push(Number(setupId));
-    const c = getSetupContainer(); if (c) c.innerHTML = renderSetupTags(trade);
-    setupSelect.value = "";
+    setupContainer.innerHTML=renderSetupTags(trade);
+    setupSelect.value="";
   });
 
+  attachSetupRemoveHandlers(trade, setupContainer);
+
   /* emotion add */
-  const emotionSelect = td.querySelector(".emotion-add");
-  // Always re-query fresh so we never use a stale reference after innerHTML replacement
-  const getEmotionContainer = () => openRow?.panel?.querySelector(".emotion-tag-container");
+  const emotionSelect=td.querySelector(".emotion-add");
+  const emotionContainer=td.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
-    const emotionId = emotionSelect.value; if (!emotionId) return;
+    const emotionId=emotionSelect.value; if(!emotionId) return;
     await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
     trade.emotions.push(Number(emotionId));
-    const c = getEmotionContainer(); if (c) c.innerHTML = renderEmotionTags(trade);
-    emotionSelect.value = "";
+    emotionContainer.innerHTML=renderEmotionTags(trade);
+    emotionSelect.value="";
   });
 }
 
@@ -413,8 +398,17 @@ function attachStrategyRemoveHandler(trade, container) {
   });
 }
 
-// FIX 2: attachSetupRemoveHandlers removed entirely — it was broken (used undefined tradeSetupId)
-// and redundant (renderSetupTags already uses inline onclick="removeSetup(...)").
+function attachSetupRemoveHandlers(trade, container) {
+  container.querySelectorAll(".setup-tag").forEach(tag=>{
+    tag.addEventListener("click", async ()=>{
+      const id=tag.dataset.tradeSetupId;
+      await fetch(`/api/trade_setup/${id}`, {method:"DELETE"});
+      trade.setups=trade.setups.filter(s=>s.trade_setup_id!=id);
+      container.innerHTML=renderSetupTags(trade);
+      attachSetupRemoveHandlers(trade, container);
+    });
+  });
+}
 
 function closeDetails() {
   if (!openRow) return;
@@ -440,8 +434,8 @@ async function applyFiltersAndRender() {
   const selectedSetups=[...document.querySelectorAll("#setupFilter button.active")].map(b=>Number(b.dataset.id));
   if (selectedSetups.length) data=data.filter(t=>selectedSetups.some(id=>t.setups?.includes(id)));
 
-  const activeStrategy=document.querySelector("#strategyFilter button.active");
-  if (activeStrategy) data=data.filter(t=>t.key_strategies_id===Number(activeStrategy.dataset.id));
+  const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => Number(b.dataset.id));
+  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(t.key_strategies_id));
 
   data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
   buildRows(data);
@@ -455,7 +449,6 @@ function applyDateFromURL() {
   if (from) document.getElementById("dateFrom").value=from;
   if (to)   document.getElementById("dateTo").value=to;
 }
-
 function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
   const source = document.getElementById(`tradeChart-${tradeId}`);
   if (!source) return;
@@ -492,6 +485,7 @@ function closeChartOverlay() {
 function overlayKeyHandler(e) {
   if (e.key === "Escape") closeChartOverlay();
 }
+
 
 async function showTradeChart(trade, containerId) {
   const chartEl=document.getElementById(containerId);

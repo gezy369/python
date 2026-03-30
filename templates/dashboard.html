@@ -94,219 +94,6 @@
 
 </div>
 
-<style>
-/* ── LAYOUT ── */
-.dash-main-grid {
-  display: flex;
-  gap: 20px;
-  max-width: 1100px;
-  align-items: flex-start;
-  margin-bottom: 0;
-}
-
-.dash-left  { flex: 0 0 auto; width: 420px; }
-.dash-right { flex: 1; min-width: 0; }
-
-/* ── SECTION LABEL ── */
-.section-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: 10px;
-}
-
-/* ── CARD HEADER ROW ── */
-.card-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-/* ── CURVE TOGGLE ── */
-.curve-toggle {
-  display: flex;
-  gap: 4px;
-}
-
-.curve-btn {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  margin-top: 0;
-  transition: all 0.15s;
-}
-
-.curve-btn:hover { color: var(--text-secondary); border-color: var(--border-accent); }
-
-.curve-btn.active {
-  background: var(--bg-active);
-  color: var(--text-primary);
-  border-color: var(--accent-blue);
-}
-
-/* ── STAT PILLS ── */
-.stat-pills {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  max-width: 1100px;
-  margin-bottom: 16px;
-}
-
-.stat-pill {
-  flex: 1;
-  min-width: 110px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: 10px 14px;
-}
-
-.stat-pill-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: 4px;
-}
-
-.stat-pill-value {
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.stat-pill-value.positive { color: var(--accent-green); }
-.stat-pill-value.negative { color: var(--accent-red); }
-.stat-pill-value.neutral  { color: var(--accent-blue); }
-
-/* ── CARD LABEL ── */
-.card-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-/* ── YEAR HEATMAP ── */
-.year-heatmap-card { padding: 16px 18px; }
-
-.year-heatmap-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.heatmap-month {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.heatmap-month-label {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  text-align: center;
-  margin-bottom: 3px;
-}
-
-.heatmap-month-pnl {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-align: center;
-  margin-top: 3px;
-  font-weight: 500;
-}
-
-.heatmap-month-pnl.pos { color: var(--accent-green); }
-.heatmap-month-pnl.neg { color: var(--accent-red); }
-.heatmap-month-pnl.flat { color: var(--text-faint); }
-
-.heatmap-days {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2px;
-}
-
-.heatmap-cell {
-  aspect-ratio: 1;
-  border-radius: 2px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  cursor: default;
-  transition: transform 0.1s;
-  position: relative;
-}
-
-.heatmap-cell:hover { transform: scale(1.3); z-index: 10; }
-
-.heatmap-cell.pos-1  { background: rgba(52,195,143,0.25); border-color: rgba(52,195,143,0.2); }
-.heatmap-cell.pos-2  { background: rgba(52,195,143,0.50); border-color: rgba(52,195,143,0.35); }
-.heatmap-cell.pos-3  { background: rgba(52,195,143,0.80); border-color: rgba(52,195,143,0.6); }
-.heatmap-cell.neg-1  { background: rgba(229,83,83,0.25);  border-color: rgba(229,83,83,0.2); }
-.heatmap-cell.neg-2  { background: rgba(229,83,83,0.50);  border-color: rgba(229,83,83,0.35); }
-.heatmap-cell.neg-3  { background: rgba(229,83,83,0.80);  border-color: rgba(229,83,83,0.6); }
-.heatmap-cell.no-trade { background: var(--bg-elevated); border-color: var(--border-subtle); cursor: default; }
-.heatmap-cell.future   { background: transparent; border-color: transparent; }
-
-/* Month bar at bottom of heatmap */
-.heatmap-month-bar {
-  height: 3px;
-  border-radius: 2px;
-  margin-top: 4px;
-}
-
-/* ── CHART ROW ── */
-.dashboard-charts-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.dashboard-charts-row .dashboard-card { min-width: 180px; }
-
-/* ── DURATION STATS ── */
-.duration-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.dur-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.dur-row:last-child { border-bottom: none; }
-
-.dur-val {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-secondary);
-}
-</style>
 
 <script>
 let isRendering = false;
@@ -781,7 +568,18 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       <div class="stat-pill-value negative">-$${dd.toFixed(0)}</div>
     </div>
     <div class="stat-pill">
-      <div class="stat-pill-label">Profit factor</div>
+      <div class="stat-pill-label">
+        Profit factor
+        <span class="pill-info-anchor">
+          <span class="pill-info-icon">i</span>
+          <span class="pill-info-tooltip">
+            Total $ won on winning trades ÷ total $ lost on losing trades.<br><br>
+            <strong>Above 1.0</strong> → you make more than you lose overall.<br>
+            <strong>Above 1.5</strong> → solid edge.<br>
+            <strong>Below 1.0</strong> → losing strategy overall.
+          </span>
+        </span>
+      </div>
       <div class="stat-pill-value neutral">${a.profitFactor}</div>
     </div>`;
 
