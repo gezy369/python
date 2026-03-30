@@ -382,7 +382,7 @@ body {
 .dashboard-card {
   flex: 1;
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius-xl);
   padding: 16px 18px;
   position: relative;
@@ -395,7 +395,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
   margin-bottom: 10px;
 }
 
