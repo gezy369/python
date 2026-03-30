@@ -538,8 +538,8 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   /* ── stat pills — all-time first, then year-level metrics ── */
   const allTimeFmt = Math.abs(a.pnl)>=1000?(a.pnl/1000).toFixed(1)+"k":a.pnl.toFixed(0);
   document.getElementById("statPills").innerHTML = `
-    <div class="stat-pill" style="border-color:var(--border-accent);background:var(--bg-elevated);">
-      <div class="stat-pill-label" style="color:var(--text-muted);">All-time PnL</div>
+    <div class="stat-pill">
+      <div class="stat-pill-label">All-time PnL</div>
       <div class="stat-pill-value ${a.pnl>=0?"positive":"negative"}">${a.pnl>=0?"+":""}$${allTimeFmt}</div>
     </div>
     <div style="width:1px;background:var(--border-default);align-self:stretch;margin:0 2px;flex-shrink:0;"></div>
