@@ -1206,6 +1206,8 @@ tr.trade-details-row td {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 10px 14px;
+  border-color:var(--border-accent);
+  background:var(--bg-elevated);
 }
 
 .stat-pill-label {
