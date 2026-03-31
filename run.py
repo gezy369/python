@@ -698,6 +698,71 @@ def delete_emotion_trade():
     return {"ok": True}
 
 
+# ===== FEES =====
+
+@app.get("/api/fees")
+@login_required
+def get_fees():
+    try:
+        user_id = session["user"]["id"]
+        response = (
+            supabase_admin.table("fees")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("id")
+            .execute()
+        )
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("Supabase /api/fees error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/fees")
+@login_required
+def add_fee():
+    try:
+        data = request.json
+        data["user_id"] = session["user"]["id"]
+
+        response = supabase_admin.table("fees").insert(data).execute()
+        return jsonify(response.data[0])
+    except Exception as e:
+        print("Supabase POST /api/fees error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.patch("/api/fees/<id>")
+@login_required
+def update_fee(id):
+    try:
+        supabase_admin.table("fees") \
+            .update(request.json) \
+            .eq("id", id) \
+            .eq("user_id", session["user"]["id"]) \
+            .execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"Supabase PATCH /api/fees/{id} error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.delete("/api/fees/<id>")
+@login_required
+def delete_fee(id):
+    try:
+        supabase_admin.table("fees") \
+            .delete() \
+            .eq("id", id) \
+            .eq("user_id", session["user"]["id"]) \
+            .execute()
+        return {"ok": True}
+    except Exception as e:
+        print(f"Supabase DELETE /api/fees/{id} error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)

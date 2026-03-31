@@ -53,6 +53,16 @@
     </div>
   </div>
 
+  <div class="tile">
+    <h3>Fees</h3>
+    <table class="settings-table">
+      <tbody id="feesBody"></tbody>
+    </table>
+    <div class="account-add-row" onclick="addFeeRow()">
+      + Add fee
+    </div>
+  </div>
+
   <div class="settings-empty-area">
     <!-- reserved for future use -->
   </div>
@@ -122,6 +132,101 @@ function deleteAccount(id) {
   fetch(`/api/accounts/${id}`, { method: "DELETE" }).then(loadAccounts);
 }
 
+
+/* ================= FEES ================= */
+
+function loadFees() {
+  fetch("/api/fees")
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById("feesBody");
+      tbody.innerHTML = "";
+
+      data.forEach(fee => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <input value="${fee.symbol || ""}" 
+              onchange="updateFee('${fee.id}','symbol',this.value)">
+          </td>
+          <td>
+            <input value="${fee.fees || ""}" 
+              onchange="updateFee('${fee.id}','fees',this.value)">
+          </td>
+          <td>
+            <button class="btn-danger" onclick="deleteFee('${fee.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+
+function addFeeRow() {
+  const tbody = document.getElementById("feesBody");
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td><input placeholder="Symbol (e.g. ES)"></td>
+    <td><input placeholder="Fee (e.g. 2.5)"></td>
+    <td></td>
+  `;
+
+  tbody.appendChild(tr);
+
+  const inputs = tr.querySelectorAll("input");
+  const symbolInput = inputs[0];
+  const feeInput = inputs[1];
+
+  symbolInput.focus();
+  let saved = false;
+
+  function cleanup() {
+    if (!symbolInput.value.trim()) tr.remove();
+  }
+
+  function save() {
+    if (saved) return;
+
+    const symbol = symbolInput.value.trim();
+    const fees   = feeInput.value.trim();
+
+    if (!symbol) return cleanup();
+
+    saved = true;
+
+    fetch("/api/fees", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ symbol, fees })
+    }).then(loadFees);
+  }
+
+  [symbolInput, feeInput].forEach(input => {
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") save();
+      if (e.key === "Escape") cleanup();
+    });
+    input.addEventListener("blur", save);
+  });
+}
+
+
+function updateFee(id, field, value) {
+  fetch(`/api/fees/${id}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ [field]: value })
+  });
+}
+
+
+function deleteFee(id) {
+  if (!confirm("Delete this fee?")) return;
+  fetch(`/api/fees/${id}`, { method: "DELETE" })
+    .then(loadFees);
+}
 /* ================= STRATEGIES ================= */
 
 async function loadStrategies() {
@@ -299,6 +404,7 @@ loadAccounts();
 loadStrategies();
 loadSetups();
 loadEmotions();
+loadFees();
 
 </script>
 
