@@ -1435,14 +1435,27 @@ tr.trade-details-row td {
 }
 
 .tile h3 {
-  font-size: 12px;
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  font-family: var(--font-ui);
+  min-width: unset;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle)
+
+  /*font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-faint);
   margin-bottom: 14px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);*/
 }
  
 .tile-subtitle {
