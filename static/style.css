@@ -860,6 +860,7 @@ tr.trade-details-row td {
 
 .journal-controls-left { display: flex; align-items: center; gap: 8px; }
 .journal-controls-right { display: flex; align-items: center; gap: 8px; }
+.journal-controls button { margin-top: 0; }
 
 .date-group {
   display: flex;
@@ -875,6 +876,7 @@ tr.trade-details-row td {
   display: flex;
   align-items: center;
   gap: 5px;
+  margin: 0;
 }
 
 .dark-input {
