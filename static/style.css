@@ -438,7 +438,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
   margin-bottom: 10px;
   font-family: var(--font-ui);
   min-width: unset;
@@ -733,7 +733,7 @@ button:hover {
   font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 tr.trade-row {
@@ -777,7 +777,7 @@ tr.trade-details-row td {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 /* ===== TAGS ===== */
