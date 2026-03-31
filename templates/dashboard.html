@@ -111,6 +111,7 @@ const MONTHS = [
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 let currentDate = new Date();
+currentDate.setDate(1);
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
@@ -118,13 +119,13 @@ function updateCalendarLabel() {
 }
 
 document.getElementById("prevMonth").onclick = () => {
-  currentDate.setMonth(currentDate.getMonth() - 1);
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
   updateCalendarLabel();
   renderCalendar();
 };
 
 document.getElementById("nextMonth").onclick = () => {
-  currentDate.setMonth(currentDate.getMonth() + 1);
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
   updateCalendarLabel();
   renderCalendar();
 };
@@ -193,8 +194,9 @@ async function renderCalendar() {
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
+    const todayIso = new Date().toISOString().slice(0,10);
     cell.innerHTML = `
-      <div class="calendar-date">${day}</div>
+      <div class="calendar-date" style="${isoDate === todayIso ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
       <div class="calendar-pnl ${dayPnL>0?"positive":dayPnL<0?"negative":""}">
         ${tradeCount ? `${dayPnL>=0?"+":""}$${dayPnL.toFixed(2)}` : ""}
