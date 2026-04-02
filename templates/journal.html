@@ -237,12 +237,18 @@ function removeSetup(e, tradeId, setupId) {
 
 function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
-  fetch("/api/emotions_trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, emotions_id:emotionId}) })
+  fetch("/api/emotions_trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trade_id: tradeId, emotions_id: emotionId })
+  })
   .then(() => {
-    const trade=originalData.find(t=>t.id===tradeId);
-    trade.emotions=trade.emotions.filter(id=>id!==emotionId);
-    const container=openRow?.panel?.querySelector(".emotion-tag-container");  // ← Specific selector
-    if (container) container.innerHTML=renderEmotionTags(trade);
+    const trade = originalData.find(t => t.id === tradeId);
+    trade.emotions = trade.emotions.filter(id => id !== emotionId);
+
+    // Use openRow.panel to get a fresh reference
+    const container = openRow?.panel?.querySelector(".emotion-tag-container");
+    if (container) container.innerHTML = renderEmotionTags(trade);
   });
 }
 
@@ -353,14 +359,25 @@ function toggleTradeDetails(tr, trade) {
   attachSetupRemoveHandlers(trade, setupContainer);
 
   /* emotion add */
-  const emotionSelect=td.querySelector(".emotion-add");
-  const emotionContainer=td.querySelector(".emotion-tag-container");  // ← Make sure this is specific
+  const emotionSelect = td.querySelector(".emotion-add");
+
   emotionSelect.addEventListener("change", async () => {
-    const emotionId=emotionSelect.value; if(!emotionId) return;
-    await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
+    const emotionId = emotionSelect.value;
+    if (!emotionId) return;
+
+    await fetch("/api/emotions_trades", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trade_id: trade.id, emotions_id: Number(emotionId) })
+    });
+
     trade.emotions.push(Number(emotionId));
-    emotionContainer.innerHTML=renderEmotionTags(trade);  // ← Use emotionContainer variable
-    emotionSelect.value="";
+
+    // Re-query the container fresh each time instead of using a stale reference
+    const container = td.querySelector(".emotion-tag-container");
+    if (container) container.innerHTML = renderEmotionTags(trade);
+
+    emotionSelect.value = "";
   });
 }
 
