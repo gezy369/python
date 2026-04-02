@@ -241,7 +241,7 @@ function removeEmotion(e, tradeId, emotionId) {
   .then(() => {
     const trade=originalData.find(t=>t.id===tradeId);
     trade.emotions=trade.emotions.filter(id=>id!==emotionId);
-    const container=openRow?.panel?.querySelector(".emotion-tag-container");
+    const container=openRow?.panel?.querySelector(".emotion-tag-container");  // ← Specific selector
     if (container) container.innerHTML=renderEmotionTags(trade);
   });
 }
@@ -280,7 +280,7 @@ function toggleTradeDetails(tr, trade) {
               <option value="">+ Add emotion</option>
               ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
-            <div class="emotion-tag-container setup-tag-container">${renderEmotionTags(trade)}</div>
+            <div class="emotion-tag-container">${renderEmotionTags(trade)}</div>
           </div>
         </div>
 
@@ -354,12 +354,12 @@ function toggleTradeDetails(tr, trade) {
 
   /* emotion add */
   const emotionSelect=td.querySelector(".emotion-add");
-  const emotionContainer=td.querySelector(".emotion-tag-container");
+  const emotionContainer=td.querySelector(".emotion-tag-container");  // ← Make sure this is specific
   emotionSelect.addEventListener("change", async () => {
     const emotionId=emotionSelect.value; if(!emotionId) return;
     await fetch("/api/emotions_trades", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:trade.id, emotions_id:Number(emotionId)}) });
     trade.emotions.push(Number(emotionId));
-    emotionContainer.innerHTML=renderEmotionTags(trade);
+    emotionContainer.innerHTML=renderEmotionTags(trade);  // ← Use emotionContainer variable
     emotionSelect.value="";
   });
 }
