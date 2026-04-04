@@ -666,8 +666,41 @@ def delete_emotion(id):
 @login_required
 def get_emotions_trades():
     try:
-        response = supabase_admin.table("emotions_trades").select("*").execute()
+        user_id = session["user"]["id"]
+
+        # Get user's account IDs first
+        accounts_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        user_account_ids = [a["id"] for a in (accounts_res.data or [])]
+
+        if not user_account_ids:
+            return jsonify([])
+
+        # Get user's trade IDs
+        trades_res = (
+            supabase_admin.table("trades")
+            .select("id")
+            .in_("key_trading_accounts", user_account_ids)
+            .execute()
+        )
+        trade_ids = [t["id"] for t in (trades_res.data or [])]
+
+        if not trade_ids:
+            return jsonify([])
+
+        # Now fetch only emotion links for those trades
+        response = (
+            supabase_admin.table("emotions_trades")
+            .select("*")
+            .in_("trade_id", trade_ids)
+            .execute()
+        )
         return jsonify(response.data or [])
+
     except Exception as e:
         print("Supabase /api/emotions_trades error:", e)
         return jsonify({"error": str(e)}), 500
