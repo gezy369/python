@@ -34,6 +34,25 @@ supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_user_trade_ids(user_id):
+    """Return all trade IDs belonging to the current user."""
+    accounts_res = (
+        supabase_admin.table("trading_accounts")
+        .select("id")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    account_ids = [a["id"] for a in (accounts_res.data or [])]
+    if not account_ids:
+        return []
+    trades_res = (
+        supabase_admin.table("trades")
+        .select("id")
+        .in_("key_trading_accounts", account_ids)
+        .execute()
+    )
+    return [t["id"] for t in (trades_res.data or [])]
+
 # ===== AUTH =====
 def login_required(f):
     @wraps(f)
@@ -415,6 +434,8 @@ def delete_trades():
     if not ids:
         return {"error": "No IDs provided"}, 400
 
+    # Cascade delete junction tables first
+    supabase_admin.table("emotions_trades").delete().in_("trade_id", ids).execute()
     supabase_admin.table("trade_setup").delete().in_("key_trade_id", ids).execute()
     supabase_admin.table("trades").delete().in_("id", ids).execute()
     return {"deleted": len(ids)}
@@ -576,7 +597,16 @@ def add_trade_setup():
 @login_required
 def get_trade_setups():
     try:
-        response = supabase_admin.table("trade_setup").select("*").execute()
+        user_id   = session["user"]["id"]
+        trade_ids = get_user_trade_ids(user_id)
+        if not trade_ids:
+            return jsonify([])
+        response = (
+            supabase_admin.table("trade_setup")
+            .select("*")
+            .in_("key_trade_id", trade_ids)
+            .execute()
+        )
         return jsonify(response.data or [])
     except Exception as e:
         print("Supabase /api/trade_setups error:", e)
@@ -666,41 +696,17 @@ def delete_emotion(id):
 @login_required
 def get_emotions_trades():
     try:
-        user_id = session["user"]["id"]
-
-        # Get user's account IDs first
-        accounts_res = (
-            supabase_admin.table("trading_accounts")
-            .select("id")
-            .eq("user_id", user_id)
-            .execute()
-        )
-        user_account_ids = [a["id"] for a in (accounts_res.data or [])]
-
-        if not user_account_ids:
-            return jsonify([])
-
-        # Get user's trade IDs
-        trades_res = (
-            supabase_admin.table("trades")
-            .select("id")
-            .in_("key_trading_accounts", user_account_ids)
-            .execute()
-        )
-        trade_ids = [t["id"] for t in (trades_res.data or [])]
-
+        user_id   = session["user"]["id"]
+        trade_ids = get_user_trade_ids(user_id)
         if not trade_ids:
             return jsonify([])
-
-        # Now fetch only emotion links for those trades
         response = (
             supabase_admin.table("emotions_trades")
-            .select("*")
+            .select("trade_id, emotions_id")
             .in_("trade_id", trade_ids)
             .execute()
         )
         return jsonify(response.data or [])
-
     except Exception as e:
         print("Supabase /api/emotions_trades error:", e)
         return jsonify({"error": str(e)}), 500
@@ -727,7 +733,11 @@ def delete_emotion_trade():
     if not trade_id or not emotion_id:
         return {"error": "Missing trade_id or emotions_id"}, 400
 
-    supabase_admin.table("emotions_trades").delete().eq("trade_id", trade_id).eq("emotions_id", emotion_id).execute()
+    supabase_admin.table("emotions_trades") \
+        .delete() \
+        .eq("trade_id", trade_id) \
+        .eq("emotions_id", emotion_id) \
+        .execute()
     return {"ok": True}
 
 
@@ -757,7 +767,6 @@ def add_fee():
     try:
         data = request.json
         data["user_id"] = session["user"]["id"]
-
         response = supabase_admin.table("fees").insert(data).execute()
         return jsonify(response.data[0])
     except Exception as e:
@@ -793,7 +802,6 @@ def delete_fee(id):
     except Exception as e:
         print(f"Supabase DELETE /api/fees/{id} error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 
 # ===== ENTRY POINT =====

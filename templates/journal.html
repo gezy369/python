@@ -57,37 +57,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-let originalData = [];
-let charts = {};
-let openRow = null;
-let STRATEGIES = [];
-let SETUPS = [];
-let EMOTIONS = [];
-let dataReady = false;
+// ── State ──────────────────────────────────────────────────────────────────
+let originalData = [];   // single source of truth; always kept enriched
+let charts       = {};
+let openRow      = null;
+let STRATEGIES   = [];
+let SETUPS       = [];
+let EMOTIONS     = [];
+let dataReady    = false;
 
-function renderJournalStats(data) {
-  const statsEl = document.getElementById("journalStats");
-  if (!statsEl) return;
-  const totalTrades = data.length;
-  const longs  = data.filter(t => String(t.side).toLowerCase() === "long");
-  const shorts = data.filter(t => String(t.side).toLowerCase() === "short");
-  const longPnL  = longs.reduce((s,t)  => s + (Number(t.pnl)||0), 0);
-  const shortPnL = shorts.reduce((s,t) => s + (Number(t.pnl)||0), 0);
-  const wins    = data.filter(t => Number(t.pnl) > 0).length;
-  const winRate = totalTrades ? ((wins/totalTrades)*100).toFixed(1) : 0;
-  statsEl.innerHTML = `
-    <div class="stat-block"><span class="stat-block-label">Total trades</span><span class="stat-block-val">${totalTrades}</span></div>
-    <div class="stat-block"><span class="stat-block-label">Longs</span><span class="stat-block-val">${longs.length} — <span class="${longPnL>=0?"positive":"negative"}">${longPnL>=0?"+":""}$${longPnL.toFixed(2)}</span></span></div>
-    <div class="stat-block"><span class="stat-block-label">Shorts</span><span class="stat-block-val">${shorts.length} — <span class="${shortPnL>=0?"positive":"negative"}">${shortPnL>=0?"+":""}$${shortPnL.toFixed(2)}</span></span></div>
-    <div class="stat-block"><span class="stat-block-label">Win rate</span><span class="stat-block-val">${winRate}%</span></div>`;
-}
+// ── Helpers ────────────────────────────────────────────────────────────────
+const pad        = n  => String(n).padStart(2, "0");
+const formatDate = d  => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatTime = d  => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const formatPnL  = v  => { const n=Number(v)||0; const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n<0?`($${f})`:`$${f}`; };
+// Always compare ids as numbers to avoid string/number mismatches
+const toNum      = v  => Number(v);
 
 const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
 const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
-const pad = n => String(n).padStart(2,"0");
-const formatDate = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatPnL  = v => { const n=Number(v)||0; const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n<0?`($${f})`:`$${f}`; };
 
 function waitForAccount() {
   return new Promise(resolve => {
@@ -96,50 +84,70 @@ function waitForAccount() {
   });
 }
 
+// ── Init ───────────────────────────────────────────────────────────────────
+// Fetch all reference data + trades once, build originalData, then render.
+// applyFiltersAndRender() NEVER re-fetches — it always filters originalData.
 Promise.all([
-  fetch("/api/strategies").then(r=>r.json()),
-  fetch("/api/setups").then(r=>r.json()),
-  fetch("/api/trade_setups").then(r=>r.json()),
-  fetch("/api/emotions").then(r=>r.json()).catch(()=>[]),
-  fetch("/api/emotions_trades").then(r=>r.json()).catch(()=>[]),
+  fetch("/api/strategies").then(r => r.json()),
+  fetch("/api/setups").then(r => r.json()),
+  fetch("/api/trade_setups").then(r => r.json()),
+  fetch("/api/emotions").then(r => r.json()).catch(() => []),
+  fetch("/api/emotions_trades").then(r => r.json()).catch(() => []),
 ]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
   await waitForAccount();
+
   STRATEGIES = strategies;
   SETUPS     = setups;
   EMOTIONS   = emotions;
 
+  // Build setup filter buttons
   const setupContainer = document.getElementById("setupFilter");
   setupContainer.innerHTML = "";
   SETUPS.forEach(s => {
     const btn = document.createElement("button");
-    btn.textContent = s.setup_name;
-    btn.dataset.id = s.id;
+    btn.textContent  = s.setup_name;
+    btn.dataset.id   = s.id;
     btn.style.background = s.color;
     btn.onclick = () => { btn.classList.toggle("active"); applyFiltersAndRender(); };
     setupContainer.appendChild(btn);
   });
 
+  // Build strategy filter buttons
   const strategyContainer = document.getElementById("strategyFilter");
   strategyContainer.innerHTML = "";
   STRATEGIES.forEach(s => {
     const btn = document.createElement("button");
-    btn.textContent = s.strategy_name;
-    btn.dataset.id = s.id;
+    btn.textContent  = s.strategy_name;
+    btn.dataset.id   = s.id;
     btn.style.background = s.color;
-    btn.onclick = () => {
-      btn.classList.toggle("active");
-      applyFiltersAndRender();
-    };
+    btn.onclick = () => { btn.classList.toggle("active"); applyFiltersAndRender(); };
     strategyContainer.appendChild(btn);
   });
 
-  const trades = await fetchFilteredTrades({ account: accountSelect?.value });
-  originalData = trades.map(t => ({
+  // Fetch raw trades once
+  const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });
+
+  // Build lookup maps for O(1) access
+  const setupsByTrade   = {};
+  tradeSetups.forEach(ts => {
+    const tid = toNum(ts.key_trade_id);
+    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
+  });
+
+  const emotionsByTrade = {};
+  emotionTrades.forEach(et => {
+    const tid = toNum(et.trade_id);
+    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
+  });
+
+  // Enrich trades — all ids normalised to Number
+  originalData = rawTrades.map(t => ({
     ...t,
+    id:             toNum(t.id),
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
-    setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
-    emotions: emotionTrades.filter(et => et.trade_id == t.id).map(et => et.emotions_id)
+    setups:         setupsByTrade[toNum(t.id)]   || [],
+    emotions:       emotionsByTrade[toNum(t.id)] || [],
   }));
 
   buildHeaders();
@@ -149,36 +157,106 @@ Promise.all([
   console.error("Journal init failed:", err);
 });
 
+// ── Filters ────────────────────────────────────────────────────────────────
 function resetFilters() {
   document.getElementById("dateFrom").value = "";
-  document.getElementById("dateTo").value = "";
-  document.querySelectorAll(".filter-buttons button").forEach(b=>b.classList.remove("active"));
-  document.querySelectorAll("th input[data-col]").forEach(i=>i.value="");
+  document.getElementById("dateTo").value   = "";
+  document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
   window.history.replaceState({}, "", "/journal");
   applyFiltersAndRender();
 }
 
+// Pure client-side filter + render — never re-fetches
+function applyFiltersAndRender() {
+  if (!dataReady) return;
+
+  const fromVal = document.getElementById("dateFrom")?.value;
+  const toVal   = document.getElementById("dateTo")?.value;
+  const fromD   = fromVal ? new Date(fromVal) : null;
+  const toD     = toVal   ? new Date(toVal + "T23:59:59") : null;
+
+  let data = originalData.slice();
+
+  // Date range
+  if (fromD) data = data.filter(t => t.entryTimestamp >= fromD);
+  if (toD)   data = data.filter(t => t.entryTimestamp <= toD);
+
+  // Column text filters
+  document.querySelectorAll("th input[data-col]").forEach(input => {
+    if (!input.value) return;
+    const val = input.value.toLowerCase();
+    data = data.filter(r => String(r[input.dataset.col] ?? "").toLowerCase().includes(val));
+  });
+
+  // Setup filter
+  const selectedSetups = [...document.querySelectorAll("#setupFilter button.active")].map(b => toNum(b.dataset.id));
+  if (selectedSetups.length) data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
+
+  // Strategy filter
+  const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => toNum(b.dataset.id));
+  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
+
+  // Account filter
+  const acct = accountSelect?.value;
+  if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
+
+  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+  buildRows(data);
+  updatePnLChart(data);
+  renderJournalStats(data);
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function renderJournalStats(data) {
+  const statsEl = document.getElementById("journalStats");
+  if (!statsEl) return;
+  const totalTrades = data.length;
+  const longs    = data.filter(t => String(t.side).toLowerCase() === "long");
+  const shorts   = data.filter(t => String(t.side).toLowerCase() === "short");
+  const longPnL  = longs.reduce((s, t)  => s + (Number(t.pnl) || 0), 0);
+  const shortPnL = shorts.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const wins     = data.filter(t => Number(t.pnl) > 0).length;
+  const winRate  = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+  statsEl.innerHTML = `
+    <div class="stat-block"><span class="stat-block-label">Total trades</span><span class="stat-block-val">${totalTrades}</span></div>
+    <div class="stat-block"><span class="stat-block-label">Longs</span><span class="stat-block-val">${longs.length} — <span class="${longPnL>=0?"positive":"negative"}">${longPnL>=0?"+":""}$${longPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Shorts</span><span class="stat-block-val">${shorts.length} — <span class="${shortPnL>=0?"positive":"negative"}">${shortPnL>=0?"+":""}$${shortPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Win rate</span><span class="stat-block-val">${winRate}%</span></div>`;
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
 async function deleteSelected() {
   const checked = [...document.querySelectorAll(".row-select:checked")];
   if (!checked.length) { alert("No trades selected."); return; }
   if (!confirm(`Delete ${checked.length} trade(s)?`)) return;
-  const ids = checked.map(cb=>Number(cb.dataset.id));
-  const res = await fetch("/api/trades", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ids}) });
-  if (res.ok) { originalData = originalData.filter(t=>!ids.includes(t.id)); applyFiltersAndRender(); }
-  else alert("Delete failed.");
+  const ids = checked.map(cb => toNum(cb.dataset.id));
+  const res = await fetch("/api/trades", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+  if (res.ok) {
+    originalData = originalData.filter(t => !ids.includes(t.id));
+    applyFiltersAndRender();
+  } else {
+    alert("Delete failed.");
+  }
 }
 
+// ── Table ──────────────────────────────────────────────────────────────────
 function buildHeaders() {
-  const tr = document.getElementById("headerRow"); tr.innerHTML="";
+  const tr = document.getElementById("headerRow");
+  tr.innerHTML = "";
   COLUMN_ORDER.forEach(col => {
     const th = document.createElement("th");
-    if (col==="select") {
-      const cb=document.createElement("input"); cb.type="checkbox";
-      cb.onclick=e=>document.querySelectorAll(".row-select").forEach(x=>x.checked=e.target.checked);
+    if (col === "select") {
+      const cb = document.createElement("input");
+      cb.type    = "checkbox";
+      cb.onclick = e => document.querySelectorAll(".row-select").forEach(x => x.checked = e.target.checked);
       th.appendChild(cb);
     } else {
-      th.textContent = COLUMN_NAMES[col]??col;
-      const input=document.createElement("input"); input.placeholder="Filter"; input.dataset.col=col; input.onkeyup=applyFiltersAndRender;
+      th.textContent = COLUMN_NAMES[col] ?? col;
+      const input = document.createElement("input");
+      input.placeholder  = "Filter";
+      input.dataset.col  = col;
+      input.onkeyup      = applyFiltersAndRender;
       th.append(document.createElement("br"), input);
     }
     tr.appendChild(th);
@@ -186,110 +264,153 @@ function buildHeaders() {
 }
 
 function buildRows(data) {
-  const tbody=document.querySelector("#tradeTable tbody"); tbody.innerHTML="";
+  const tbody = document.querySelector("#tradeTable tbody");
+  tbody.innerHTML = "";
   data.forEach(row => {
-    const tr=document.createElement("tr"); tr.className="trade-row"; tr.onclick=()=>toggleTradeDetails(tr,row);
+    // Always pass the originalData reference so mutations are reflected
+    const original = originalData.find(t => t.id === row.id) || row;
+    const tr = document.createElement("tr");
+    tr.className = "trade-row";
+    tr.onclick   = () => toggleTradeDetails(tr, original);
     COLUMN_ORDER.forEach(col => {
-      const td=document.createElement("td");
-      if (col==="select") { const cb=document.createElement("input"); cb.type="checkbox"; cb.className="row-select"; cb.dataset.id=row.id; cb.addEventListener("click",e=>e.stopPropagation()); td.appendChild(cb); }
-      else if (col==="pnl") { const v=Number(row[col])||0; td.textContent=formatPnL(v); td.className=v>=0?"pnl-positive":"pnl-negative"; }
-      else if (col==="side") { td.textContent=row[col]??""; td.className=`side-${String(row[col]).toLowerCase()}`; }
-      else if (col.includes("Timestamp")) td.textContent=formatDate(row[col]);
-      else td.textContent=row[col]??"";
+      const td = document.createElement("td");
+      if (col === "select") {
+        const cb = document.createElement("input");
+        cb.type      = "checkbox";
+        cb.className = "row-select";
+        cb.dataset.id = row.id;
+        cb.addEventListener("click", e => e.stopPropagation());
+        td.appendChild(cb);
+      } else if (col === "pnl") {
+        const v = Number(row[col]) || 0;
+        td.textContent = formatPnL(v);
+        td.className   = v >= 0 ? "pnl-positive" : "pnl-negative";
+      } else if (col === "side") {
+        td.textContent = row[col] ?? "";
+        td.className   = `side-${String(row[col]).toLowerCase()}`;
+      } else if (col.includes("Timestamp")) {
+        td.textContent = formatDate(row[col]);
+      } else {
+        td.textContent = row[col] ?? "";
+      }
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 }
 
+// ── Tag renderers ──────────────────────────────────────────────────────────
 function renderStrategyTag(strategyId) {
-  if (!strategyId) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
-  const s=STRATEGIES.find(x=>x.id===strategyId); if(!s) return "";
+  const sid = toNum(strategyId);
+  if (!sid) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
+  const s = STRATEGIES.find(x => toNum(x.id) === sid);
+  if (!s) return "";
   return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
 }
 
 function renderSetupTags(trade) {
   if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
   return trade.setups.map(id => {
-    const s=SETUPS.find(x=>x.id==id); if(!s) return "";
+    const s = SETUPS.find(x => toNum(x.id) === toNum(id));
+    if (!s) return "";
     return `<span class="setup-tag" style="background:${s.color};">${s.setup_name}<span class="tag-remove" onclick="removeSetup(event,${trade.id},${id})">×</span></span>`;
   }).join("");
 }
 
 function renderEmotionTags(trade) {
   if (!trade.emotions?.length) return `<span class="setup-tag muted">None</span>`;
-  return trade.emotions.map(id => {
-    const e=EMOTIONS.find(x=>x.id==id); if(!e) return "";
-    return `<span class="setup-tag" style="background:${e.color||"#3a4050"};">${e.emotion}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
+  const tags = trade.emotions.map(id => {
+    const e = EMOTIONS.find(x => toNum(x.id) === toNum(id));
+    if (!e) return "";
+    return `<span class="setup-tag" style="background:${e.color || "#3a4050"};">${e.emotion}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
   }).join("");
+  return tags || `<span class="setup-tag muted">None</span>`;
 }
 
+// ── Remove handlers ────────────────────────────────────────────────────────
 function removeSetup(e, tradeId, setupId) {
   e.stopPropagation();
-  fetch("/api/trade_setups", { method:"DELETE", headers:{"Content-Type":"application/json"}, body:JSON.stringify({trade_id:tradeId, setup_id:setupId}) })
-  .then(() => {
-    const trade=originalData.find(t=>t.id===tradeId);
-    trade.setups=trade.setups.filter(id=>id!==setupId);
-    const container=openRow?.panel?.querySelector(".setup-tag-container");
-    if (container) container.innerHTML=renderSetupTags(trade);
+  const tid = toNum(tradeId);
+  const sid = toNum(setupId);
+  fetch("/api/trade_setups", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trade_id: tid, setup_id: sid })
+  }).then(() => {
+    const trade = originalData.find(t => t.id === tid);
+    if (!trade) return;
+    trade.setups = trade.setups.filter(id => toNum(id) !== sid);
+    const container = openRow?.panel?.querySelector(".setup-tag-container");
+    if (container) container.innerHTML = renderSetupTags(trade);
   });
 }
 
 function removeEmotion(e, tradeId, emotionId) {
   e.stopPropagation();
+  const tid = toNum(tradeId);
+  const eid = toNum(emotionId);
   fetch("/api/emotions_trades", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ trade_id: tradeId, emotions_id: emotionId })
-  })
-  .then(() => {
-    const original = originalData.find(t => t.id === tradeId);
-    if (original) original.emotions = original.emotions.filter(id => id !== emotionId);
-
+    body: JSON.stringify({ trade_id: tid, emotions_id: eid })
+  }).then(() => {
+    const trade = originalData.find(t => t.id === tid);
+    if (!trade) return;
+    trade.emotions = trade.emotions.filter(id => toNum(id) !== eid);
     const container = openRow?.panel?.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML = renderEmotionTags(original);
+    if (container) container.innerHTML = renderEmotionTags(trade);
   });
 }
 
-/* ── DETAIL PANEL ── */
+// ── Detail panel ───────────────────────────────────────────────────────────
 function toggleTradeDetails(tr, trade) {
-  if (openRow && openRow.tr===tr) { closeDetails(); return; }
+  if (openRow && openRow.tr === tr) { closeDetails(); return; }
   closeDetails();
   tr.classList.add("expanded");
 
-  const strategyOptions = [`<option value="">No strategy</option>`, ...STRATEGIES.map(s=>`<option value="${s.id}" ${s.id===trade.key_strategies_id?"selected":""}>${s.strategy_name}</option>`)].join("");
+  const strategyOptions = [
+    `<option value="">No strategy</option>`,
+    ...STRATEGIES.map(s => `<option value="${s.id}" ${toNum(s.id) === toNum(trade.key_strategies_id) ? "selected" : ""}>${s.strategy_name}</option>`)
+  ].join("");
 
-  const detailsTr=document.createElement("tr"); detailsTr.className="trade-details-row";
-  const td=document.createElement("td"); td.colSpan=COLUMN_ORDER.length;
+  const detailsTr = document.createElement("tr");
+  detailsTr.className = "trade-details-row";
+  const td = document.createElement("td");
+  td.colSpan = COLUMN_ORDER.length;
 
-  td.innerHTML=`
+  const durSec = Math.round((trade.exitTimestamp - trade.entryTimestamp) / 1000);
+  const durH   = Math.floor(durSec / 3600);
+  const durM   = Math.floor((durSec % 3600) / 60);
+  const durS   = durSec % 60;
+
+  td.innerHTML = `
     <div class="trade-details">
       <div class="td-grid">
 
-        <!-- COL 1: Trade info + notes -->
+        <!-- COL 1: Trade info + notes + emotions -->
         <div class="td-col">
           <div class="td-section-label">Trade details</div>
           <div class="td-info-grid">
-            <span class="td-label">Entry</span>     <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
-            <span class="td-label">Exit</span>      <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
-            <span class="td-label">Duration</span>  <span class="td-val">${(()=>{ const s=Math.round((trade.exitTimestamp-trade.entryTimestamp)/1000); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const sc=s%60; return `${pad(h)}:${pad(m)}:${pad(sc)}`; })()}</span>
-            <span class="td-label">PnL</span>       <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
+            <span class="td-label">Entry</span>    <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
+            <span class="td-label">Exit</span>     <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
+            <span class="td-label">Duration</span> <span class="td-val">${pad(durH)}:${pad(durM)}:${pad(durS)}</span>
+            <span class="td-label">PnL</span>      <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
           </div>
           <div style="margin-top:10px;">
             <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
-            <textarea class="trade-notes dark-textarea" rows="4" placeholder="Add trade notes...">${trade.notes??""}</textarea>
+            <textarea class="trade-notes dark-textarea" rows="4" placeholder="Add trade notes...">${trade.notes ?? ""}</textarea>
           </div>
           <div style="margin-top:10px;">
             <div class="td-section-label" style="margin-bottom:5px;">Emotions</div>
             <select class="emotion-add dark-select">
               <option value="">+ Add emotion</option>
-              ${EMOTIONS.map(e=>`<option value="${e.id}">${e.emotion}</option>`).join("")}
+              ${EMOTIONS.map(e => `<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
             <div class="emotion-tag-container">${renderEmotionTags(trade)}</div>
           </div>
         </div>
 
-        <!-- COL 2: Strategy, setups, quick stats -->
+        <!-- COL 2: Strategy + setups -->
         <div class="td-col">
           <div class="td-section-label">Strategy</div>
           <select class="trade-strategy dark-select">${strategyOptions}</select>
@@ -298,7 +419,7 @@ function toggleTradeDetails(tr, trade) {
           <div class="td-section-label" style="margin-top:10px;">Setups</div>
           <select class="setup-add dark-select">
             <option value="">+ Add setup</option>
-            ${SETUPS.map(s=>`<option value="${s.id}">${s.setup_name}</option>`).join("")}
+            ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
           <div class="setup-tag-container">${renderSetupTags(trade)}</div>
         </div>
@@ -306,7 +427,8 @@ function toggleTradeDetails(tr, trade) {
         <!-- COL 3: Chart -->
         <div class="td-col td-col-chart">
           <div class="td-section-label">Chart <span style="font-size:9px;color:var(--text-faint);font-weight:400;letter-spacing:0;text-transform:none;margin-left:4px;">click to expand</span></div>
-          <div id="tradeChart-${trade.id}" class="chart-clickable" style="height:340px;" onclick="openChartOverlay('${trade.id}', '${trade.symbol}', ${trade.entryPrice}, ${trade.exitPrice})"></div>
+          <div id="tradeChart-${trade.id}" class="chart-clickable" style="height:340px;"
+               onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})"></div>
         </div>
 
       </div>
@@ -314,170 +436,167 @@ function toggleTradeDetails(tr, trade) {
 
   detailsTr.appendChild(td);
   tr.after(detailsTr);
-  const panel=td.querySelector(".trade-details");
-  panel.offsetHeight;
-  requestAnimationFrame(()=>panel.classList.add("open"));
-  openRow={tr,detailsTr,panel};
+  const panel = td.querySelector(".trade-details");
+  panel.offsetHeight; // force reflow
+  requestAnimationFrame(() => panel.classList.add("open"));
+  openRow = { tr, detailsTr, panel };
 
   showTradeChart(trade, `tradeChart-${trade.id}`);
 
-  /* notes autosave */
-  const notesEl=td.querySelector(".trade-notes");
-  let notesTimer=null;
+  // Notes autosave
+  const notesEl = td.querySelector(".trade-notes");
+  let notesTimer = null;
   notesEl.addEventListener("input", () => {
     clearTimeout(notesTimer);
-    notesTimer=setTimeout(() => {
-      fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({notes:notesEl.value}) });
-      trade.notes=notesEl.value;
+    notesTimer = setTimeout(() => {
+      fetch(`/api/trades/${trade.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: notesEl.value })
+      });
+      trade.notes = notesEl.value;
     }, 600);
   });
 
-  /* strategy change */
-  const strategySelect=td.querySelector(".trade-strategy");
-  const strategyContainer=td.querySelector(".strategy-tag-container");
+  // Strategy change
+  const strategySelect    = td.querySelector(".trade-strategy");
+  const strategyContainer = td.querySelector(".strategy-tag-container");
   strategySelect.addEventListener("change", () => {
-    const val=strategySelect.value||null;
-    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_strategies_id:val}) });
-    trade.key_strategies_id=val?Number(val):null;
-    strategyContainer.innerHTML=renderStrategyTag(trade.key_strategies_id);
+    const val = strategySelect.value || null;
+    fetch(`/api/trades/${trade.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key_strategies_id: val })
+    });
+    trade.key_strategies_id = val ? toNum(val) : null;
+    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
     attachStrategyRemoveHandler(trade, strategyContainer);
   });
   attachStrategyRemoveHandler(trade, strategyContainer);
 
-  /* setup add */
-  const setupSelect=td.querySelector(".setup-add");
-  const setupContainer=td.querySelector(".setup-tag-container");
+  // Setup add
+  const setupSelect    = td.querySelector(".setup-add");
+  const setupContainer = td.querySelector(".setup-tag-container");
   setupSelect.addEventListener("change", async () => {
-    const setupId=setupSelect.value; if(!setupId) return;
-    await fetch("/api/trade_setup", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_trade_id:trade.id, key_setup_id:setupId}) });
-    trade.setups.push(Number(setupId));
-    setupContainer.innerHTML=renderSetupTags(trade);
-    setupSelect.value="";
+    const setupId = setupSelect.value;
+    if (!setupId) return;
+    const sid = toNum(setupId);
+    if (trade.setups.includes(sid)) { setupSelect.value = ""; return; } // no duplicates
+    await fetch("/api/trade_setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: sid })
+    });
+    trade.setups.push(sid);
+    setupContainer.innerHTML = renderSetupTags(trade);
+    setupSelect.value = "";
   });
 
-  attachSetupRemoveHandlers(trade, setupContainer);
-
-  /* emotion add */
-  const emotionSelect = td.querySelector(".emotion-add");
-
+  // Emotion add
+  const emotionSelect    = td.querySelector(".emotion-add");
+  const emotionContainer = td.querySelector(".emotion-tag-container");
   emotionSelect.addEventListener("change", async () => {
-  const emotionId = emotionSelect.value;
-  if (!emotionId) return;
+    const emotionId = emotionSelect.value;
+    if (!emotionId) return;
+    const eid = toNum(emotionId);
+    if (trade.emotions.includes(eid)) { emotionSelect.value = ""; return; } // no duplicates
 
-  await fetch("/api/emotions_trades", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ trade_id: trade.id, emotions_id: Number(emotionId) })
-  });
+    await fetch("/api/emotions_trades", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trade_id: trade.id, emotions_id: eid })
+    });
 
-  // Mutate the originalData record, not just the local `trade` reference
-  const original = originalData.find(t => t.id === trade.id);
-  if (original && !original.emotions.includes(Number(emotionId))) {
-    original.emotions.push(Number(emotionId));
-  }
-  // Keep local reference in sync too
-  trade.emotions = original.emotions;
-
-  const container = td.querySelector(".emotion-tag-container");
-  if (container) container.innerHTML = renderEmotionTags(trade);
-
-  emotionSelect.value = "";
+    // trade here IS the originalData reference (passed from buildRows), so mutating it is safe
+    trade.emotions.push(eid);
+    emotionContainer.innerHTML = renderEmotionTags(trade);
+    emotionSelect.value = "";
   });
 }
 
-const accountSelect=document.getElementById("accountSelect");
-if (accountSelect) accountSelect.addEventListener("change", ()=>applyFiltersAndRender());
+// ── Account selector ───────────────────────────────────────────────────────
+const accountSelect = document.getElementById("accountSelect");
+if (accountSelect) accountSelect.addEventListener("change", () => applyFiltersAndRender());
 
+// ── PnL chart ──────────────────────────────────────────────────────────────
 function updatePnLChart(data) {
-  const ctx=document.getElementById("pnlChart"); if(!ctx) return;
+  const ctx = document.getElementById("pnlChart");
+  if (!ctx) return;
   if (charts.pnl) charts.pnl.destroy();
-  const daily={};
-  data.forEach(t=>{ const d=t.entryTimestamp.toISOString().slice(0,10); daily[d]=(daily[d]||0)+(Number(t.pnl)||0); });
-  const dates=Object.keys(daily).sort();
-  let cum=0;
-  const values=dates.map(d=>(cum+=daily[d], +cum.toFixed(2)));
-  charts.pnl=new Chart(ctx, {
-    type:"line",
-    data:{ labels:dates, datasets:[{ data:values, borderColor:"#34c38f", borderWidth:2,
-      fill:true, tension:0.3, pointRadius:0,
-      backgroundColor:ctx2=>{ const {chartArea}=ctx2.chart; if(!chartArea) return "transparent"; const g=ctx2.chart.ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom); g.addColorStop(0,"rgba(52,195,143,0.18)"); g.addColorStop(1,"rgba(52,195,143,0)"); return g; }
-    }]},
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ x:{display:false}, y:{ ticks:{color:"#5a6070", font:{size:10,family:"'IBM Plex Mono'"}, callback:v=>`$${v}`}, grid:{color:"rgba(255,255,255,0.04)"} } }
+  const daily = {};
+  data.forEach(t => {
+    const d = t.entryTimestamp.toISOString().slice(0, 10);
+    daily[d] = (daily[d] || 0) + (Number(t.pnl) || 0);
+  });
+  const dates = Object.keys(daily).sort();
+  let cum = 0;
+  const values = dates.map(d => (cum += daily[d], +cum.toFixed(2)));
+  charts.pnl = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [{
+        data: values,
+        borderColor: "#34c38f",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        backgroundColor: ctx2 => {
+          const { chartArea } = ctx2.chart;
+          if (!chartArea) return "transparent";
+          const g = ctx2.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, "rgba(52,195,143,0.18)");
+          g.addColorStop(1, "rgba(52,195,143,0)");
+          return g;
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: {
+          ticks: { color: "#5a6070", font: { size: 10, family: "'IBM Plex Mono'" }, callback: v => `$${v}` },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        }
+      }
     }
   });
 }
 
+// ── Strategy helpers ───────────────────────────────────────────────────────
 function attachStrategyRemoveHandler(trade, container) {
-  const tag=container.querySelector("[data-remove-strategy]");
-  if (tag) tag.addEventListener("click", ()=>{
-    fetch(`/api/trades/${trade.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({key_strategies_id:null}) });
-    trade.key_strategies_id=null;
-    container.innerHTML=renderStrategyTag(null);
+  const tag = container.querySelector("[data-remove-strategy]");
+  if (tag) tag.addEventListener("click", () => {
+    fetch(`/api/trades/${trade.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key_strategies_id: null })
+    });
+    trade.key_strategies_id = null;
+    container.innerHTML = renderStrategyTag(null);
     attachStrategyRemoveHandler(trade, container);
   });
 }
 
-function attachSetupRemoveHandlers(trade, container) {
-  container.querySelectorAll(".setup-tag").forEach(tag=>{
-    tag.addEventListener("click", async ()=>{
-      const id=tag.dataset.tradeSetupId;
-      await fetch(`/api/trade_setup/${id}`, {method:"DELETE"});
-      trade.setups=trade.setups.filter(s=>s.trade_setup_id!=id);
-      container.innerHTML=renderSetupTags(trade);
-      attachSetupRemoveHandlers(trade, container);
-    });
-  });
-}
-
+// ── Close details ──────────────────────────────────────────────────────────
 function closeDetails() {
   if (!openRow) return;
-  const {tr,detailsTr,panel}=openRow;
+  const { tr, detailsTr, panel } = openRow;
   tr.classList.remove("expanded");
   panel.classList.remove("open");
-  setTimeout(()=>detailsTr.remove(), 250);
-  openRow=null;
+  setTimeout(() => detailsTr.remove(), 250);
+  openRow = null;
 }
 
-async function applyFiltersAndRender() {
-  if (!dataReady) return;
-  const from=document.getElementById("dateFrom")?.value||null;
-  const to=document.getElementById("dateTo")?.value||null;
-  let data=normalizeTrades(await fetchFilteredTrades({account:accountSelect?.value, from, to}));
-
-  document.querySelectorAll("th input[data-col]").forEach(input=>{
-    if (!input.value) return;
-    const val=input.value.toLowerCase();
-    data=data.filter(r=>String(r[input.dataset.col]??"").toLowerCase().includes(val));
-  });
-
-  const selectedSetups=[...document.querySelectorAll("#setupFilter button.active")].map(b=>Number(b.dataset.id));
-  if (selectedSetups.length) data=data.filter(t=>selectedSetups.some(id=>t.setups?.includes(id)));
-
-  const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => Number(b.dataset.id));
-  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(t.key_strategies_id));
-
-  data.sort((a,b)=>a.entryTimestamp-b.entryTimestamp);
-  buildRows(data);
-  updatePnLChart(data);
-  renderJournalStats(data);
-}
-
-function applyDateFromURL() {
-  const params=new URLSearchParams(window.location.search);
-  const from=params.get("from"); const to=params.get("to");
-  if (from) document.getElementById("dateFrom").value=from;
-  if (to)   document.getElementById("dateTo").value=to;
-}
+// ── Chart overlay ──────────────────────────────────────────────────────────
 function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
-  const source = document.getElementById(`tradeChart-${tradeId}`);
-  if (!source) return;
-
   const overlay = document.createElement("div");
   overlay.className = "chart-overlay";
-  overlay.id = "chartOverlay";
-
+  overlay.id        = "chartOverlay";
   overlay.innerHTML = `
     <div class="chart-overlay-inner">
       <div class="chart-overlay-header">
@@ -488,12 +607,10 @@ function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
         <div id="chartOverlayContent" style="height:100%;min-height:500px;"></div>
       </div>
     </div>`;
-
   document.body.appendChild(overlay);
   overlay.addEventListener("click", e => { if (e.target === overlay) closeChartOverlay(); });
   document.addEventListener("keydown", overlayKeyHandler);
-
-  const trade = originalData.find(t => t.id == tradeId);
+  const trade = originalData.find(t => t.id == toNum(tradeId));
   if (trade) showTradeChart(trade, "chartOverlayContent");
 }
 
@@ -507,16 +624,15 @@ function overlayKeyHandler(e) {
   if (e.key === "Escape") closeChartOverlay();
 }
 
-
 async function showTradeChart(trade, containerId) {
-  const chartEl=document.getElementById(containerId);
-  chartEl.innerHTML="";
+  const chartEl = document.getElementById(containerId);
+  if (!chartEl) return;
+  chartEl.innerHTML = "";
   if (trade.chart_image) {
-    chartEl.innerHTML=`<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:340px;object-fit:contain;border-radius:6px;"/>`;
+    chartEl.innerHTML = `<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:340px;object-fit:contain;border-radius:6px;"/>`;
     return;
   }
-  if (typeof LightweightCharts!=="undefined") { return; }
-  chartEl.innerHTML=`<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
+  chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
 }
 </script>
 
