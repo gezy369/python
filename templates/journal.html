@@ -139,7 +139,7 @@ Promise.all([
     entryTimestamp: new Date(t.entryTimestamp),
     exitTimestamp:  new Date(t.exitTimestamp),
     setups:   tradeSetups.filter(ts=>ts.key_trade_id===t.id).map(ts=>ts.key_setup_id),
-    emotions: emotionTrades.filter(et=>et.trade_id===t.id).map(et=>et.emotions_id)
+    emotions: emotionTrades.filter(et => et.trade_id == t.id).map(et => et.emotions_id)
   }));
 
   buildHeaders();
@@ -243,12 +243,11 @@ function removeEmotion(e, tradeId, emotionId) {
     body: JSON.stringify({ trade_id: tradeId, emotions_id: emotionId })
   })
   .then(() => {
-    const trade = originalData.find(t => t.id === tradeId);
-    trade.emotions = trade.emotions.filter(id => id !== emotionId);
+    const original = originalData.find(t => t.id === tradeId);
+    if (original) original.emotions = original.emotions.filter(id => id !== emotionId);
 
-    // Use openRow.panel to get a fresh reference
     const container = openRow?.panel?.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML = renderEmotionTags(trade);
+    if (container) container.innerHTML = renderEmotionTags(original);
   });
 }
 
@@ -362,22 +361,27 @@ function toggleTradeDetails(tr, trade) {
   const emotionSelect = td.querySelector(".emotion-add");
 
   emotionSelect.addEventListener("change", async () => {
-    const emotionId = emotionSelect.value;
-    if (!emotionId) return;
+  const emotionId = emotionSelect.value;
+  if (!emotionId) return;
 
-    await fetch("/api/emotions_trades", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trade_id: trade.id, emotions_id: Number(emotionId) })
-    });
+  await fetch("/api/emotions_trades", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trade_id: trade.id, emotions_id: Number(emotionId) })
+  });
 
-    trade.emotions.push(Number(emotionId));
+  // Mutate the originalData record, not just the local `trade` reference
+  const original = originalData.find(t => t.id === trade.id);
+  if (original && !original.emotions.includes(Number(emotionId))) {
+    original.emotions.push(Number(emotionId));
+  }
+  // Keep local reference in sync too
+  trade.emotions = original.emotions;
 
-    // Re-query the container fresh each time instead of using a stale reference
-    const container = td.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML = renderEmotionTags(trade);
+  const container = td.querySelector(".emotion-tag-container");
+  if (container) container.innerHTML = renderEmotionTags(trade);
 
-    emotionSelect.value = "";
+  emotionSelect.value = "";
   });
 }
 
