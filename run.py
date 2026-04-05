@@ -814,10 +814,10 @@ def get_settings():
             supabase_admin.table("settings")
             .select("*")
             .eq("user_id", user_id)
-            .single()
             .execute()
         )
-        return jsonify(response.data or {})
+        data = response.data
+        return jsonify(data[0] if data else {})
     except Exception as e:
         print("Supabase GET /api/settings error:", e)
         return jsonify({}), 200
