@@ -112,6 +112,10 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 
 let currentDate = new Date();
 currentDate.setDate(1);
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // fallback
+fetch("/api/settings")
+  .then(r => r.json())
+  .then(data => { if (data.timezone) userTimezone = data.timezone; });
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
@@ -194,7 +198,7 @@ async function renderCalendar() {
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
-    const todayIso = new Date().toISOString().slice(0,10);
+    const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone });
     cell.innerHTML = `
       <div class="calendar-date" style="${isoDate === todayIso ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
