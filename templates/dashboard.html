@@ -112,8 +112,13 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 
 let currentDate = new Date();
 currentDate.setDate(1);
-let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // fallback
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // fallback until settings load
 const calendarLabel = document.getElementById("calendarLabel");
+
+// Timezone-safe ISO date formatter (YYYY-MM-DD in user's timezone)
+function toTZDate(date) {
+  return new Date(date).toLocaleDateString("en-CA", { timeZone: userTimezone });
+}
 
 function updateCalendarLabel() {
   calendarLabel.textContent = `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
@@ -149,8 +154,9 @@ async function renderCalendar() {
   const month = currentDate.getMonth();
   const year  = currentDate.getFullYear();
 
-  const from = new Date(year, month, 1).toISOString().slice(0,10);
-  const to   = new Date(year, month + 1, 0).toISOString().slice(0,10);
+  // Use timezone-safe formatting for API date range
+  const from = new Date(year, month, 1).toLocaleDateString("en-CA", { timeZone: userTimezone });
+  const to   = new Date(year, month + 1, 0).toLocaleDateString("en-CA", { timeZone: userTimezone });
 
   let monthlyTrades = await fetchFilteredTrades({ account: accountSelect?.value, from, to }) || [];
   let accountTrades = await fetchFilteredTrades({ account: accountSelect?.value }) || [];
@@ -177,13 +183,15 @@ async function renderCalendar() {
     calendarEl.appendChild(document.createElement("div"));
 
   const monthlyTotal = { trades: 0, pnl: 0 };
+  const todayIso = toTZDate(new Date());
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
     if (dateObj.getDay() === 0 || dateObj.getDay() === 6) continue;
 
-    const isoDate   = dateObj.toISOString().slice(0,10);
-    const dayTrades = monthlyTrades.filter(t => t.entryDate.toISOString().slice(0,10) === isoDate);
+    // Use timezone-aware date string for cell matching
+    const isoDate   = dateObj.toLocaleDateString("en-CA", { timeZone: userTimezone });
+    const dayTrades = monthlyTrades.filter(t => toTZDate(t.entryDate) === isoDate);
     const tradeCount = dayTrades.length;
     const dayPnL     = dayTrades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
 
@@ -195,7 +203,6 @@ async function renderCalendar() {
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
-    const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone });
     cell.innerHTML = `
       <div class="calendar-date" style="${isoDate === todayIso ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
@@ -223,7 +230,7 @@ function renderYearHeatmap(allTrades, year) {
 
   const dailyPnL = {};
   allTrades.forEach(t => {
-    const d = new Date(t.entryDate).toISOString().slice(0,10);
+    const d = toTZDate(t.entryDate);
     dailyPnL[d] = (dailyPnL[d] || 0) + (Number(t.pnl) || 0);
   });
 
@@ -231,7 +238,7 @@ function renderYearHeatmap(allTrades, year) {
   const values = Object.values(dailyPnL).map(Math.abs);
   const maxPnL = values.length ? Math.max(...values) : 1;
 
-  const today = new Date();
+  const todayIso = toTZDate(new Date());
   const grid  = document.getElementById("yearHeatmap");
   grid.innerHTML = "";
 
@@ -255,11 +262,11 @@ function renderYearHeatmap(allTrades, year) {
       const dow     = dateObj.getDay();
       if (dow === 0 || dow === 6) continue; /* skip weekends */
 
-      const iso  = dateObj.toISOString().slice(0,10);
+      const iso  = dateObj.toLocaleDateString("en-CA", { timeZone: userTimezone });
       const pnl  = dailyPnL[iso];
       const cell = document.createElement("div");
 
-      if (dateObj > today) {
+      if (iso > todayIso) {
         cell.className = "heatmap-cell future";
       } else if (pnl === undefined) {
         cell.className = "heatmap-cell no-trade";
@@ -380,7 +387,7 @@ function drawEquityChart(mode) {
   });
   ctx.restore();
 
-  /* gradient fill — all the way to bottom of canvas */
+  /* gradient fill */
   const grad = ctx.createLinearGradient(0, pad.top, 0, H);
   grad.addColorStop(0,   `rgba(${gradRgb},0.22)`);
   grad.addColorStop(1,   `rgba(${gradRgb},0)`);
@@ -417,7 +424,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   function buildDailyEquity(trades) {
     const grouped = {};
     trades.forEach(t => {
-      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      const d = toTZDate(t.entryDate);
       grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
     });
     const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
@@ -430,10 +437,9 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   function buildYearEquity(trades, year) {
     const grouped = {};
     trades.forEach(t => {
-      const d = new Date(t.entryDate);
-      if (d.getFullYear() !== year) return;
-      const key = d.toISOString().slice(0,10);
-      grouped[key] = (grouped[key] || 0) + (Number(t.pnl) || 0);
+      const d = toTZDate(t.entryDate);
+      if (!d.startsWith(year)) return;
+      grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
     });
     const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
     let cum = 0;
@@ -468,7 +474,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   function streaks(trades) {
     const days = {};
     trades.forEach(t => {
-      const d = new Date(t.entryDate).toISOString().slice(0,10);
+      const d = toTZDate(t.entryDate);
       days[d] = (days[d] || 0) + (Number(t.pnl)||0);
     });
     const sorted = Object.values(days).map(Number);
@@ -519,7 +525,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   }
 
   /* ── year trades ── */
-  const yearTrades = accountTrades.filter(t => new Date(t.entryTimestamp).getFullYear() === year);
+  const yearTrades = accountTrades.filter(t => toTZDate(t.entryDate).startsWith(String(year)));
 
   /* ── compute ── */
   monthlyEquityData = buildDailyEquity(monthlyTrades);
@@ -538,7 +544,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   /* ── equity chart ── */
   drawEquityChart(activeCurve);
 
-  /* ── stat pills — all-time first, then year-level metrics ── */
+  /* ── stat pills ── */
   const allTimeFmt = Math.abs(a.pnl)>=1000?(a.pnl/1000).toFixed(1)+"k":a.pnl.toFixed(0);
   document.getElementById("statPills").innerHTML = `
     <div class="stat-pill">
