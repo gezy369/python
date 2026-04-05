@@ -848,6 +848,12 @@ tr.trade-details-row td {
   margin-bottom: 10px;
 }
 
+#strategySetup .top-filters {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
 /* ===== JOURNAL CONTROLS ===== */
 .journal-controls {
   display: flex;
