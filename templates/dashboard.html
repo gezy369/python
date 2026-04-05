@@ -112,12 +112,22 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 
 let currentDate = new Date();
 currentDate.setDate(1);
-let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // fallback until settings load
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const calendarLabel = document.getElementById("calendarLabel");
 
-// Timezone-safe ISO date formatter (YYYY-MM-DD in user's timezone)
+// Timezone-safe ISO date string (YYYY-MM-DD) in user's timezone
 function toTZDate(date) {
   return new Date(date).toLocaleDateString("en-CA", { timeZone: userTimezone });
+}
+
+// Returns { year, month (0-based), day } of today in user's timezone
+function getTodayInTZ() {
+  const parts = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone }).split("-");
+  return {
+    year:  parseInt(parts[0]),
+    month: parseInt(parts[1]) - 1,
+    day:   parseInt(parts[2])
+  };
 }
 
 function updateCalendarLabel() {
@@ -154,7 +164,6 @@ async function renderCalendar() {
   const month = currentDate.getMonth();
   const year  = currentDate.getFullYear();
 
-  // Use timezone-safe formatting for API date range
   const from = new Date(year, month, 1).toLocaleDateString("en-CA", { timeZone: userTimezone });
   const to   = new Date(year, month + 1, 0).toLocaleDateString("en-CA", { timeZone: userTimezone });
 
@@ -168,9 +177,8 @@ async function renderCalendar() {
   renderYearHeatmap(accountTrades, year);
 
   const firstDay     = new Date(year, month, 1);
-  const lastDay      = new Date(year, month + 1, 0);
   const startWeekday = (firstDay.getDay() + 6) % 7;
-  const daysInMonth  = lastDay.getDate();
+  const daysInMonth  = new Date(year, month + 1, 0).getDate();
 
   ["Mon","Tue","Wed","Thu","Fri"].forEach(d => {
     const h = document.createElement("div");
@@ -183,15 +191,14 @@ async function renderCalendar() {
     calendarEl.appendChild(document.createElement("div"));
 
   const monthlyTotal = { trades: 0, pnl: 0 };
-  const todayIso = toTZDate(new Date());
+  const today = getTodayInTZ();
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
     if (dateObj.getDay() === 0 || dateObj.getDay() === 6) continue;
 
-    // Use timezone-aware date string for cell matching
-    const isoDate   = dateObj.toLocaleDateString("en-CA", { timeZone: userTimezone });
-    const dayTrades = monthlyTrades.filter(t => toTZDate(t.entryDate) === isoDate);
+    const isoDate    = dateObj.toLocaleDateString("en-CA", { timeZone: userTimezone });
+    const dayTrades  = monthlyTrades.filter(t => toTZDate(t.entryDate) === isoDate);
     const tradeCount = dayTrades.length;
     const dayPnL     = dayTrades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
 
@@ -199,12 +206,13 @@ async function renderCalendar() {
     monthlyTotal.pnl    += dayPnL;
 
     const pnlClass = tradeCount === 0 ? "day-flat" : dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
+    const isToday  = day === today.day && month === today.month && year === today.year;
 
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
     cell.innerHTML = `
-      <div class="calendar-date" style="${isoDate === todayIso ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
+      <div class="calendar-date" style="${isToday ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
       <div class="calendar-pnl ${dayPnL>0?"positive":dayPnL<0?"negative":""}">
         ${tradeCount ? `${dayPnL>=0?"+":""}$${dayPnL.toFixed(2)}` : ""}
@@ -234,12 +242,11 @@ function renderYearHeatmap(allTrades, year) {
     dailyPnL[d] = (dailyPnL[d] || 0) + (Number(t.pnl) || 0);
   });
 
-  /* find max abs pnl for scaling intensity */
   const values = Object.values(dailyPnL).map(Math.abs);
   const maxPnL = values.length ? Math.max(...values) : 1;
 
   const todayIso = toTZDate(new Date());
-  const grid  = document.getElementById("yearHeatmap");
+  const grid     = document.getElementById("yearHeatmap");
   grid.innerHTML = "";
 
   for (let m = 0; m < 12; m++) {
@@ -260,7 +267,7 @@ function renderYearHeatmap(allTrades, year) {
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(year, m, d);
       const dow     = dateObj.getDay();
-      if (dow === 0 || dow === 6) continue; /* skip weekends */
+      if (dow === 0 || dow === 6) continue;
 
       const iso  = dateObj.toLocaleDateString("en-CA", { timeZone: userTimezone });
       const pnl  = dailyPnL[iso];
@@ -287,7 +294,6 @@ function renderYearHeatmap(allTrades, year) {
 
     col.appendChild(daysDiv);
 
-    /* month bar + pnl total */
     const bar = document.createElement("div");
     bar.className = "heatmap-month-bar";
     bar.style.background = monthPnL > 0
@@ -320,7 +326,6 @@ let monthlyEquityData = null;
 let yearEquityData    = null;
 let activeCurve       = "month";
 
-/* ── curve toggle ── */
 document.querySelectorAll(".curve-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".curve-btn").forEach(b => b.classList.remove("active"));
@@ -335,9 +340,9 @@ function drawEquityChart(mode) {
   const canvas = document.getElementById("equityChart");
   if (!d || !d.data.length) { canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height); return; }
 
-  const color  = mode === "month" ? "#5b8ef5" : "#34c38f";
+  const color   = mode === "month" ? "#5b8ef5" : "#34c38f";
   const gradRgb = mode === "month" ? "91,142,245" : "52,195,143";
-  const title  = mode === "month"
+  const title   = mode === "month"
     ? `${MONTHS[currentDate.getMonth()].toUpperCase()} ${currentDate.getFullYear()}`
     : `${currentDate.getFullYear()}`;
 
@@ -353,24 +358,21 @@ function drawEquityChart(mode) {
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
-  /* watermark */
   ctx.save();
   ctx.font = "700 24px 'DM Sans', sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.045)";
   ctx.fillText(title, 8, 26);
   ctx.restore();
 
-  /* y-axis ticks on right */
-  const vals = d.data;
-  const minV = Math.min(...vals);
-  const maxV = Math.max(...vals);
+  const vals  = d.data;
+  const minV  = Math.min(...vals);
+  const maxV  = Math.max(...vals);
   const range = maxV - minV || 1;
-  const pad = { top: 10, bottom: 6, left: 4, right: 42 };
+  const pad   = { top: 10, bottom: 6, left: 4, right: 42 };
 
   const toX = i => pad.left + (i / (vals.length - 1)) * (W - pad.left - pad.right);
   const toY = v => pad.top + (1 - (v - minV) / range) * (H - pad.top - pad.bottom);
 
-  /* y tick labels */
   ctx.save();
   ctx.font = `10px 'IBM Plex Mono', monospace`;
   ctx.fillStyle = "#3a4050";
@@ -387,10 +389,9 @@ function drawEquityChart(mode) {
   });
   ctx.restore();
 
-  /* gradient fill */
   const grad = ctx.createLinearGradient(0, pad.top, 0, H);
-  grad.addColorStop(0,   `rgba(${gradRgb},0.22)`);
-  grad.addColorStop(1,   `rgba(${gradRgb},0)`);
+  grad.addColorStop(0, `rgba(${gradRgb},0.22)`);
+  grad.addColorStop(1, `rgba(${gradRgb},0)`);
 
   ctx.beginPath();
   ctx.moveTo(toX(0), toY(vals[0]));
@@ -404,7 +405,6 @@ function drawEquityChart(mode) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  /* line */
   ctx.beginPath();
   ctx.moveTo(toX(0), toY(vals[0]));
   for (let i = 1; i < vals.length; i++) {
@@ -438,7 +438,7 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     const grouped = {};
     trades.forEach(t => {
       const d = toTZDate(t.entryDate);
-      if (!d.startsWith(year)) return;
+      if (!d.startsWith(String(year))) return;
       grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
     });
     const keys = Object.keys(grouped).sort((a,b) => new Date(a)-new Date(b));
@@ -524,10 +524,8 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     };
   }
 
-  /* ── year trades ── */
   const yearTrades = accountTrades.filter(t => toTZDate(t.entryDate).startsWith(String(year)));
 
-  /* ── compute ── */
   monthlyEquityData = buildDailyEquity(monthlyTrades);
   yearEquityData    = buildYearEquity(accountTrades, year);
 
@@ -541,10 +539,8 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
   const scatter = hourPnLScatter(accountTrades);
   const dw  = dowWinRate(accountTrades);
 
-  /* ── equity chart ── */
   drawEquityChart(activeCurve);
 
-  /* ── stat pills ── */
   const allTimeFmt = Math.abs(a.pnl)>=1000?(a.pnl/1000).toFixed(1)+"k":a.pnl.toFixed(0);
   document.getElementById("statPills").innerHTML = `
     <div class="stat-pill">
@@ -592,7 +588,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
       <div class="stat-pill-value neutral">${a.profitFactor}</div>
     </div>`;
 
-  /* ── stats cards ── */
   document.querySelector("#monthlyStats .stats-content").innerHTML = `
     <h4>${MONTHS[month]} ${year}</h4>
     <div><span>Trades</span>       <strong>${monthlyTrades.length}</strong></div>
@@ -611,7 +606,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     <div><span>Avg loss</span>     <strong class="negative" style="font-family:var(--font-mono)">$${a.avgLoss.toFixed(2)}</strong></div>
     <div><span>Profit factor</span><strong style="color:var(--accent-blue)">${a.profitFactor}</strong></div>`;
 
-  /* ── hour scatter ── */
   const xRange = scatterXRange(scatter);
   if (hourScatterInstance) hourScatterInstance.destroy();
   hourScatterInstance = new Chart(document.getElementById("hourScatterChart"), {
@@ -668,7 +662,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     }
   });
 
-  /* ── day of week ── */
   if (dowChartInstance) dowChartInstance.destroy();
   dowChartInstance = new Chart(document.getElementById("dowChart"), {
     type: "bar",
@@ -695,7 +688,6 @@ function renderDashboardStats(monthlyTrades, accountTrades, month, year) {
     }
   });
 
-  /* ── duration ── */
   const durationEl = document.getElementById("durationStats");
   if (dur) {
     durationEl.innerHTML = `
