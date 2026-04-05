@@ -722,7 +722,12 @@ function waitForAccount() {
   });
 }
 
-waitForAccount().then(() => renderCalendar());
+Promise.all([
+  waitForAccount(),
+  fetch("/api/settings").then(r => r.json()).then(data => {
+    if (data.timezone) userTimezone = data.timezone;
+  }).catch(() => {})
+]).then(() => renderCalendar());
 </script>
 
 {% endblock %}
