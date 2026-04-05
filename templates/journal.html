@@ -30,8 +30,12 @@
     <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
   <div class="filter-group">
-    <span class="filter-group-label">Setups</span>
-    <div id="setupFilter" class="filter-buttons multi"></div>
+      <span class="filter-group-label">Setups</span>
+      <div id="setupFilter" class="filter-buttons multi"></div>
+    </div>
+    <div class="filter-group">
+    <span class="filter-group-label">Emotions</span>
+    <div id="emotionFilter" class="filter-buttons multi"></div>
   </div>
 </div>
 
@@ -110,6 +114,17 @@ Promise.all([
     btn.style.background = s.color;
     btn.onclick = () => { btn.classList.toggle("active"); applyFiltersAndRender(); };
     setupContainer.appendChild(btn);
+  });
+  // Build emotion filter buttons
+  const emotionContainer = document.getElementById("emotionFilter");
+  emotionContainer.innerHTML = "";
+  EMOTIONS.forEach(e => {
+    const btn = document.createElement("button");
+    btn.textContent  = e.emotion;
+    btn.dataset.id   = e.id;
+    btn.style.background = e.color || "#3a4050";
+    btn.onclick = () => { btn.classList.toggle("active"); applyFiltersAndRender(); };
+    emotionContainer.appendChild(btn);
   });
 
   // Build strategy filter buttons
@@ -196,7 +211,9 @@ function applyFiltersAndRender() {
   // Strategy filter
   const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => toNum(b.dataset.id));
   if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
-
+  // Emotion filter
+  const activeEmotions = [...document.querySelectorAll("#emotionFilter button.active")].map(b => toNum(b.dataset.id));
+  if (activeEmotions.length) data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
   // Account filter
   const acct = accountSelect?.value;
   if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
