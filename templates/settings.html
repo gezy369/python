@@ -9,7 +9,16 @@
   <!-- ROW 1: Profile · Strategies · Setups · Emotions -->
   <div class="tile">
     <h3>Profile</h3>
-    <p class="muted">Coming soon</p>
+    <table class="settings-table">
+      <tbody>
+        <tr>
+          <td>Timezone</td>
+          <td>
+            <select id="timezoneSelect" class="dark-select" style="width:100%"></select>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="tile">
@@ -405,13 +414,36 @@ function deleteEmotion(id) {
   fetch(`/api/emotions/${id}`, { method: "DELETE" }).then(loadEmotions);
 }
 
-/* ================= INIT ================= */
+/* ================= TIMEZONE ================= */
+
+function loadTimezone() {
+  const tzSelect = document.getElementById("timezoneSelect");
+  const TIMEZONES = Intl.supportedValuesOf("timeZone");
+  tzSelect.innerHTML = TIMEZONES.map(tz =>
+    `<option value="${tz}">${tz.replace(/_/g, " ")}</option>`
+  ).join("");
+
+  fetch("/api/settings")
+    .then(r => r.json())
+    .then(data => {
+      tzSelect.value = data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    });
+
+  tzSelect.addEventListener("change", () => {
+    fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ timezone: tzSelect.value })
+    });
+  });
+}
 
 loadAccounts();
 loadStrategies();
 loadSetups();
 loadEmotions();
 loadFees();
+loadTimezone();
 
 </script>
 

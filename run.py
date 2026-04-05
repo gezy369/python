@@ -803,6 +803,55 @@ def delete_fee(id):
         print(f"Supabase DELETE /api/fees/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
+# ===== SETTINGS =====
+
+@app.get("/api/settings")
+@login_required
+def get_settings():
+    try:
+        user_id  = session["user"]["id"]
+        response = (
+            supabase_admin.table("settings")
+            .select("*")
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+        return jsonify(response.data or {})
+    except Exception as e:
+        print("Supabase GET /api/settings error:", e)
+        return jsonify({}), 200
+
+
+@app.patch("/api/settings")
+@login_required
+def update_settings():
+    try:
+        user_id = session["user"]["id"]
+        data    = request.json
+
+        existing = (
+            supabase_admin.table("settings")
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if existing.data:
+            supabase_admin.table("settings") \
+                .update(data) \
+                .eq("user_id", user_id) \
+                .execute()
+        else:
+            data["user_id"] = user_id
+            supabase_admin.table("settings") \
+                .insert(data) \
+                .execute()
+
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("Supabase PATCH /api/settings error:", e)
+        return jsonify({"error": str(e)}), 500
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
