@@ -113,9 +113,6 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 let currentDate = new Date();
 currentDate.setDate(1);
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // fallback
-fetch("/api/settings")
-  .then(r => r.json())
-  .then(data => { if (data.timezone) userTimezone = data.timezone; });
 const calendarLabel = document.getElementById("calendarLabel");
 
 function updateCalendarLabel() {
