@@ -110,8 +110,9 @@ const MONTHS = [
 ];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-let currentDate = new Date();
-currentDate.setDate(1);
+// Initialize currentDate in user's timezone to avoid month being off
+const _tzNow = new Date().toLocaleDateString("en-CA", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).split("-");
+let currentDate = new Date(parseInt(_tzNow[0]), parseInt(_tzNow[1]) - 1, 1);
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const calendarLabel = document.getElementById("calendarLabel");
 
@@ -720,7 +721,13 @@ function waitForAccount() {
 Promise.all([
   waitForAccount(),
   fetch("/api/settings").then(r => r.json()).then(data => {
-    if (data.timezone) userTimezone = data.timezone;
+    if (data.timezone) {
+      userTimezone = data.timezone;
+      // Re-anchor currentDate to the correct month in the saved timezone
+      const parts = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone }).split("-");
+      currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+      updateCalendarLabel();
+    }
   }).catch(() => {})
 ]).then(() => renderCalendar());
 </script>
