@@ -72,6 +72,28 @@ dropzone.ondrop = (e) => {
   dropzone.innerHTML = "Dropped: " + selectedFile.name;
 };
 
+
+function renderTable(columns, rows) {
+  const container = document.getElementById("table-container");
+  if (!rows || !rows.length) {
+    container.innerHTML = "<p>No trades to preview</p>";
+    return;
+  }
+
+  let html = '<table border="1" style="border-collapse: collapse; width: 100%;">';
+  html += "<thead><tr>";
+  columns.forEach(col => html += `<th>${col}</th>`);
+  html += "</tr></thead><tbody>";
+  rows.forEach(row => {
+    html += "<tr>";
+    columns.forEach(col => html += `<td>${row[col]}</td>`);
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+
+  container.innerHTML = html + '<div id="confirm-container"></div>';
+}
+
 // --- Upload preview ---
 function uploadFile() {
   messageDiv.innerHTML = "";
