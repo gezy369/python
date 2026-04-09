@@ -70,10 +70,10 @@ def csv_handler(df_trade, df_fees=None):
         df_trades = df_trades.merge(df_fees, on="symbol", how="left")
 
         # Fill missing fees with 0
-        df_trades["fee"] = df_trades["fee"].fillna(0)
+        df_trades["fees"] = df_trades["fees"].fillna(0)
 
         # Compute total fees (round turn * qty)
-        df_trades["fees"] = df_trades["fee"] * df_trades["qty"]
+        df_trades["fees"] = df_trades["fees"] * df_trades["qty"]
 
         # Net PnL
         df_trades["pnl"] = df_trades["pnl"] - df_trades["fees"]
