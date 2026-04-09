@@ -40,7 +40,7 @@
 
 <!-- ===== TABLE PREVIEW (OUTSIDE FLEX CONTAINER) ===== -->
 <div id="table-container">
-  <h2>Imported trades</h2>
+  <h2>Imported trades</h2><div id="confirm-container"></div>
 </div>
 
 <script>
@@ -48,6 +48,7 @@ const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
 const messageDiv = document.getElementById("message");
 let selectedFile = null;
+let previewTrades = [];
 
 // --- Drag & Drop logic ---
 dropzone.onclick = () => fileInput.click();
@@ -71,7 +72,7 @@ dropzone.ondrop = (e) => {
   dropzone.innerHTML = "Dropped: " + selectedFile.name;
 };
 
-// --- Upload ---
+// --- Upload preview ---
 function uploadFile() {
   messageDiv.innerHTML = "";
   messageDiv.className = "";
@@ -82,9 +83,7 @@ function uploadFile() {
     return;
   }
 
-  // 🔹 get selected account from global dropdown
-  const accountSelect = document.getElementById("accountSelect");
-  const accountId = accountSelect?.value;
+  const accountId = document.getElementById("accountSelect")?.value;
 
   if (!accountId) {
     messageDiv.innerHTML = "Please select an account first";
@@ -94,7 +93,7 @@ function uploadFile() {
 
   const formData = new FormData();
   formData.append("file", selectedFile);
-  formData.append("account_id", accountId); // ✅ send account
+  formData.append("account_id", accountId);
 
   fetch("{{ url_for('upload_file') }}", {
     method: "POST",
@@ -106,49 +105,46 @@ function uploadFile() {
       messageDiv.innerHTML = data.error;
       messageDiv.className = "error";
     } else {
-      messageDiv.innerHTML = "✅ CSV processed";
+      messageDiv.innerHTML = "✅ Preview ready — validate before import";
       messageDiv.className = "success";
 
+      previewTrades = data.rows; // 🔥 store for later
       renderTable(data.columns, data.rows);
 
-      dropzone.innerHTML = "Drop another CSV file here";
-      selectedFile = null;
+      showConfirmButton(); // 🔥 new
     }
-  })
-  .catch(() => {
-    messageDiv.innerHTML = "Upload failed";
-    messageDiv.className = "error";
   });
 }
 
-// --- Table renderer (plain HTML) ---
-function renderTable(columns, rows) {
-  if (!rows || rows.length === 0) {
-    document.getElementById("table-container").innerHTML =
-      "<p>No data to display</p>";
-    return;
-  }
+function showConfirmButton() {
+  document.getElementById("confirm-container").innerHTML = `
+    <button onclick="confirmImport()">Confirm Import</button>
+  `;
+}
 
-  let html = "<table>";
-  html += "<thead><tr>";
+function confirmImport() {
+  if (!previewTrades.length) return;
 
-  columns.forEach(col => {
-    html += `<th>${col}</th>`;
+  fetch("/confirm_upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ trades: previewTrades })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      messageDiv.innerHTML = data.error;
+      messageDiv.className = "error";
+    } else {
+      messageDiv.innerHTML = "✅ Trades imported successfully";
+      messageDiv.className = "success";
+
+      previewTrades = [];
+      document.getElementById("confirm-container").innerHTML = "";
+    }
   });
-
-  html += "</tr></thead><tbody>";
-
-  rows.forEach(row => {
-    html += "<tr>";
-    columns.forEach(col => {
-      html += `<td>${row[col] ?? ""}</td>`;
-    });
-    html += "</tr>";
-  });
-
-  html += "</tbody></table>";
-
-  document.getElementById("table-container").innerHTML = html;
 }
 </script>
 

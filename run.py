@@ -253,17 +253,15 @@ def charts():
     return render_template("charts.html")
 
 
-@app.route("/upload", methods=["GET", "POST"])
+@app.route("/upload", methods=["POST"])
 @login_required
 def upload_file():
-    if request.method == "GET":
-        return render_template("upload.html")
-
     try:
         if "file" not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
         file = request.files["file"]
+
         if not file.filename.lower().endswith(".csv"):
             return jsonify({"error": "Only CSV files allowed"}), 400
 
@@ -272,21 +270,51 @@ def upload_file():
             return jsonify({"error": "No account selected"}), 400
 
         df = pd.read_csv(file)
-        df_imported_trades = csv_handler(df)
+
+        # ===== FETCH FEES =====
+        user_id = session["user"]["id"]
+        fees_res = (
+            supabase_admin.table("fees")
+            .select("symbol, fee")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        df_fees = pd.DataFrame(fees_res.data or [])
+
+        # ===== PROCESS =====
+        df_imported_trades = csv_handler(df, df_fees)
         df_imported_trades["key_trading_accounts"] = account_id
 
-        data    = df_imported_trades.to_dict(orient="records")
-        columns = list(df_imported_trades.columns)
+        # Convert timestamps for JSON
+        df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].astype(str)
+        df_imported_trades["exitTimestamp"]  = df_imported_trades["exitTimestamp"].astype(str)
 
-        df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-        df_imported_trades["exitTimestamp"]  = df_imported_trades["exitTimestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+        return jsonify({
+            "rows": df_imported_trades.to_dict(orient="records"),
+            "columns": list(df_imported_trades.columns)
+        })
 
-        records  = df_imported_trades.to_dict(orient="records")
-        response = supabase_admin.table("trades").insert(records).execute()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route("/confirm_upload", methods=["POST"])
+@login_required
+def confirm_upload():
+    try:
+        data = request.json
+        trades = data.get("trades", [])
+
+        if not trades:
+            return jsonify({"error": "No trades to insert"}), 400
+
+        # Insert
+        response = supabase_admin.table("trades").insert(trades).execute()
         inserted_trades = response.data or []
+
         print(f"Inserted {len(inserted_trades)} trades, generating charts...")
 
+        # Generate charts
         for trade in inserted_trades:
             try:
                 chart_b64 = generate_chart_base64(
@@ -297,16 +325,18 @@ def upload_file():
                     exit_price  = float(trade["exitPrice"]),
                     side        = trade["side"]
                 )
+
                 if chart_b64:
-                    supabase_admin.table("trades").update({"chart_image": chart_b64}).eq("id", trade["id"]).execute()
-                    print(f"Chart saved for trade {trade['id']}")
-                else:
-                    print(f"No chart generated for trade {trade['id']} ({trade['symbol']})")
+                    supabase_admin.table("trades") \
+                        .update({"chart_image": chart_b64}) \
+                        .eq("id", trade["id"]) \
+                        .execute()
+
             except Exception as e:
-                print(f"Chart generation failed for trade {trade.get('id')}: {e}")
+                print(f"Chart error: {e}")
                 continue
 
-        return jsonify({"rows": data, "columns": columns})
+        return jsonify({"ok": True})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
