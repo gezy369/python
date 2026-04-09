@@ -277,7 +277,7 @@ def upload_file():
         user_id = session["user"]["id"]
         fees_res = (
             supabase_admin.table("fees")
-            .select("symbol, fee")
+            .select("symbol, fees")
             .eq("user_id", user_id)
             .execute()
         )
