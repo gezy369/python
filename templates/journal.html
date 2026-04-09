@@ -414,7 +414,7 @@ function toggleTradeDetails(tr, trade) {
             <span class="td-label">Exit</span>     <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
             <span class="td-label">Duration</span> <span class="td-val">${pad(durH)}:${pad(durM)}:${pad(durS)}</span>
             <span class="td-label">PnL</span>      <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
-            <span class="td-label">Fees</span>      <span class="td-val>${trade.fees}</span>
+            <span class="td-label">Fees</span>     <span class="td-val">${formatPnL(trade.fees ?? 0)}</span>
           </div>
           <div style="margin-top:10px;">
             <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
