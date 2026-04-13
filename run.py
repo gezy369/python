@@ -286,15 +286,19 @@ def upload_file():
 
         # ===== PROCESS =====
         df_imported_trades = csv_handler(df, df_fees)
+
+        # keep full version for backend
         df_imported_trades["key_trading_accounts"] = account_id
 
-        # Convert timestamps for JSON
-        df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].astype(str)
-        df_imported_trades["exitTimestamp"]  = df_imported_trades["exitTimestamp"].astype(str)
+        # create preview version WITHOUT it
+        preview_df = df_imported_trades.drop(columns=["key_trading_accounts"])
+
+        # store full data temporarily (session or cache)
+        session["preview_trades"] = df_imported_trades.to_dict(orient="records")
 
         return jsonify({
-            "rows": df_imported_trades.to_dict(orient="records"),
-            "columns": list(df_imported_trades.columns)
+            "rows": preview_df.to_dict(orient="records"),
+            "columns": list(preview_df.columns)
         })
 
     except Exception as e:
@@ -305,7 +309,7 @@ def upload_file():
 def confirm_upload():
     try:
         data = request.json
-        trades = data.get("trades", [])
+        trades = session.get("preview_trades", [])
 
         if not trades:
             return jsonify({"error": "No trades to insert"}), 400
