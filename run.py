@@ -292,9 +292,11 @@ def upload_file():
         df_imported_trades["entryTimestamp"] = df_imported_trades["entryTimestamp"].astype(str)
         df_imported_trades["exitTimestamp"]  = df_imported_trades["exitTimestamp"].astype(str)
 
+        preview_df = df_trades.drop(columns=["key_trading_accounts"], errors="ignore")
+
         return jsonify({
-            "rows": df_imported_trades.to_dict(orient="records"),
-            "columns": list(df_imported_trades.columns)
+            "rows": preview_df.to_dict(orient="records"),
+            "columns": list(preview_df.columns)
         })
 
     except Exception as e:
