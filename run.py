@@ -137,7 +137,7 @@ def _login_context():
         "calendar_cells":  cells,
         "recent_trades":   _FAKE_RECENT_TRADES,
     }
-    
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user"):
@@ -151,7 +151,7 @@ def login():
             return redirect(url_for("dashboard"))
         except Exception:
             return render_template("login.html", error="Invalid credentials", **_login_context())
-            return render_template("login.html", **_login_context())
+    return render_template("login.html", **_login_context())
 
 
 @app.route("/auth/google")
