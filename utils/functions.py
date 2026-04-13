@@ -83,6 +83,10 @@ def csv_handler(df_trade, df_fees=None):
     else:
         df_trades["fees"] = 0
 
+    #rounds numbers
+    df_trades["pnl"] = round(df_trades["pnl"],2)
+    df_trades["gross_pnl"] = round(df_trades["gross_pnl"],2)
+    
     # ===== FINAL FORMAT =====
     df_trades = df_trades[[
         "symbol", "entryTimestamp", "exitTimestamp",
@@ -90,9 +94,7 @@ def csv_handler(df_trade, df_fees=None):
         "side", "qty", "pnl", "fees"
     ]]
 
-    #rounds numbers
-    df_trades["pnl"] = round(df_trades["pnl"],2)
-    df_trades["gross_pnl"] = round(df_trades["gross_pnl"],2)
+    
     
     return df_trades
 
