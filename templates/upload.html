@@ -18,6 +18,12 @@
     <input type="file" id="fileInput" accept=".csv" hidden>
     <button onclick="uploadFile()">Import</button>
 
+    <!-- loader -->
+    <div id="loader" class="loader hidden">
+      <div class="spinner"></div>
+      <div id="loader-text">Processing CSV...</div>
+    </div>
+
     <div id="message"></div>
   </div>
 
@@ -49,6 +55,19 @@ const fileInput = document.getElementById("fileInput");
 const messageDiv = document.getElementById("message");
 let selectedFile = null;
 let previewTrades = [];
+
+//loader
+const loader = document.getElementById("loader");
+const loaderText = document.getElementById("loader-text");
+
+function showLoader(text = "Processing CSV...") {
+  loaderText.innerText = text;
+  loader.classList.remove("hidden");
+}
+
+function hideLoader() {
+  loader.classList.add("hidden");
+}
 
 // --- Drag & Drop logic ---
 dropzone.onclick = () => fileInput.click();
@@ -113,6 +132,8 @@ function uploadFile() {
     return;
   }
 
+  showLoader("Uploading & parsing CSV..."); // 🔥 ADD
+
   const formData = new FormData();
   formData.append("file", selectedFile);
   formData.append("account_id", accountId);
@@ -123,6 +144,8 @@ function uploadFile() {
   })
   .then(res => res.json())
   .then(data => {
+    hideLoader(); // 🔥 ADD
+
     if (data.error) {
       messageDiv.innerHTML = data.error;
       messageDiv.className = "error";
@@ -130,11 +153,49 @@ function uploadFile() {
       messageDiv.innerHTML = "✅ Preview ready — validate before import";
       messageDiv.className = "success";
 
-      previewTrades = data.rows; // 🔥 store for later
+      previewTrades = data.rows;
       renderTable(data.columns, data.rows);
-
-      showConfirmButton(); // 🔥 new
+      showConfirmButton();
     }
+  })
+  .catch(err => {
+    hideLoader(); // 🔥 ADD
+    messageDiv.innerHTML = "Upload failed";
+    messageDiv.className = "error";
+  });
+}
+
+function confirmImport() {
+  if (!previewTrades.length) return;
+
+  showLoader("Saving trades to database..."); // 🔥 ADD
+
+  fetch("/confirm_upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ trades: previewTrades })
+  })
+  .then(res => res.json())
+  .then(data => {
+    hideLoader(); // 🔥 ADD
+
+    if (data.error) {
+      messageDiv.innerHTML = data.error;
+      messageDiv.className = "error";
+    } else {
+      messageDiv.innerHTML = "✅ Trades imported successfully";
+      messageDiv.className = "success";
+
+      previewTrades = [];
+      document.getElementById("confirm-container").innerHTML = "";
+    }
+  })
+  .catch(() => {
+    hideLoader(); // 🔥 ADD
+    messageDiv.innerHTML = "Import failed";
+    messageDiv.className = "error";
   });
 }
 
