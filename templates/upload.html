@@ -205,30 +205,6 @@ function showConfirmButton() {
   `;
 }
 
-function confirmImport() {
-  if (!previewTrades.length) return;
-
-  fetch("/confirm_upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ trades: previewTrades })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      messageDiv.innerHTML = data.error;
-      messageDiv.className = "error";
-    } else {
-      messageDiv.innerHTML = "✅ Trades imported successfully";
-      messageDiv.className = "success";
-
-      previewTrades = [];
-      document.getElementById("confirm-container").innerHTML = "";
-    }
-  });
-}
 </script>
 
 {% endblock %}
