@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from functools import wraps
-from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from utils.functions import csv_handler, filter_trades
 from zoneinfo import ZoneInfo
@@ -58,6 +57,9 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("user"):
+            # ✅ API should return JSON, not HTML
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Unauthorized"}), 401
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated
@@ -707,7 +709,7 @@ def delete_setup(id):
 
 # ===== TRADE SETUPS (junction) =====
 
-@app.post("/api/trade_setup")
+@app.post("/api/trade_setups")
 @login_required
 def add_trade_setup():
     data     = request.json
