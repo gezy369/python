@@ -94,8 +94,8 @@ def login():
             session["user"] = {"id": res.user.id, "email": res.user.email}
             return redirect(url_for("dashboard"))
         except Exception:
-            return render_template("login.html", error="Invalid credentials")
-    return render_template("login.html")
+            return render_template("login.html", error="Invalid credentials", **_login_context())
+            return render_template("login.html", **_login_context())
 
 
 @app.route("/auth/google")

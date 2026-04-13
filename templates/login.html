@@ -17,110 +17,388 @@
       justify-content: center;
     }
 
+    /* ── WRAPPER ── */
     .login-wrap {
       display: flex;
       align-items: stretch;
-      width: 820px;
-      min-height: 480px;
+      width: 860px;
       background: var(--bg-surface);
       border: 1px solid var(--border-default);
       border-radius: var(--radius-xl);
       overflow: hidden;
     }
 
-    /* ── LEFT PANEL ── */
+    /* ══════════════════════════════
+       LEFT PANEL
+    ══════════════════════════════ */
     .login-left {
-      flex: 1;
-      background: var(--bg-elevated);
+      flex: 0 0 360px;
+      background: var(--bg-base);
       border-right: 1px solid var(--border-default);
-      padding: 48px 40px;
+      padding: 28px 24px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
     }
 
+    /* grid + glow background */
+    .login-left-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* ── Brand ── */
     .login-brand {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 2;
     }
 
     .login-brand-title {
-      font-size: 15px;
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: #fff;
     }
 
     .login-brand-sub {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-faint);
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* ── Mini equity chart ── */
+    .login-mini-chart {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 14px;
+    }
+
+    .login-chart-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    /* ── PnL badge ── */
+    .login-pnl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius-md);
+      padding: 3px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-green);
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 2;
+      width: fit-content;
+    }
+
+    .login-pnl-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      flex-shrink: 0;
+    }
+
+    /* ── Calendar ── */
+    .login-cal-section {
+      position: relative;
+      z-index: 2;
+    }
+
+    .login-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+
+    .login-cal-month {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
       letter-spacing: 0.04em;
     }
 
-    .login-tagline {
-      font-size: 22px;
-      font-weight: 500;
-      color: var(--text-primary);
-      line-height: 1.4;
-      max-width: 220px;
-    }
-
-    .login-tagline span {
-      color: var(--accent-blue);
-    }
-
-    .login-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .login-stat {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .login-stat-value {
+    .login-cal-total {
       font-family: var(--font-mono);
-      font-size: 18px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--accent-green);
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      border-radius: var(--radius-sm);
+      padding: 2px 7px;
     }
 
-    .login-stat-label {
-      font-size: 11px;
-      color: var(--text-faint);
-      letter-spacing: 0.04em;
+    .login-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 3px;
     }
 
-    /* ── RIGHT PANEL ── */
-    .login-right {
-      flex: 1.1;
-      padding: 48px 44px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 0;
-    }
-
-    .login-heading {
-      font-size: 18px;
+    .login-cal-dow {
+      font-size: 9px;
       font-weight: 500;
-      color: var(--text-primary);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      text-align: center;
+      padding: 3px 0;
+    }
+
+    .login-cal-day {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 5px;
+      padding: 4px 5px;
+      min-height: 40px;
+    }
+
+    .login-cal-day.day-positive {
+      border-color: rgba(52, 195, 143, 0.20);
+      background: linear-gradient(150deg, rgba(52, 195, 143, 0.09) 0%, var(--bg-elevated) 65%);
+    }
+
+    .login-cal-day.day-negative {
+      border-color: rgba(229, 83, 83, 0.20);
+      background: linear-gradient(150deg, rgba(229, 83, 83, 0.09) 0%, var(--bg-elevated) 65%);
+    }
+
+    .login-cal-day.day-today .lcd-date {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .lcd-date {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-faint);
+      margin-bottom: 1px;
+    }
+
+    .lcd-trades {
+      font-size: 9px;
+      color: var(--text-faint);
+      margin-bottom: 1px;
+    }
+
+    .lcd-pnl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .lcd-pnl.pos { color: var(--accent-green); }
+    .lcd-pnl.neg { color: var(--accent-red); }
+
+    /* ── Recent trades mini table ── */
+    .login-journal-preview {
+      position: relative;
+      z-index: 2;
+      margin-top: 14px;
+    }
+
+    .login-journal-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       margin-bottom: 6px;
     }
 
-    .login-subheading {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 28px;
+    .login-jt {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
     }
 
-    /* ── ERROR ── */
+    .login-jt thead th {
+      background: var(--bg-elevated);
+      color: var(--text-faint);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--border-default);
+      text-align: left;
+      font-size: 9px;
+    }
+
+    .login-jt tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .login-jt tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .login-jt tbody td {
+      padding: 5px 6px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .login-jt .jt-sym {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 10px;
+    }
+
+    .login-jt .jt-time {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-faint);
+    }
+
+    .login-jt .jt-long  { color: var(--accent-blue);  font-weight: 500; font-size: 9px; }
+    .login-jt .jt-short { color: var(--accent-amber); font-weight: 500; font-size: 9px; }
+
+    .login-jt .jt-pnl-pos {
+      font-family: var(--font-mono);
+      color: var(--accent-green);
+      font-weight: 500;
+      font-size: 10px;
+    }
+
+    .login-jt .jt-pnl-neg {
+      font-family: var(--font-mono);
+      color: var(--accent-red);
+      font-weight: 500;
+      font-size: 10px;
+    }
+
+    /* ── Feature bullets ── */
+    .login-features {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      position: relative;
+      z-index: 2;
+      margin-top: 14px;
+    }
+
+    .login-feat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .login-feat-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .login-feat-text {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .login-feat-text strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ══════════════════════════════
+       RIGHT PANEL
+    ══════════════════════════════ */
+    .login-right {
+      flex: 1;
+      padding: 36px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* ── Hook copy ── */
+    .login-hook {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .login-hook-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      margin-bottom: 8px;
+    }
+
+    .login-hook-headline {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .login-hook-headline span {
+      color: var(--accent-blue);
+    }
+
+    .login-hook-body {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .login-free-callout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      margin-top: 14px;
+    }
+
+    .login-free-callout-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .login-free-callout-text strong {
+      color: var(--accent-amber);
+      font-weight: 500;
+    }
+
+    /* ── Form heading ── */
+    .login-heading {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      margin-top: 20px;
+    }
+
+    .login-subheading {
+      font-size: 12px;
+      color: var(--text-faint);
+      margin-bottom: 20px;
+    }
+
+    /* ── Error ── */
     .login-error {
       background: var(--red-bg);
       border: 1px solid var(--red-border);
@@ -128,7 +406,7 @@
       color: var(--accent-red);
       font-size: 12px;
       padding: 9px 12px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -144,12 +422,12 @@
       flex-shrink: 0;
     }
 
-    /* ── FORM ── */
+    /* ── Form fields ── */
     .login-form {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
     .login-field {
@@ -161,7 +439,7 @@
     .login-field label {
       font-size: 10px;
       font-weight: 500;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--text-faint);
     }
@@ -179,17 +457,11 @@
       width: 100%;
     }
 
-    .login-field input::placeholder {
-      color: var(--text-faint);
-    }
-
-    .login-field input:focus {
-      border-color: var(--accent-blue);
-      background: var(--bg-hover);
-    }
+    .login-field input::placeholder { color: var(--text-faint); }
+    .login-field input:focus { border-color: var(--accent-blue); background: var(--bg-hover); }
 
     .btn-signin {
-      margin-top: 6px;
+      margin-top: 4px;
       padding: 11px 14px;
       background: var(--accent-blue);
       border: none;
@@ -207,14 +479,14 @@
     .btn-signin:hover  { opacity: 0.88; }
     .btn-signin:active { transform: scale(0.99); }
 
-    /* ── DIVIDER ── */
+    /* ── Divider ── */
     .login-divider {
       display: flex;
       align-items: center;
       gap: 12px;
       color: var(--text-faint);
       font-size: 11px;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
     .login-divider::before,
@@ -225,7 +497,7 @@
       background: var(--border-default);
     }
 
-    /* ── GOOGLE BUTTON ── */
+    /* ── Google button ── */
     .btn-google {
       display: flex;
       align-items: center;
@@ -250,17 +522,18 @@
       color: var(--text-primary);
     }
 
-    .btn-google svg {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-    }
+    .btn-google svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .login-footer {
-      margin-top: 28px;
+      margin-top: 20px;
       font-size: 11px;
       color: var(--text-faint);
       text-align: center;
+    }
+
+    .login-footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
     }
   </style>
 </head>
@@ -268,53 +541,183 @@
 
 <div class="login-wrap">
 
-  <!-- LEFT -->
+  <!-- ══════════════ LEFT ══════════════ -->
   <div class="login-left">
+
+    <!-- Grid + glow background -->
+    <svg class="login-left-bg" viewBox="0 0 360 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="lglow1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#5b8ef5" stop-opacity="0.10"/>
+          <stop offset="100%" stop-color="#5b8ef5" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="lglow2" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#34c38f" stop-opacity="0.07"/>
+          <stop offset="100%" stop-color="#34c38f" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <line x1="0"   y1="90"  x2="360" y2="90"  stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="0"   y1="200" x2="360" y2="200" stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="0"   y1="350" x2="360" y2="350" stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="0"   y1="500" x2="360" y2="500" stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="90"  y1="0"   x2="90"  y2="700" stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="180" y1="0"   x2="180" y2="700" stroke="#1a1d26" stroke-width="0.5"/>
+      <line x1="270" y1="0"   x2="270" y2="700" stroke="#1a1d26" stroke-width="0.5"/>
+      <ellipse cx="310" cy="50"  rx="120" ry="120" fill="url(#lglow1)"/>
+      <ellipse cx="50"  cy="580" rx="100" ry="100" fill="url(#lglow2)"/>
+    </svg>
+
+    <!-- Brand -->
     <div class="login-brand">
-      <div class="login-brand-title">Futures</div>
-      <div class="login-brand-sub">trading journal</div>
+      <div class="login-brand-title">Futures Journal</div>
+      <div class="login-brand-sub">v2 · private access</div>
     </div>
 
-    <div class="login-tagline">
-      Track your edge.<br>
-      <span>Trade with clarity.</span>
+    <!-- Equity sparkline -->
+    <div class="login-mini-chart">
+      <div class="login-chart-label">Equity · {{ current_month }} {{ current_year }}</div>
+      <svg viewBox="0 0 310 48" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5b8ef5" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#5b8ef5" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Static decorative curve — replace path data with JS-rendered real curve if desired -->
+        <path d="M0 40 C10 38 16 42 26 36 C36 30 42 34 52 26 C62 18 68 22 80 16 C90 10 96 14 108 10 C118 6 126 10 138 8 C148 5 156 7 168 5 C178 3 186 7 198 5 C210 3 218 6 230 4 C242 2 252 4 270 3 L270 48 L0 48 Z" fill="url(#lgrad)"/>
+        <path d="M0 40 C10 38 16 42 26 36 C36 30 42 34 52 26 C62 18 68 22 80 16 C90 10 96 14 108 10 C118 6 126 10 138 8 C148 5 156 7 168 5 C178 3 186 7 198 5 C210 3 218 6 230 4 C242 2 252 4 270 3" fill="none" stroke="#5b8ef5" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="270" cy="3" r="2.5" fill="#5b8ef5"/>
+      </svg>
     </div>
 
-    <div class="login-stats">
-      <div class="login-stat">
-        <div class="login-stat-value">15-min</div>
-        <div class="login-stat-label">granularity on entry analysis</div>
+    <!-- MTD PnL badge -->
+    <div class="login-pnl-badge">
+      <span class="login-pnl-dot"></span>
+      {{ mtd_pnl_display }} · {{ current_month }} MTD
+    </div>
+
+    <!-- Mini calendar -->
+    <div class="login-cal-section">
+      <div class="login-cal-header">
+        <div class="login-cal-month">{{ current_month }} {{ current_year }}</div>
+        <div class="login-cal-total">{{ mtd_pnl_display }}</div>
       </div>
-      <div class="login-stat">
-        <div class="login-stat-value" style="color: var(--accent-blue);">365d</div>
-        <div class="login-stat-label">full year heatmap at a glance</div>
-      </div>
-      <div class="login-stat">
-        <div class="login-stat-value" style="color: var(--accent-amber);">∞</div>
-        <div class="login-stat-label">accounts & strategies tracked</div>
+      <div class="login-cal-grid">
+        <div class="login-cal-dow">M</div>
+        <div class="login-cal-dow">T</div>
+        <div class="login-cal-dow">W</div>
+        <div class="login-cal-dow">T</div>
+        <div class="login-cal-dow">F</div>
+
+        {% for cell in calendar_cells %}
+          {% if cell.empty %}
+            <div></div>
+          {% else %}
+            <div class="login-cal-day {% if cell.pnl > 0 %}day-positive{% elif cell.pnl < 0 %}day-negative{% endif %} {% if cell.today %}day-today{% endif %}"
+                 style="{% if cell.future %}opacity:0.28;{% endif %}">
+              <div class="lcd-date">{{ cell.day }}</div>
+              {% if cell.trades %}
+                <div class="lcd-trades">{{ cell.trades }}t</div>
+                <div class="lcd-pnl {% if cell.pnl >= 0 %}pos{% else %}neg{% endif %}">
+                  {% if cell.pnl >= 0 %}+{% endif %}${{ cell.pnl_display }}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
       </div>
     </div>
-  </div>
 
-  <!-- RIGHT -->
+    <!-- Recent trades -->
+    <div class="login-journal-preview">
+      <div class="login-journal-label">Recent trades</div>
+      <table class="login-jt">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Time</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>PnL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in recent_trades %}
+          <tr>
+            <td class="jt-sym">{{ t.symbol }}</td>
+            <td class="jt-time">{{ t.entry_time }}</td>
+            <td class="{% if t.side|lower == 'long' %}jt-long{% else %}jt-short{% endif %}">{{ t.side }}</td>
+            <td>{{ t.qty }}</td>
+            <td class="{% if t.pnl >= 0 %}jt-pnl-pos{% else %}jt-pnl-neg{% endif %}">
+              {% if t.pnl >= 0 %}+{% endif %}${{ "%.0f"|format(t.pnl|abs) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Feature bullets -->
+    <div class="login-features">
+      <div class="login-feat">
+        <div class="login-feat-dot" style="background:var(--accent-blue);"></div>
+        <div class="login-feat-text"><strong>5-min charts</strong> · tag setups &amp; emotions</div>
+      </div>
+      <div class="login-feat">
+        <div class="login-feat-dot" style="background:var(--accent-green);"></div>
+        <div class="login-feat-text"><strong>365d heatmap</strong> · full year at a glance</div>
+      </div>
+      <div class="login-feat">
+        <div class="login-feat-dot" style="background:var(--accent-amber);"></div>
+        <div class="login-feat-text"><strong>∞ accounts</strong> · unlimited strategies</div>
+      </div>
+    </div>
+
+  </div><!-- /login-left -->
+
+
+  <!-- ══════════════ RIGHT ══════════════ -->
   <div class="login-right">
+
+    <!-- Hook copy -->
+    <div class="login-hook">
+      <div class="login-hook-eyebrow">Your trading edge, quantified</div>
+      <div class="login-hook-headline">
+        Stop guessing.<br>
+        Start <span>trading with data.</span>
+      </div>
+      <div class="login-hook-body">
+        Every trade logged, every pattern surfaced. Know exactly what works,
+        what doesn't, and why — before the next open bell.
+      </div>
+      <div class="login-free-callout">
+        <div class="login-free-callout-text">
+          <strong>Completely free.</strong> Just your journal.
+        </div>
+      </div>
+    </div>
+
+    <!-- Form heading -->
     <div class="login-heading">Welcome back</div>
-    <div class="login-subheading">Sign in to your trading journal</div>
+    <div class="login-subheading">Sign in to your journal</div>
 
     {% if error %}
       <div class="login-error">{{ error }}</div>
     {% endif %}
 
+    <!-- Sign-in form -->
     <form method="POST" class="login-form">
       <div class="login-field">
         <label>Email</label>
-        <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+        <input type="email" name="email" placeholder="you@example.com"
+               required autocomplete="email">
       </div>
       <div class="login-field">
         <label>Password</label>
-        <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        <input type="password" name="password" placeholder="••••••••"
+               required autocomplete="current-password">
       </div>
-      <button type="submit" class="btn-signin">Sign in</button>
+      <button type="submit" class="btn-signin">Sign in →</button>
     </form>
 
     <div class="login-divider">or</div>
@@ -330,11 +733,13 @@
     </a>
 
     <div class="login-footer">
-      Futures Trading Journal · Private access only
+      Futures Trading Journal · Private access only ·
+      <a href="/forgot-password">Forgot password?</a>
     </div>
-  </div>
 
-</div>
+  </div><!-- /login-right -->
+
+</div><!-- /login-wrap -->
 
 </body>
 </html>
