@@ -719,6 +719,29 @@ def add_trade_setup():
     }).execute()
     return jsonify(response.data[0])
 
+@app.get("/api/trade_setups")
+@login_required
+def get_trade_setups():
+    try:
+        user_id = session["user"]["id"]
+
+        # get user's trades
+        trade_ids = get_user_trade_ids(user_id)
+        if not trade_ids:
+            return jsonify([])
+
+        res = (
+            supabase_admin.table("trade_setup")
+            .select("*")
+            .in_("key_trade_id", trade_ids)
+            .execute()
+        )
+
+        return jsonify(res.data or [])
+    except Exception as e:
+        print("GET /api/trade_setups error:", e)
+        return jsonify({"error": str(e)}), 500
+
 @app.delete("/api/trade_setups")
 @login_required
 def delete_trade_setup():
@@ -801,6 +824,27 @@ def add_emotion_trade():
     }).execute()
     return jsonify(response.data[0])
 
+@app.get("/api/emotions_trades")
+@login_required
+def get_emotions_trades():
+    try:
+        user_id = session["user"]["id"]
+
+        trade_ids = get_user_trade_ids(user_id)
+        if not trade_ids:
+            return jsonify([])
+
+        res = (
+            supabase_admin.table("emotions_trades")
+            .select("*")
+            .in_("trade_id", trade_ids)
+            .execute()
+        )
+
+        return jsonify(res.data or [])
+    except Exception as e:
+        print("GET /api/emotions_trades error:", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.delete("/api/emotions_trades")
 @login_required
