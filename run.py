@@ -346,6 +346,11 @@ def upload_file():
         # keep full version for backend
         df_imported_trades["key_trading_accounts"] = account_id
 
+        # convert datetime → string
+        df_imported_trades["entryTimestamp"] = pd.to_datetime(df_imported_trades["entryTimestamp"]).astype(str)
+        df_imported_trades["exitTimestamp"]  = pd.to_datetime(df_imported_trades["exitTimestamp"]).astype(str)
+
+
         # create preview version WITHOUT it
         preview_df = df_imported_trades.drop(columns=["key_trading_accounts"])
 
