@@ -230,8 +230,13 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Empty DataFrame for {yahoo_symbol}")
             return None
 
-        entry_ts = pd.Timestamp(entry_time).tz_localize(ZoneInfo("Europe/Paris"))
-        exit_ts  = pd.Timestamp(exit_time).tz_localize(ZoneInfo("Europe/Paris"))
+        entry_ts = pd.Timestamp(entry_time)
+        exit_ts  = pd.Timestamp(exit_time)
+
+        if entry_ts.tzinfo is None:
+            entry_ts = entry_ts.tz_localize("Europe/Paris")
+        if exit_ts.tzinfo is None:
+            exit_ts = exit_ts.tz_localize("Europe/Paris")
 
         df = df[
             (df.index >= entry_ts - timedelta(hours=2)) &
@@ -402,12 +407,11 @@ def confirm_upload():
             except Exception as e:
                 print(f"Chart error: {e}")
                 continue
-
+        session.pop("preview_trades", None)
         return jsonify({"ok": True})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/accounts")
 @login_required
@@ -428,6 +432,7 @@ def api_trades():
         strategy_id = request.args.get("strategy")
         setup_ids   = request.args.getlist("setups")
 
+        # ===== GET USER ACCOUNTS =====
         accounts_res = (
             supabase_admin.table("trading_accounts")
             .select("id")
@@ -439,12 +444,18 @@ def api_trades():
         if not user_account_ids:
             return jsonify([])
 
-        trades_res = (
+        # ===== BUILD BASE QUERY =====
+        query = (
             supabase_admin.table("trades")
             .select("*")
             .in_("key_trading_accounts", user_account_ids)
-            .execute()
         )
+
+        # 🔥 APPLY ACCOUNT FILTER DIRECTLY IN DB
+        if account_id:
+            query = query.eq("key_trading_accounts", account_id)
+
+        trades_res = query.execute()
         trades = trades_res.data or []
 
         if not trades:
@@ -452,6 +463,7 @@ def api_trades():
 
         trade_ids = [t["id"] for t in trades]
 
+        # ===== FETCH SETUPS (ONLY IF NEEDED) =====
         links_res = (
             supabase_admin.table("trade_setup")
             .select("key_trade_id, key_setup_id")
@@ -464,17 +476,33 @@ def api_trades():
         for l in links:
             setups_by_trade.setdefault(l["key_trade_id"], []).append(l["key_setup_id"])
 
-        for t in trades:
-            t["setups"] = setups_by_trade.get(t["id"], [])
+        # ===== FETCH EMOTIONS =====
+        emotions_res = (
+            supabase_admin.table("emotions_trades")
+            .select("trade_id, emotions_id")
+            .in_("trade_id", trade_ids)
+            .execute()
+        )
+        emotion_links = emotions_res.data or []
 
+        emotions_by_trade = {}
+        for e in emotion_links:
+            emotions_by_trade.setdefault(e["trade_id"], []).append(e["emotions_id"])
+
+        # ===== MERGE DATA =====
+        for t in trades:
+            t["setups"]   = setups_by_trade.get(t["id"], [])
+            t["emotions"] = emotions_by_trade.get(t["id"], [])
+
+        # ===== FINAL FILTERING (date, strategy, setups) =====
         trades = filter_trades(
             trades,
-            account_id=account_id,
             date_from=date_from,
             date_to=date_to,
             strategy_id=strategy_id,
             setup_ids=setup_ids,
         )
+
         return jsonify(trades)
 
     except Exception as e:
@@ -689,27 +717,6 @@ def add_trade_setup():
     }).execute()
     return jsonify(response.data[0])
 
-
-@app.get("/api/trade_setups")
-@login_required
-def get_trade_setups():
-    try:
-        user_id   = session["user"]["id"]
-        trade_ids = get_user_trade_ids(user_id)
-        if not trade_ids:
-            return jsonify([])
-        response = (
-            supabase_admin.table("trade_setup")
-            .select("*")
-            .in_("key_trade_id", trade_ids)
-            .execute()
-        )
-        return jsonify(response.data or [])
-    except Exception as e:
-        print("Supabase /api/trade_setups error:", e)
-        return jsonify({"error": str(e)}), 500
-
-
 @app.delete("/api/trade_setups")
 @login_required
 def delete_trade_setup():
@@ -723,9 +730,7 @@ def delete_trade_setup():
     supabase_admin.table("trade_setup").delete().eq("key_trade_id", trade_id).eq("key_setup_id", setup_id).execute()
     return {"ok": True}
 
-
 # ===== EMOTIONS =====
-
 @app.get("/api/emotions")
 @login_required
 def get_emotions():
@@ -743,7 +748,6 @@ def get_emotions():
         print("Supabase /api/emotions error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.post("/api/emotions")
 @login_required
 def add_emotion():
@@ -755,7 +759,6 @@ def add_emotion():
     except Exception as e:
         print("Supabase POST /api/emotions error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.patch("/api/emotions/<id>")
 @login_required
@@ -771,7 +774,6 @@ def update_emotion(id):
         print(f"Supabase PATCH /api/emotions/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.delete("/api/emotions/<id>")
 @login_required
 def delete_emotion(id):
@@ -786,29 +788,7 @@ def delete_emotion(id):
         print(f"Supabase DELETE /api/emotions/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 # ===== EMOTIONS TRADES (junction) =====
-
-@app.get("/api/emotions_trades")
-@login_required
-def get_emotions_trades():
-    try:
-        user_id   = session["user"]["id"]
-        trade_ids = get_user_trade_ids(user_id)
-        if not trade_ids:
-            return jsonify([])
-        response = (
-            supabase_admin.table("emotions_trades")
-            .select("trade_id, emotions_id")
-            .in_("trade_id", trade_ids)
-            .execute()
-        )
-        return jsonify(response.data or [])
-    except Exception as e:
-        print("Supabase /api/emotions_trades error:", e)
-        return jsonify({"error": str(e)}), 500
-
-
 @app.post("/api/emotions_trades")
 @login_required
 def add_emotion_trade():
