@@ -82,6 +82,62 @@ def auth_session():
         return jsonify({"error": str(e)}), 401
 
 
+
+# ── Fake left-panel data for login page ────────────────────────────────────
+import calendar as _cal
+
+_FAKE_CALENDAR = {
+    "2026-04-01": {"pnl": -320, "trades": 3},
+    "2026-04-02": {"pnl":  510, "trades": 5},
+    "2026-04-03": {"pnl":  210, "trades": 2},
+    "2026-04-04": {"pnl":  -80, "trades": 4},
+    "2026-04-07": {"pnl":  640, "trades": 6},
+    "2026-04-08": {"pnl":  190, "trades": 3},
+    "2026-04-09": {"pnl": -450, "trades": 4},
+    "2026-04-10": {"pnl":  720, "trades": 7},
+    "2026-04-11": {"pnl":  380, "trades": 4},
+    "2026-04-14": {"pnl":  230, "trades": 3},
+    "2026-04-15": {"pnl": -160, "trades": 2},
+    "2026-04-16": {"pnl":  890, "trades": 8},
+    "2026-04-17": {"pnl":  310, "trades": 4},
+    "2026-04-18": {"pnl": -120, "trades": 3},
+}
+
+_FAKE_RECENT_TRADES = [
+    {"symbol": "ES",  "entry_time": "09:32", "side": "Long",  "qty": 2, "pnl":  720},
+    {"symbol": "NQ",  "entry_time": "10:15", "side": "Short", "qty": 1, "pnl": -450},
+    {"symbol": "ES",  "entry_time": "11:04", "side": "Long",  "qty": 3, "pnl":  890},
+    {"symbol": "MES", "entry_time": "13:47", "side": "Short", "qty": 5, "pnl": -120},
+]
+
+def _login_context():
+    year, month, today_day = 2026, 4, 12
+    first_weekday, days_in_month = _cal.monthrange(year, month)
+    offset = first_weekday if first_weekday < 5 else 0
+    cells  = [{"empty": True}] * offset
+    for day in range(1, days_in_month + 1):
+        from datetime import date
+        if date(year, month, day).weekday() >= 5:
+            continue
+        iso  = f"{year}-{month:02d}-{day:02d}"
+        data = _FAKE_CALENDAR.get(iso, {"pnl": 0.0, "trades": 0})
+        pnl  = data["pnl"]
+        cells.append({
+            "empty": False, "day": day,
+            "today": day == today_day, "future": day > today_day,
+            "pnl": pnl,
+            "pnl_display": f"{abs(pnl):.0f}" if abs(pnl) < 1000 else f"{abs(pnl)/1000:.1f}k",
+            "trades": data["trades"],
+        })
+    mtd = 3241.50
+    return {
+        "current_month":   "April",
+        "current_year":    2026,
+        "mtd_pnl_display": f"+${mtd/1000:.1f}k",
+        "calendar_cells":  cells,
+        "recent_trades":   _FAKE_RECENT_TRADES,
+    }
+    
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user"):
