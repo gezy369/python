@@ -2,7 +2,7 @@
 <html>
 <head>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%235b8ef5'/><polyline points='4,22 10,14 16,18 22,8 28,12' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>">
-  <title>Login — Futures Journal</title>
+  <title>Create account — Futures Journal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -43,7 +43,7 @@
     </div>
 
     <div class="login-mini-chart">
-      <div class="login-chart-label">Equity · {{ current_month }} {{ current_year }}</div>
+      <div class="login-chart-label">Equity · April 2026</div>
       <svg viewBox="0 0 310 48" width="100%" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="lgrad" x1="0" y1="0" x2="0" y2="1">
@@ -59,37 +59,20 @@
 
     <div class="login-pnl-badge">
       <span class="login-pnl-dot"></span>
-      {{ mtd_pnl_display }} · {{ current_month }} MTD
+      +$3.2k · April MTD
     </div>
 
     <div class="login-cal-section">
       <div class="login-cal-header">
-        <div class="login-cal-month">{{ current_month }} {{ current_year }}</div>
-        <div class="login-cal-total">{{ mtd_pnl_display }}</div>
+        <div class="login-cal-month">April 2026</div>
+        <div class="login-cal-total">+$3,241</div>
       </div>
-      <div class="login-cal-grid">
+      <div class="login-cal-grid" id="miniCal">
         <div class="login-cal-dow">M</div>
         <div class="login-cal-dow">T</div>
         <div class="login-cal-dow">W</div>
         <div class="login-cal-dow">T</div>
         <div class="login-cal-dow">F</div>
-
-        {% for cell in calendar_cells %}
-          {% if cell.empty %}
-            <div></div>
-          {% else %}
-            <div class="login-cal-day {% if cell.pnl > 0 %}day-positive{% elif cell.pnl < 0 %}day-negative{% endif %} {% if cell.today %}day-today{% endif %}"
-                 style="{% if cell.future %}opacity:0.28;{% endif %}">
-              <div class="lcd-date">{{ cell.day }}</div>
-              {% if cell.trades %}
-                <div class="lcd-trades">{{ cell.trades }}t</div>
-                <div class="lcd-pnl {% if cell.pnl >= 0 %}pos{% else %}neg{% endif %}">
-                  {% if cell.pnl >= 0 %}+{% endif %}${{ cell.pnl_display }}
-                </div>
-              {% endif %}
-            </div>
-          {% endif %}
-        {% endfor %}
       </div>
     </div>
 
@@ -100,17 +83,10 @@
           <tr><th>Symbol</th><th>Time</th><th>Side</th><th>Qty</th><th>PnL</th></tr>
         </thead>
         <tbody>
-          {% for t in recent_trades %}
-          <tr>
-            <td class="jt-sym">{{ t.symbol }}</td>
-            <td class="jt-time">{{ t.entry_time }}</td>
-            <td class="{% if t.side|lower == 'long' %}jt-long{% else %}jt-short{% endif %}">{{ t.side }}</td>
-            <td>{{ t.qty }}</td>
-            <td class="{% if t.pnl >= 0 %}jt-pnl-pos{% else %}jt-pnl-neg{% endif %}">
-              {% if t.pnl >= 0 %}+{% endif %}${{ "%.0f"|format(t.pnl|abs) }}
-            </td>
-          </tr>
-          {% endfor %}
+          <tr><td class="jt-sym">ES</td><td class="jt-time">09:32</td><td class="jt-long">Long</td><td>2</td><td class="jt-pnl-pos">+$720</td></tr>
+          <tr><td class="jt-sym">NQ</td><td class="jt-time">10:15</td><td class="jt-short">Short</td><td>1</td><td class="jt-pnl-neg">-$450</td></tr>
+          <tr><td class="jt-sym">ES</td><td class="jt-time">11:04</td><td class="jt-long">Long</td><td>3</td><td class="jt-pnl-pos">+$890</td></tr>
+          <tr><td class="jt-sym">MES</td><td class="jt-time">13:47</td><td class="jt-short">Short</td><td>5</td><td class="jt-pnl-neg">-$120</td></tr>
         </tbody>
       </table>
     </div>
@@ -137,14 +113,13 @@
   <div class="login-right">
 
     <div class="login-hook">
-      <div class="login-hook-eyebrow">Your trading edge, quantified</div>
+      <div class="login-hook-eyebrow">Get started in 30 seconds</div>
       <div class="login-hook-headline">
-        Stop guessing.<br>
-        Start <span>trading with data.</span>
+        Create your<br>
+        <span>free account.</span>
       </div>
       <div class="login-hook-body">
-        Every trade logged, every pattern surfaced. Know exactly what works,
-        what doesn't, and why — before the next open bell.
+        Start logging trades today. No credit card, no trial period — just your journal, forever.
       </div>
       <div class="login-free-callout">
         <div class="login-free-callout-text">
@@ -153,25 +128,34 @@
       </div>
     </div>
 
-    <div class="login-heading">Welcome back</div>
-    <div class="login-subheading">Sign in to your journal</div>
+    <div class="login-heading">Create account</div>
+    <div class="login-subheading">Sign up with your email</div>
 
     {% if error %}
       <div class="login-error">{{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+      <div class="login-success">{{ success }}</div>
     {% endif %}
 
     <form method="POST" class="login-form">
       <div class="login-field">
         <label>Email</label>
         <input type="email" name="email" placeholder="you@example.com"
-               required autocomplete="email">
+               required autocomplete="email" value="{{ prefill_email or '' }}">
       </div>
       <div class="login-field">
         <label>Password</label>
-        <input type="password" name="password" placeholder="••••••••"
-               required autocomplete="current-password">
+        <input type="password" name="password" placeholder="Min. 6 characters"
+               required autocomplete="new-password" minlength="6">
       </div>
-      <button type="submit" class="btn-signin">Sign in →</button>
+      <div class="login-field">
+        <label>Confirm password</label>
+        <input type="password" name="confirm_password" placeholder="Repeat password"
+               required autocomplete="new-password" minlength="6">
+      </div>
+      <button type="submit" class="btn-signin">Create account →</button>
     </form>
 
     <div class="login-divider">or</div>
@@ -187,12 +171,42 @@
     </a>
 
     <div class="login-footer">
-      No account yet? <a href="/signup">Create one for free</a>
+      Already have an account? <a href="/login">Sign in</a>
     </div>
 
   </div><!-- /login-right -->
 
 </div><!-- /login-wrap -->
+
+<script>
+/* Render the same fake calendar as login page */
+const calData = {
+  1:{pnl:-320,trades:3},2:{pnl:510,trades:5},3:{pnl:210,trades:2},4:{pnl:-80,trades:4},
+  7:{pnl:640,trades:6},8:{pnl:190,trades:3},9:{pnl:-450,trades:4},10:{pnl:720,trades:7},
+  11:{pnl:380,trades:4},14:{pnl:230,trades:3},15:{pnl:-160,trades:2},16:{pnl:890,trades:8},
+  17:{pnl:310,trades:4},18:{pnl:-120,trades:3},
+};
+const todayDay = 12;
+const grid = document.getElementById('miniCal');
+for(let i=0;i<1;i++) grid.appendChild(document.createElement('div'));
+for(let day=1;day<=30;day++){
+  const dow=(1+day-1)%7;
+  if(dow===5||dow===6) continue;
+  const cell=document.createElement('div');
+  const d=calData[day];
+  const isFuture=day>todayDay;
+  let cls='login-cal-day';
+  if(d&&d.pnl>0) cls+=' day-positive';
+  else if(d&&d.pnl<0) cls+=' day-negative';
+  if(day===todayDay) cls+=' day-today';
+  cell.className=cls;
+  cell.style.opacity=isFuture?'0.28':'1';
+  const pnlStr=d?`${d.pnl>=0?'+':''}$${Math.abs(d.pnl)>=1000?(d.pnl/1000).toFixed(1)+'k':d.pnl}`:'';
+  const pnlClass=d?(d.pnl>=0?'pos':'neg'):'';
+  cell.innerHTML=`<div class="lcd-date">${day}</div>${d?`<div class="lcd-trades">${d.trades}t</div>`:''}${d?`<div class="lcd-pnl ${pnlClass}">${pnlStr}</div>`:''}`;
+  grid.appendChild(cell);
+}
+</script>
 
 </body>
 </html>

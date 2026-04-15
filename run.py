@@ -853,6 +853,65 @@ def update_settings():
         print("Supabase PATCH /api/settings error:", e)
         return jsonify({"error": str(e)}), 500
 
+
+# ===== SIGNUP =====
+# Add this route to app.py, right after the /login route.
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+
+    error   = None
+    success = None
+    prefill_email = None
+
+    if request.method == "POST":
+        email            = request.form.get("email", "").strip()
+        password         = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        prefill_email    = email
+
+        # ── Client-side validation ──────────────────────────────────────
+        if not email or not password:
+            error = "Email and password are required."
+        elif password != confirm_password:
+            error = "Passwords do not match."
+        elif len(password) < 6:
+            error = "Password must be at least 6 characters."
+        else:
+            try:
+                res = supabase.auth.sign_up({"email": email, "password": password})
+
+                # Supabase returns a user even when email confirmation is
+                # required — check whether the session is already active.
+                if res.session:
+                    # Email confirmation disabled → log straight in
+                    session["user"] = {
+                        "id":    res.user.id,
+                        "email": res.user.email,
+                    }
+                    return redirect(url_for("dashboard"))
+                else:
+                    # Email confirmation enabled → tell the user to check inbox
+                    success = f"Account created! Check {email} for a confirmation link."
+
+            except Exception as e:
+                msg = str(e).lower()
+                if "already registered" in msg or "already exists" in msg:
+                    error = "An account with this email already exists."
+                else:
+                    error = "Could not create account. Please try again."
+
+    return render_template(
+        "signup.html",
+        error=error,
+        success=success,
+        prefill_email=prefill_email,
+    )
+
+
+
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)
