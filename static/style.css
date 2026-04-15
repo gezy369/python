@@ -1587,3 +1587,27 @@ tr.trade-details-row td {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* ── Login success banner (signup confirmation) ── */
+.login-success {
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  border-radius: var(--radius-md);
+  color: var(--accent-green);
+  font-size: 12px;
+  padding: 9px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-success::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  flex-shrink: 0;
+}
