@@ -1557,26 +1557,33 @@ tr.trade-details-row td {
   font-size: 12px;
 }
 
-/* ── Login success banner (signup confirmation) ── */
-.login-success {
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
-  border-radius: var(--radius-md);
-  color: var(--accent-green);
-  font-size: 12px;
-  padding: 9px 12px;
-  margin-bottom: 16px;
+/* loader */
+.loader {
+  margin-top: 15px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
 }
 
-.login-success::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
+.hidden {
+  display: none;
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--border-strong);
+  border-top: 3px solid var(--accent-blue);
   border-radius: 50%;
-  background: var(--accent-green);
-  flex-shrink: 0;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#loader-text {
+  font-size: 11px;
+  color: var(--text-muted);
 }

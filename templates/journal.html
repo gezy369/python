@@ -71,7 +71,9 @@ let STRATEGIES   = [];
 let SETUPS       = [];
 let EMOTIONS     = [];
 let dataReady    = false;
-
+let setupsByTrade   = {};
+let emotionsByTrade = {};
+let currentAccountRequest = 0;
 // ── Helpers ────────────────────────────────────────────────────────────────
 const pad        = n  => String(n).padStart(2, "0");
 const formatDate = d  => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -145,13 +147,13 @@ Promise.all([
   const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });
 
   // Build lookup maps for O(1) access
-  const setupsByTrade   = {};
+  setupsByTrade   = {};
   tradeSetups.forEach(ts => {
     const tid = toNum(ts.key_trade_id);
     (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
   });
 
-  const emotionsByTrade = {};
+  emotionsByTrade = {};
   emotionTrades.forEach(et => {
     const tid = toNum(et.trade_id);
     (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
@@ -414,6 +416,7 @@ function toggleTradeDetails(tr, trade) {
             <span class="td-label">Exit</span>     <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
             <span class="td-label">Duration</span> <span class="td-val">${pad(durH)}:${pad(durM)}:${pad(durS)}</span>
             <span class="td-label">PnL</span>      <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
+            <span class="td-label">Fees</span>     <span class="td-val">${formatPnL(trade.fees ?? 0)}</span>
           </div>
           <div style="margin-top:10px;">
             <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
@@ -534,8 +537,43 @@ function toggleTradeDetails(tr, trade) {
 }
 
 // ── Account selector ───────────────────────────────────────────────────────
+// ── Account selector ───────────────────────────────────────────────────────
 const accountSelect = document.getElementById("accountSelect");
-if (accountSelect) accountSelect.addEventListener("change", () => applyFiltersAndRender());
+
+if (accountSelect) accountSelect.addEventListener("change", async () => {
+  const accountId = accountSelect.value;
+  if (!accountId) return;
+
+  const requestId = ++currentAccountRequest;
+
+  // Fetch trades + relations in parallel
+  const [rawTrades, tradeSetups, emotionTrades] = await Promise.all([
+    fetchFilteredTrades({ account: accountId }),
+    fetch("/api/trade_setups").then(r => r.json()),
+    fetch("/api/emotions_trades").then(r => r.json())
+  ]);
+
+  // Ignore outdated responses (race condition protection)
+  if (requestId !== currentAccountRequest) return;
+
+  // Rebuild setup map
+  setupsByTrade = {};
+  tradeSetups.forEach(ts => {
+    const tid = toNum(ts.key_trade_id);
+    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
+  });
+
+  // Rebuild emotion map
+  emotionsByTrade = {};
+  emotionTrades.forEach(et => {
+    const tid = toNum(et.trade_id);
+    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
+  });
+
+  // Enrich + render
+  originalData = enrichTrades(rawTrades);
+  applyFiltersAndRender();
+});
 
 // ── PnL chart ──────────────────────────────────────────────────────────────
 function updatePnLChart(data) {
@@ -584,6 +622,17 @@ function updatePnLChart(data) {
       }
     }
   });
+}
+
+function enrichTrades(rawTrades) {
+  return rawTrades.map(t => ({
+    ...t,
+    id: toNum(t.id),
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp:  new Date(t.exitTimestamp),
+    setups:   setupsByTrade[toNum(t.id)]   || [],
+    emotions: emotionsByTrade[toNum(t.id)] || [],
+  }));
 }
 
 // ── Strategy helpers ───────────────────────────────────────────────────────

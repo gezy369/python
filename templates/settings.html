@@ -6,7 +6,7 @@
 
 <div class="settings-container">
 
-  <!-- ROW 1: Profile · Strategies · Setups · Emotions -->
+  <!-- ROW 1 -->
   <div class="tile">
     <h3>Profile</h3>
     <table class="settings-table">
@@ -21,37 +21,6 @@
     </table>
   </div>
 
-  <div class="tile">
-    <h3>Strategies</h3>
-    <div id="strategiesList" class="tag-list"></div>
-    <div class="tag-add-row">
-      <input id="newStrategyName" placeholder="New strategy...">
-      <input type="color" id="newStrategyColor" value="#5b8ef5">
-      <button onclick="addStrategy()">Add</button>
-    </div>
-  </div>
-
-  <div class="tile">
-    <h3>Setups</h3>
-    <div id="setupsList" class="tag-list"></div>
-    <div class="tag-add-row">
-      <input id="newSetupName" placeholder="New setup...">
-      <input type="color" id="newSetupColor" value="#34c38f">
-      <button onclick="addSetup()">Add</button>
-    </div>
-  </div>
-
-  <div class="tile">
-    <h3>Emotions</h3>
-    <div id="emotionsList" class="tag-list"></div>
-    <div class="tag-add-row">
-      <input id="newEmotionName" placeholder="New emotion...">
-      <input type="color" id="newEmotionColor" value="#e8a94a">
-      <button onclick="addEmotion()">Add</button>
-    </div>
-  </div>
-
-  <!-- ROW 2: Accounts (1fr) · Empty placeholder (3fr) -->
   <div class="tile">
     <h3>Trading Accounts</h3>
     <table class="settings-table">
@@ -83,6 +52,37 @@
     <!-- reserved for future use -->
   </div>
 
+  <!-- second row -->
+
+  <div class="tile">
+    <h3>Strategies</h3>
+    <div id="strategiesList" class="tag-list"></div>
+    <div class="tag-add-row">
+      <input id="newStrategyName" placeholder="New strategy...">
+      <input type="color" id="newStrategyColor" value="#5b8ef5">
+      <button onclick="addStrategy()">Add</button>
+    </div>
+  </div>
+
+  <div class="tile">
+    <h3>Setups</h3>
+    <div id="setupsList" class="tag-list"></div>
+    <div class="tag-add-row">
+      <input id="newSetupName" placeholder="New setup...">
+      <input type="color" id="newSetupColor" value="#34c38f">
+      <button onclick="addSetup()">Add</button>
+    </div>
+  </div>
+
+  <div class="tile">
+    <h3>Emotions</h3>
+    <div id="emotionsList" class="tag-list"></div>
+    <div class="tag-add-row">
+      <input id="newEmotionName" placeholder="New emotion...">
+      <input type="color" id="newEmotionColor" value="#e8a94a">
+      <button onclick="addEmotion()">Add</button>
+    </div>
+  </div>
 </div>
 
 <script>
