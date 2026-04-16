@@ -360,11 +360,6 @@ async function loadEmotions() {
   const container = document.getElementById("emotionsList");
   container.innerHTML = "";
 
-  if (!data.length) {
-    container.innerHTML = `<span class="muted" style="font-size:12px;">No emotions yet.</span>`;
-    return;
-  }
-
   data.forEach(e => {
     const el = document.createElement("div");
     el.className = "tag-edit-row";
