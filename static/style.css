@@ -2142,12 +2142,62 @@ tr.trade-details-row td {
 }
 
 .view-toggle {
-  display:flex;
-  align-items:center;
-  gap:8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.4;
+  color: var(--text-faint);
+  transition: 0.2s;
+  cursor: pointer;
 }
 
 /* Switch */
+
+/* Active states */
+#viewSwitch:not(:checked) ~ .toggle-icon:first-child {
+  opacity: 1;
+  color: var(--text);
+}
+
+#viewSwitch:checked ~ .toggle-icon:last-child {
+  opacity: 1;
+  color: var(--text);
+}
+
+/* DEFAULT → table active */
+.table-icon {
+  opacity: 1;
+  color: var(--text);
+}
+
+/* WHEN SWITCH IS CHECKED → chart active */
+#viewSwitch:checked ~ .chart-icon {
+  opacity: 1;
+  color: var(--text);
+}
+
+#viewSwitch:checked ~ .table-icon {
+  opacity: 0.4;
+  color: var(--text-faint);
+}
+
+#viewSwitch:not(:checked) + .slider + .chart-icon {
+  opacity: 0.5;
+}
+
+#viewSwitch:not(:checked) ~ .table-icon {
+  opacity: 1;
+}
+
+#viewSwitch:checked ~ .chart-icon {
+  opacity: 1;
+}
+
 .switch {
   position: relative;
   display: inline-block;
