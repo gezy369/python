@@ -65,25 +65,20 @@ def csv_handler(df_trade, df_fees=None):
         # Ensure same format
         df_fees["symbol"] = df_fees["symbol"].str.upper()
         df_trades["symbol"] = df_trades["symbol"].str.upper()
-
         # Merge fees
         df_trades = df_trades.merge(df_fees, on="symbol", how="left")
-
         # Fill missing fees with 0
         df_trades["fees"] = df_trades["fees"].fillna(0)
-
         # Compute total fees (round turn * qty)
         df_trades["fees"] = df_trades["fees"] * df_trades["qty"]
-
         # Net PnL
         df_trades["pnl"] = df_trades["pnl"] - df_trades["fees"]
-
         # Optional: drop fee column if you don’t want it stored
         # df_trades.drop(columns=["fee"], inplace=True)
     else:
         df_trades["fees"] = 0
 
-    #rounds numbers
+    # rounds numbers
     df_trades["pnl"] = round(df_trades["pnl"],2)
     df_trades["gross_pnl"] = round(df_trades["gross_pnl"],2)
     
@@ -91,13 +86,10 @@ def csv_handler(df_trade, df_fees=None):
     df_trades = df_trades[[
         "symbol", "entryTimestamp", "exitTimestamp",
         "entryPrice", "exitPrice", "duration",
-        "side", "qty", "pnl", "fees"
+        "side", "qty", "gross_pnl", "fees", "pnl"
     ]]
 
-    
-    
     return df_trades
-
 
 def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None):
     result = []

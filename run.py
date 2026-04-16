@@ -155,7 +155,6 @@ def login():
             return render_template("login.html", error="Invalid credentials", **_login_context())
     return render_template("login.html", **_login_context())
 
-
 @app.route("/auth/google")
 def auth_google():
     res = supabase.auth.sign_in_with_oauth({
@@ -163,7 +162,6 @@ def auth_google():
         "options": {"redirect_to": "https://journal-51c7.onrender.com/auth/callback"}
     })
     return redirect(res.url)
-
 
 @app.route("/auth/callback")
 def auth_callback():
@@ -183,12 +181,10 @@ def auth_callback():
         print("Auth callback error:", e)
         return redirect(url_for("login"))
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
 
 # ===== CHART GENERATION =====
 def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side):
@@ -295,7 +291,6 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         print(f"Chart generation failed for {symbol}: {e}")
         return None
 
-
 # ===== PAGE ROUTES =====
 
 @app.route("/")
@@ -303,18 +298,15 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
 def dashboard():
     return render_template("dashboard.html")
 
-
 @app.route("/journal")
 @login_required
 def journal():
     return render_template("journal.html")
 
-
 @app.route("/charts")
 @login_required
 def charts():
     return render_template("charts.html")
-
 
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
@@ -420,7 +412,6 @@ def confirm_upload():
 def settings():
     return render_template("settings.html")
 
-
 # ===== API ROUTES =====
 
 @app.get("/api/trades")
@@ -511,7 +502,6 @@ def api_trades():
         print("api/trades error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/api/yahoo/<symbol>")
 @login_required
 def fetch_yahoo(symbol):
@@ -551,7 +541,6 @@ def fetch_yahoo(symbol):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.delete("/api/trades")
 @login_required
 def delete_trades():
@@ -567,7 +556,6 @@ def delete_trades():
     supabase_admin.table("trades").delete().in_("id", ids).execute()
     return {"deleted": len(ids)}
 
-
 @app.get("/api/accounts")
 @login_required
 def get_accounts():
@@ -581,7 +569,6 @@ def get_accounts():
     )
     return jsonify(response.data or [])
 
-
 @app.post("/api/accounts")
 @login_required
 def add_account():
@@ -590,13 +577,11 @@ def add_account():
     supabase_admin.table("trading_accounts").insert(data).execute()
     return {"ok": True}
 
-
 @app.patch("/api/accounts/<id>")
 @login_required
 def update_account(id):
     supabase_admin.table("trading_accounts").update(request.json).eq("id", id).execute()
     return {"ok": True}
-
 
 @app.delete("/api/accounts/<id>")
 @login_required
@@ -604,7 +589,6 @@ def delete_account(id):
     user_id = session["user"]["id"]
     supabase_admin.table("trading_accounts").delete().eq("id", id).eq("user_id", user_id).execute()
     return {"ok": True}
-
 
 @app.patch("/api/trades/<id>")
 @login_required
@@ -615,7 +599,6 @@ def update_trade(id):
     if response.data is None:
         return {"error": "Update failed"}, 400
     return {"ok": True}
-
 
 # ===== STRATEGIES =====
 
@@ -636,7 +619,6 @@ def get_strategies():
         print("Supabase /api/strategies error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.post("/api/strategies")
 @login_required
 def add_strategy():
@@ -645,20 +627,17 @@ def add_strategy():
     supabase_admin.table("strategies").insert(data).execute()
     return {"ok": True}
 
-
 @app.patch("/api/strategies/<id>")
 @login_required
 def update_strategy(id):
     supabase_admin.table("strategies").update(request.json).eq("id", id).execute()
     return {"ok": True}
 
-
 @app.delete("/api/strategies/<id>")
 @login_required
 def delete_strategy(id):
     supabase_admin.table("strategies").delete().eq("id", id).execute()
     return {"ok": True}
-
 
 # ===== SETUPS =====
 
@@ -675,7 +654,6 @@ def get_setups():
     )
     return jsonify(response.data or [])
 
-
 @app.post("/api/setups")
 @login_required
 def add_setup():
@@ -683,7 +661,6 @@ def add_setup():
     data["user_id"] = session["user"]["id"]
     response = supabase_admin.table("setups").insert(data).execute()
     return jsonify(response.data[0])
-
 
 @app.patch("/api/setups/<id>")
 @login_required
@@ -695,7 +672,6 @@ def update_setup(id):
         .execute()
     return {"ok": True}
 
-
 @app.delete("/api/setups/<id>")
 @login_required
 def delete_setup(id):
@@ -705,7 +681,6 @@ def delete_setup(id):
         .eq("user_id", session["user"]["id"]) \
         .execute()
     return {"ok": True}
-
 
 # ===== TRADE SETUPS (junction) =====
 
@@ -883,7 +858,6 @@ def get_fees():
         print("Supabase /api/fees error:", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.post("/api/fees")
 @login_required
 def add_fee():
@@ -895,7 +869,6 @@ def add_fee():
     except Exception as e:
         print("Supabase POST /api/fees error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.patch("/api/fees/<id>")
 @login_required
@@ -910,7 +883,6 @@ def update_fee(id):
     except Exception as e:
         print(f"Supabase PATCH /api/fees/{id} error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.delete("/api/fees/<id>")
 @login_required
@@ -945,7 +917,6 @@ def get_settings():
         print("Supabase GET /api/settings error:", e)
         return jsonify({}), 200
 
-
 @app.patch("/api/settings")
 @login_required
 def update_settings():
@@ -975,7 +946,6 @@ def update_settings():
     except Exception as e:
         print("Supabase PATCH /api/settings error:", e)
         return jsonify({"error": str(e)}), 500
-
 
 # ===== SIGNUP =====
 # Add this route to app.py, right after the /login route.
@@ -1032,8 +1002,6 @@ def signup():
         success=success,
         prefill_email=prefill_email,
     )
-
-
 
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
