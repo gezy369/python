@@ -24,6 +24,15 @@
   </div>
 </div>
 
+<div class="view-toggle">
+  <span>Table</span>
+  <label class="switch">
+    <input type="checkbox" id="viewSwitch" onchange="toggleView()">
+    <span class="slider"></span>
+  </label>
+  <span>Charts</span>
+</div>
+
 <!-- Strategy and setup filters -->
 <div id="strategySetup">
   <div class="top-filters">
@@ -58,7 +67,11 @@
     </div>
     <div id="journalStats" class="journal-stats"></div>
   </div>
+</div>
 
+<!-- NEW: Chart Grid View -->
+<div id="chartView" style="display:none;">
+  <div id="chartGrid" class="chart-grid"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -177,6 +190,21 @@ Promise.all([
   console.error("Journal init failed:", err);
 });
 
+let currentView = "table";
+
+function toggleView() {
+  const checked = document.getElementById("viewSwitch").checked;
+  currentView = checked ? "chart" : "table";
+
+  document.getElementById("tableView").style.display = checked ? "none" : "flex";
+  document.getElementById("chartView").style.display = checked ? "block" : "none";
+
+  // Hide buttons in chart view
+  document.querySelector(".journal-controls-right").style.display = checked ? "none" : "flex";
+
+  applyFiltersAndRender(); // re-render same filtered data
+}
+
 /*------------ Fees update --------------*/
 async function applyFeesToSelected() {
   const checked = [...document.querySelectorAll(".row-select:checked")];
@@ -260,9 +288,37 @@ function applyFiltersAndRender() {
   if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
 
   data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+
+  if (currentView === "table") {
   buildRows(data);
   updatePnLChart(data);
   renderJournalStats(data);
+  } else {
+    renderChartGrid(data);
+  }
+}
+
+function renderChartGrid(data) {
+  const grid = document.getElementById("chartGrid");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  data.forEach(trade => {
+    const card = document.createElement("div");
+    card.className = "chart-card";
+
+    card.innerHTML = `
+      <div class="chart-card-title">
+        ${trade.symbol} — ${formatPnL(trade.pnl)}
+      </div>
+      <div id="chart-${trade.id}" style="height:180px;"></div>
+    `;
+
+    grid.appendChild(card);
+
+    showTradeChart(trade, `chart-${trade.id}`);
+  });
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────

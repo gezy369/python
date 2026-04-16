@@ -64,7 +64,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
 @app.post("/auth/session")
 def auth_session():
     data         = request.json
@@ -82,8 +81,6 @@ def auth_session():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 401
-
-
 
 # ── Fake left-panel data for login page ────────────────────────────────────
 import calendar as _cal
