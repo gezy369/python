@@ -8,14 +8,13 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="login-page">
+<body>
 
 <div class="login-wrap">
 
   <!-- ══════════════ LEFT ══════════════ -->
   <div class="login-left">
 
-    <!-- Grid + glow background -->
     <svg class="login-left-bg" viewBox="0 0 360 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="lglow1" cx="50%" cy="50%" r="50%">
@@ -38,13 +37,11 @@
       <ellipse cx="50"  cy="580" rx="100" ry="100" fill="url(#lglow2)"/>
     </svg>
 
-    <!-- Brand -->
     <div class="login-brand">
       <div class="login-brand-title">Futures Journal</div>
       <div class="login-brand-sub">v2 · private access</div>
     </div>
 
-    <!-- Equity sparkline -->
     <div class="login-mini-chart">
       <div class="login-chart-label">Equity · {{ current_month }} {{ current_year }}</div>
       <svg viewBox="0 0 310 48" width="100%" xmlns="http://www.w3.org/2000/svg">
@@ -54,20 +51,17 @@
             <stop offset="100%" stop-color="#5b8ef5" stop-opacity="0"/>
           </linearGradient>
         </defs>
-        <!-- Static decorative curve — replace path data with JS-rendered real curve if desired -->
         <path d="M0 40 C10 38 16 42 26 36 C36 30 42 34 52 26 C62 18 68 22 80 16 C90 10 96 14 108 10 C118 6 126 10 138 8 C148 5 156 7 168 5 C178 3 186 7 198 5 C210 3 218 6 230 4 C242 2 252 4 270 3 L270 48 L0 48 Z" fill="url(#lgrad)"/>
         <path d="M0 40 C10 38 16 42 26 36 C36 30 42 34 52 26 C62 18 68 22 80 16 C90 10 96 14 108 10 C118 6 126 10 138 8 C148 5 156 7 168 5 C178 3 186 7 198 5 C210 3 218 6 230 4 C242 2 252 4 270 3" fill="none" stroke="#5b8ef5" stroke-width="1.5" stroke-linejoin="round"/>
         <circle cx="270" cy="3" r="2.5" fill="#5b8ef5"/>
       </svg>
     </div>
 
-    <!-- MTD PnL badge -->
     <div class="login-pnl-badge">
       <span class="login-pnl-dot"></span>
       {{ mtd_pnl_display }} · {{ current_month }} MTD
     </div>
 
-    <!-- Mini calendar -->
     <div class="login-cal-section">
       <div class="login-cal-header">
         <div class="login-cal-month">{{ current_month }} {{ current_year }}</div>
@@ -99,18 +93,11 @@
       </div>
     </div>
 
-    <!-- Recent trades -->
     <div class="login-journal-preview">
       <div class="login-journal-label">Recent trades</div>
       <table class="login-jt">
         <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Time</th>
-            <th>Side</th>
-            <th>Qty</th>
-            <th>PnL</th>
-          </tr>
+          <tr><th>Symbol</th><th>Time</th><th>Side</th><th>Qty</th><th>PnL</th></tr>
         </thead>
         <tbody>
           {% for t in recent_trades %}
@@ -128,7 +115,6 @@
       </table>
     </div>
 
-    <!-- Feature bullets -->
     <div class="login-features">
       <div class="login-feat">
         <div class="login-feat-dot" style="background:var(--accent-blue);"></div>
@@ -150,7 +136,6 @@
   <!-- ══════════════ RIGHT ══════════════ -->
   <div class="login-right">
 
-    <!-- Hook copy -->
     <div class="login-hook">
       <div class="login-hook-eyebrow">Your trading edge, quantified</div>
       <div class="login-hook-headline">
@@ -168,7 +153,6 @@
       </div>
     </div>
 
-    <!-- Form heading -->
     <div class="login-heading">Welcome back</div>
     <div class="login-subheading">Sign in to your journal</div>
 
@@ -176,7 +160,6 @@
       <div class="login-error">{{ error }}</div>
     {% endif %}
 
-    <!-- Sign-in form -->
     <form method="POST" class="login-form">
       <div class="login-field">
         <label>Email</label>
@@ -204,8 +187,7 @@
     </a>
 
     <div class="login-footer">
-      Futures Trading Journal · Private access only ·
-      <a href="/forgot-password">Forgot password?</a>
+      No account yet? <a href="/signup">Create one for free</a>
     </div>
 
   </div><!-- /login-right -->
