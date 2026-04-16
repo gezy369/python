@@ -19,6 +19,7 @@
     </div>
   </div>
   <div class="journal-controls-right">
+    <button onclick="applyFeesToSelected()">Apply fees</button>
     <button class="btn-danger" onclick="deleteSelected()">Delete selected</button>
   </div>
 </div>
@@ -175,6 +176,42 @@ Promise.all([
 }).catch(err => {
   console.error("Journal init failed:", err);
 });
+
+/*------------ Fees update --------------*/
+async function applyFeesToSelected() {
+  const checked = [...document.querySelectorAll(".row-select:checked")];
+
+  if (!checked.length) {
+    alert("No trades selected.");
+    return;
+  }
+
+  const ids = checked.map(cb => Number(cb.dataset.id));
+
+  const res = await fetch("/api/trades/apply-fees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
+  });
+
+  if (!res.ok) {
+    alert("Failed to apply fees.");
+    return;
+  }
+
+  const updatedTrades = await res.json();
+
+  // 🔥 Update local data (important for instant UI refresh)
+  updatedTrades.forEach(updated => {
+    const t = originalData.find(x => x.id === updated.id);
+    if (t) {
+      t.fees = updated.fees;
+      t.pnl  = updated.pnl; // if your backend recomputes pnl
+    }
+  });
+
+  applyFiltersAndRender();
+}
 
 // ── Filters ────────────────────────────────────────────────────────────────
 function resetFilters() {

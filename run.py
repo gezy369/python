@@ -898,6 +898,69 @@ def delete_fee(id):
         print(f"Supabase DELETE /api/fees/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.post("/api/trades/apply-fees")
+@login_required
+def apply_fees_bulk():
+    try:
+        data = request.json
+        ids  = data.get("ids", [])
+
+        if not ids:
+            return jsonify({"error": "No IDs provided"}), 400
+
+        user_id = session["user"]["id"]
+
+        # ===== GET USER FEES =====
+        fees_res = (
+            supabase_admin.table("fees")
+            .select("symbol, fees")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        fees_map = {f["symbol"]: f["fees"] for f in (fees_res.data or [])}
+
+        # ===== GET TRADES =====
+        trades_res = (
+            supabase_admin.table("trades")
+            .select("*")
+            .in_("id", ids)
+            .execute()
+        )
+
+        trades = trades_res.data or []
+        updated = []
+
+        for t in trades:
+            symbol = t["symbol"]
+            fee    = fees_map.get(symbol, 0)
+
+            qty = float(t.get("qty") or 1)
+
+            # fees table = round-trip per contract
+            new_fees = fee
+
+            gross_pnl = float(t.get("gross_pnl") or 0)
+
+            # ✅ recompute from source of truth
+            pnl = gross_pnl - (qty * new_fees)
+
+            supabase_admin.table("trades").update({
+                "fees": new_fees,
+                "pnl": pnl
+            }).eq("id", t["id"]).execute()
+
+            updated.append({
+                "id": t["id"],
+                "fees": new_fees,
+                "pnl": pnl
+            })
+
+        return jsonify(updated)
+
+    except Exception as e:
+        print("apply fees error:", e)
+        return jsonify({"error": str(e)}), 500
+
 # ===== SETTINGS =====
 
 @app.get("/api/settings")
