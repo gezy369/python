@@ -2156,19 +2156,6 @@ tr.trade-details-row td {
   cursor: pointer;
 }
 
-/* Switch */
-
-/* Active states */
-#viewSwitch:not(:checked) ~ .toggle-icon:first-child {
-  opacity: 1;
-  color: var(--text);
-}
-
-#viewSwitch:checked ~ .toggle-icon:last-child {
-  opacity: 1;
-  color: var(--text);
-}
-
 /* DEFAULT → table active */
 .table-icon {
   opacity: 1;
@@ -2184,18 +2171,6 @@ tr.trade-details-row td {
 #viewSwitch:checked ~ .table-icon {
   opacity: 0.4;
   color: var(--text-faint);
-}
-
-#viewSwitch:not(:checked) + .slider + .chart-icon {
-  opacity: 0.5;
-}
-
-#viewSwitch:not(:checked) ~ .table-icon {
-  opacity: 1;
-}
-
-#viewSwitch:checked ~ .chart-icon {
-  opacity: 1;
 }
 
 .switch {
