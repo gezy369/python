@@ -131,6 +131,69 @@ function waitForAccount() {
   });
 }
 
+function applyFiltersAndRender() {
+  if (!dataReady) return;
+
+  const fromVal = document.getElementById("dateFrom")?.value;
+  const toVal   = document.getElementById("dateTo")?.value;
+  const fromD   = fromVal ? new Date(fromVal) : null;
+  const toD     = toVal   ? new Date(toVal + "T23:59:59") : null;
+
+  let data = originalData.slice();
+
+  // Date range
+  if (fromD) data = data.filter(t => t.entryTimestamp >= fromD);
+  if (toD)   data = data.filter(t => t.entryTimestamp <= toD);
+
+  // Column text filters
+  document.querySelectorAll("th input[data-col]").forEach(input => {
+    if (!input.value) return;
+    const val = input.value.toLowerCase();
+    data = data.filter(r => String(r[input.dataset.col] ?? "").toLowerCase().includes(val));
+  });
+
+  // Setup filter
+  const selectedSetups = [...document.querySelectorAll("#setupFilter button.active")].map(b => toNum(b.dataset.id));
+  if (selectedSetups.length) data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
+
+  // Strategy filter
+  const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => toNum(b.dataset.id));
+  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
+  // Emotion filter
+  const activeEmotions = [...document.querySelectorAll("#emotionFilter button.active")].map(b => toNum(b.dataset.id));
+  if (activeEmotions.length) data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
+  // Account filter
+  const acct = accountSelect?.value;
+  if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
+
+  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+
+  if (currentView === "table") {
+  buildRows(data);
+  updatePnLChart(data);
+  renderJournalStats(data);
+  } else {
+    renderChartGrid(data);
+  }
+}
+
+// ── Read URL params and populate filters ──────────────────────────────────
+function loadFiltersFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get("from");
+  const to = params.get("to");
+  
+  if (from) {
+    document.getElementById("dateFrom").value = from;
+  }
+  if (to) {
+    document.getElementById("dateTo").value = to;
+  }
+}
+
+// Call it immediately when the script loads
+loadFiltersFromURL();
+
 // ── Init ───────────────────────────────────────────────────────────────────
 // Fetch all reference data + trades once, build originalData, then render.
 // applyFiltersAndRender() NEVER re-fetches — it always filters originalData.
@@ -274,53 +337,6 @@ function resetFilters() {
   document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
   window.history.replaceState({}, "", "/journal");
   applyFiltersAndRender();
-}
-
-// Pure client-side filter + render — never re-fetches
-function applyFiltersAndRender() {
-  if (!dataReady) return;
-
-  const fromVal = document.getElementById("dateFrom")?.value;
-  const toVal   = document.getElementById("dateTo")?.value;
-  const fromD   = fromVal ? new Date(fromVal) : null;
-  const toD     = toVal   ? new Date(toVal + "T23:59:59") : null;
-
-  let data = originalData.slice();
-
-  // Date range
-  if (fromD) data = data.filter(t => t.entryTimestamp >= fromD);
-  if (toD)   data = data.filter(t => t.entryTimestamp <= toD);
-
-  // Column text filters
-  document.querySelectorAll("th input[data-col]").forEach(input => {
-    if (!input.value) return;
-    const val = input.value.toLowerCase();
-    data = data.filter(r => String(r[input.dataset.col] ?? "").toLowerCase().includes(val));
-  });
-
-  // Setup filter
-  const selectedSetups = [...document.querySelectorAll("#setupFilter button.active")].map(b => toNum(b.dataset.id));
-  if (selectedSetups.length) data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
-
-  // Strategy filter
-  const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => toNum(b.dataset.id));
-  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
-  // Emotion filter
-  const activeEmotions = [...document.querySelectorAll("#emotionFilter button.active")].map(b => toNum(b.dataset.id));
-  if (activeEmotions.length) data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
-  // Account filter
-  const acct = accountSelect?.value;
-  if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
-
-  data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
-
-  if (currentView === "table") {
-  buildRows(data);
-  updatePnLChart(data);
-  renderJournalStats(data);
-  } else {
-    renderChartGrid(data);
-  }
 }
 
 function renderChartGrid(data) {
