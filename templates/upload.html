@@ -29,16 +29,20 @@
 
   <!-- RIGHT: EXPLANATION -->
   <div class=upload-right>
-    <h2>How to upload file</h2>
+    <h2>How to import trades</h2>
     <p>
       <ul>
-        <li>1. Open Tradovate (web) and go to "Reports" on the right Menu.</li>
+        <li>1. Open Tradovate (web) and go to "Reports" on the right hand side Menu.</li>
         <li>2. Select the account you want to export from in the drop list on the left.</li>
-        <li>3. Make sur you are in "Performance", select the dates and Download CSV.</li>
-        <li>4. Uplaod your CSV file here.</li>
+        <li>3. From the [Performance] tab, select the dates and Download CSV.</li>
+        <li>4. Drop your CSV file here.</li>
+        <li>5. Before you import, make sure you have the right account selected on the top left.</li>
+        <li>6. Click "Preview" to preview you trades to import.</li>
+        <li>7. Import your trade with the button at the bottom of the table.</li>
       </ul>
     </p>
-    <p>The CSV will be processed and previewed underneath.<br>
+    <p>The fees configured in you settings will be applied.<br>
+      If no fees are found, $0 will be applied and you can edit them later.
     </p>
   </div>
 
@@ -190,6 +194,7 @@ function confirmImport() {
 
       previewTrades = [];
       document.getElementById("confirm-container").innerHTML = "";
+      document.getElementById("table-container").innerHTML = "<h2>Imported trades</h2><div id='confirm-container'></div>"; // 🔥 ADD THIS LINE
     }
   })
   .catch(() => {
