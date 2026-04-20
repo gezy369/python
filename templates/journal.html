@@ -27,8 +27,8 @@
     <!-- CHART ICON -->
     <span class="toggle-icon chart-icon">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-           stroke="currentColor" stroke-width="1.5"
-           stroke-linecap="round" stroke-linejoin="round">
+          stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
         <polyline points="1,12 5,7 9,9 15,3"/>
         <polyline points="11,3 15,3 15,7"/>
       </svg>
@@ -357,6 +357,9 @@ function renderChartGrid(data) {
 
       <div class="chart-card-info">
         <span class="chart-symbol">${trade.symbol}</span>
+        <span class="side-${String(trade.side).toLowerCase()}" style="font-size:11px;font-weight:500;">
+          ${trade.side}
+        </span>
         <span class="chart-pnl ${Number(trade.pnl) >= 0 ? "pnl-positive" : "pnl-negative"}">
           ${formatPnL(trade.pnl)}
         </span>
