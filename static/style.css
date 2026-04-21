@@ -2340,7 +2340,7 @@ input:checked ~ .chart-icon {
 }
 
 .logic-toggle::before {
-  content: "logic";
+  /*content: "logic";*/
   font-size: 9px;
   color: var(--text-faint);
   margin-right: 6px;
