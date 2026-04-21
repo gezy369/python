@@ -2303,10 +2303,49 @@ input:checked ~ .chart-icon {
 
 /* OR / AND toggle */
 .logic-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
   flex-shrink: 0;
+}
+
+/* buttons */
+.logic-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  letter-spacing: 0.05em;
+}
+
+/* hover */
+.logic-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ACTIVE state (important) */
+.logic-btn.active {
+  background: var(--accent-blue);
+  color: white;
+  font-weight: 500;
+}
+
+.logic-toggle::before {
+  content: "logic";
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-right: 6px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* buttons container takes remaining space */
