@@ -59,13 +59,14 @@
 </div>
 
 <!-- Strategy and setup filters -->
-<div id="strategySetup">
-  <div class="top-filters">
-    <div class="filter-group">
-      <span class="filter-group-label">Strategies</span>
-      <div id="strategyFilter" class="filter-buttons single"></div>
+<div class="filter-group">
+  <div class="filter-row">
+    <span class="filter-group-label">Strategies</span>
+
+    <div class="logic-toggle">
+      <button class="logic-btn active" data-logic="or" data-filter="strategy">OR</button>
+      <button class="logic-btn" data-logic="and" data-filter="strategy">AND</button>
     </div>
-<<<<<<< HEAD
 
     <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
@@ -78,16 +79,10 @@
     <div class="logic-toggle">
       <button class="logic-btn active" data-logic="or" data-filter="setup">OR</button>
       <button class="logic-btn" data-logic="and" data-filter="setup">AND</button>
-=======
-    <div class="filter-group">
-      <span class="filter-group-label">Setups</span>
-      <div id="setupFilter" class="filter-buttons multi"></div>
->>>>>>> 6d31560f97681c2746bf92c1d39141cddef03f7a
     </div>
 
     <div id="setupFilter" class="filter-buttons multi"></div>
   </div>
-<<<<<<< HEAD
 </div>
 
 <div class="filter-group">
@@ -100,11 +95,6 @@
     </div>
 
     <div id="emotionFilter" class="filter-buttons multi"></div>
-=======
-  <div class="filter-group">
-    <span class="filter-group-label">Emotions</span>
-    <div id="emotionFilter" class="filter-buttons multi"></div>
->>>>>>> 6d31560f97681c2746bf92c1d39141cddef03f7a
   </div>
 </div>
 
@@ -145,6 +135,14 @@ let dataReady    = false;
 let setupsByTrade   = {};
 let emotionsByTrade = {};
 let currentAccountRequest = 0;
+
+// Filter logic state (OR/AND)
+let filterLogic = {
+  strategy: 'or',
+  setup: 'or',
+  emotion: 'or'
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const pad        = n  => String(n).padStart(2, "0");
 const formatDate = d  => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -161,6 +159,24 @@ function waitForAccount() {
     if (window.accountSelectorReady) return resolve();
     document.addEventListener("accountReady", resolve, { once: true });
   });
+}
+
+// ── Toggle logic (OR/AND) ──────────────────────────────────────────────────
+function toggleLogic(event, filterType) {
+  event.stopPropagation();
+  const clickedBtn = event.target;
+  const logic = clickedBtn.dataset.logic;
+  
+  // Update active state
+  const container = clickedBtn.parentElement;
+  container.querySelectorAll('.logic-btn').forEach(btn => btn.classList.remove('active'));
+  clickedBtn.classList.add('active');
+  
+  // Update state
+  filterLogic[filterType] = logic;
+  
+  // Re-apply filters
+  applyFiltersAndRender();
 }
 
 function applyFiltersAndRender() {
@@ -184,16 +200,44 @@ function applyFiltersAndRender() {
     data = data.filter(r => String(r[input.dataset.col] ?? "").toLowerCase().includes(val));
   });
 
-  // Setup filter
+  // Setup filter with AND/OR logic
   const selectedSetups = [...document.querySelectorAll("#setupFilter button.active")].map(b => toNum(b.dataset.id));
-  if (selectedSetups.length) data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
+  if (selectedSetups.length) {
+    if (filterLogic.setup === 'and') {
+      // AND: trade must have ALL selected setups
+      data = data.filter(t => selectedSetups.every(id => t.setups.includes(id)));
+    } else {
+      // OR: trade must have AT LEAST ONE selected setup
+      data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
+    }
+  }
 
-  // Strategy filter
+  // Strategy filter with AND/OR logic
   const activeStrategies = [...document.querySelectorAll("#strategyFilter button.active")].map(b => toNum(b.dataset.id));
-  if (activeStrategies.length) data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
-  // Emotion filter
+  if (activeStrategies.length) {
+    if (filterLogic.strategy === 'and') {
+      // AND: For strategies, since a trade can only have one strategy, 
+      // AND with multiple strategies would return empty. This is more useful as OR.
+      // But we keep the logic consistent - user can choose
+      data = data.filter(t => activeStrategies.every(id => toNum(t.key_strategies_id) === id));
+    } else {
+      // OR: trade strategy matches ANY selected strategy
+      data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
+    }
+  }
+
+  // Emotion filter with AND/OR logic
   const activeEmotions = [...document.querySelectorAll("#emotionFilter button.active")].map(b => toNum(b.dataset.id));
-  if (activeEmotions.length) data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
+  if (activeEmotions.length) {
+    if (filterLogic.emotion === 'and') {
+      // AND: trade must have ALL selected emotions
+      data = data.filter(t => activeEmotions.every(id => t.emotions.includes(id)));
+    } else {
+      // OR: trade must have AT LEAST ONE selected emotion
+      data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
+    }
+  }
+
   // Account filter
   const acct = accountSelect?.value;
   if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
@@ -367,6 +411,15 @@ function resetFilters() {
   document.getElementById("dateTo").value   = "";
   document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
   document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
+  
+  // Reset logic toggles to OR
+  filterLogic = { strategy: 'or', setup: 'or', emotion: 'or' };
+  document.querySelectorAll('.logic-toggle').forEach(container => {
+    container.querySelectorAll('.logic-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.logic === 'or');
+    });
+  });
+  
   window.history.replaceState({}, "", "/journal");
   applyFiltersAndRender();
 }
