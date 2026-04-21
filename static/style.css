@@ -197,13 +197,13 @@ body {
 }
 
 /* ===== RIGHT COLUMN WRAPPER ===== */
-.main {
+/*.main {
   flex: 1;
   max-width: none;
-  /*padding: 28px 32px;*/
+  padding: 28px 32px;
   overflow-y: auto;
   background: var(--bg-base);
-}
+}*/
 
 .main h1 {
   font-size: 16px;
