@@ -912,12 +912,19 @@ tr.trade-details-row td {
 }
 
 /* ===== FILTER GROUP LABELS ===== */
-.filter-group {
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* allows tags to wrap nicely */
+}
+
+/*.filter-group {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
+}*/
 
 .filter-group-label {
   font-size: 10px;
@@ -2294,6 +2301,7 @@ input:checked ~ .chart-icon {
   border-radius: 4px;
   padding: 1px;
   gap: 1px;
+  margin-right: 6px;
 }
 
 .logic-btn {
@@ -2344,6 +2352,5 @@ input:checked ~ .chart-icon {
 .filter-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }

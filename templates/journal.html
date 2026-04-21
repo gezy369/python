@@ -59,38 +59,43 @@
 </div>
 
 <!-- Strategy and setup filters -->
-<div id="strategySetup">
-  <div class="filter-group">
-    <div class="filter-header">
-      <span class="filter-group-label">Strategies</span>
-      <div class="logic-toggle">
-        <button class="logic-btn active" data-logic="or" data-filter="strategy" onclick="toggleLogic(event, 'strategy')">OR</button>
-        <button class="logic-btn" data-logic="and" data-filter="strategy" onclick="toggleLogic(event, 'strategy')">AND</button>
-      </div>
+<div class="filter-group">
+  <div class="filter-row">
+    <span class="filter-group-label">Strategies</span>
+
+    <div class="logic-toggle">
+      <button class="logic-btn active" data-logic="or" data-filter="strategy">OR</button>
+      <button class="logic-btn" data-logic="and" data-filter="strategy">AND</button>
     </div>
+
     <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
+</div>
   
   <div class="filter-group">
     <div class="filter-header">
       <span class="filter-group-label">Setups</span>
+
       <div class="logic-toggle">
         <button class="logic-btn active" data-logic="or" data-filter="setup" onclick="toggleLogic(event, 'setup')">OR</button>
         <button class="logic-btn" data-logic="and" data-filter="setup" onclick="toggleLogic(event, 'setup')">AND</button>
       </div>
+
+      <div id="setupFilter" class="filter-buttons multi"></div>
     </div>
-    <div id="setupFilter" class="filter-buttons multi"></div>
   </div>
   
   <div class="filter-group">
     <div class="filter-header">
       <span class="filter-group-label">Emotions</span>
+      
       <div class="logic-toggle">
         <button class="logic-btn active" data-logic="or" data-filter="emotion" onclick="toggleLogic(event, 'emotion')">OR</button>
         <button class="logic-btn" data-logic="and" data-filter="emotion" onclick="toggleLogic(event, 'emotion')">AND</button>
       </div>
+      
+      <div id="emotionFilter" class="filter-buttons multi"></div>
     </div>
-    <div id="emotionFilter" class="filter-buttons multi"></div>
   </div>
 </div>
 
