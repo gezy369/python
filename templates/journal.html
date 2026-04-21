@@ -161,23 +161,20 @@ function waitForAccount() {
   });
 }
 
-// ── Toggle logic (OR/AND) ──────────────────────────────────────────────────
-function toggleLogic(event, filterType) {
-  event.stopPropagation();
-  const clickedBtn = event.target;
-  const logic = clickedBtn.dataset.logic;
-  
-  // Update active state
-  const container = clickedBtn.parentElement;
-  container.querySelectorAll('.logic-btn').forEach(btn => btn.classList.remove('active'));
-  clickedBtn.classList.add('active');
-  
-  // Update state
-  filterLogic[filterType] = logic;
-  
-  // Re-apply filters
-  applyFiltersAndRender();
-}
+const filters = {
+  strategy: {
+    selected: new Set(),
+    logic: "or"
+  },
+  setup: {
+    selected: new Set(),
+    logic: "or"
+  },
+  emotion: {
+    selected: new Set(),
+    logic: "or"
+  }
+};
 
 function applyFiltersAndRender() {
   if (!dataReady) return;
@@ -354,6 +351,8 @@ Promise.all([
   console.error("Journal init failed:", err);
 });
 
+initLogicToggles();
+
 let currentView = "table";
 
 function toggleView() {
@@ -412,11 +411,11 @@ function resetFilters() {
   document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
   document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
   
-  // Reset logic toggles to OR
   filterLogic = { strategy: 'or', setup: 'or', emotion: 'or' };
-  document.querySelectorAll('.logic-toggle').forEach(container => {
-    container.querySelectorAll('.logic-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.logic === 'or');
+
+  document.querySelectorAll(".logic-toggle").forEach(group => {
+    group.querySelectorAll(".logic-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.logic === "or");
     });
   });
   
@@ -931,6 +930,29 @@ async function showTradeChart(trade, containerId) {
   }
   chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
 }
+
+function initLogicToggles() {
+  document.querySelectorAll(".logic-toggle").forEach(group => {
+    const buttons = group.querySelectorAll(".logic-btn");
+    const filterType = buttons[0].dataset.filter;
+
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const logic = btn.dataset.logic;
+
+        // update state
+        filterLogic[filterType] = logic;
+
+        // update UI
+        buttons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        applyFiltersAndRender();
+      });
+    });
+  });
+}
+
 </script>
 
 {% endblock %}
