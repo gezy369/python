@@ -197,13 +197,13 @@ body {
 }
 
 /* ===== RIGHT COLUMN WRAPPER ===== */
-/*.main {
+.main {
   flex: 1;
   max-width: none;
   padding: 28px 32px;
   overflow-y: auto;
   background: var(--bg-base);
-}*/
+}
 
 .main h1 {
   font-size: 16px;
@@ -912,19 +912,12 @@ tr.trade-details-row td {
 }
 
 /* ===== FILTER GROUP LABELS ===== */
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap; /* allows tags to wrap nicely */
-}
-
-/*.filter-group {
+.filter-group {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}*/
+}
 
 .filter-group-label {
   font-size: 10px;
@@ -2291,66 +2284,4 @@ input:checked ~ .chart-icon {
 
 .chart-pnl {
   font-family: 'IBM Plex Mono';
-}
-
-/* AND/OR Logic Toggle Buttons */
-.logic-toggle {
-  display: inline-flex;
-  background: var(--bg-active);
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  padding: 1px;
-  gap: 1px;
-  margin-right: 6px;
-}
-
-.logic-btn {
-  padding: 2px 8px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-transform: uppercase;
-  min-width: 28px;
-}
-
-.logic-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-}
-
-.logic-btn.active {
-  background: var(--accent-blue);
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.logic-btn.active:hover {
-  background: #4a7de6;
-}
-
-/* Filter group layout */
-#strategySetup {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-#strategySetup .filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.filter-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
