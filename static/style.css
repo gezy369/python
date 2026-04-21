@@ -568,10 +568,10 @@ button:hover {
   background: rgba(255,255,255,0.015);
 }
 
-.table-wrapper {
+/*.table-wrapper {
   margin-top: 24px;
   overflow-x: auto;
-}
+}*/
 
 /* ===== JOURNAL TABLE ===== */
 #tradeTable {
