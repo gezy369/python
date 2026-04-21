@@ -9,14 +9,14 @@
 
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
-    <h2>Upload CSV</h2>
+    <h2>Import Trades</h2>
 
     <div id="dropzone" class="dropzone">
       Drop CSV file here<br>or click to select
     </div>
 
     <input type="file" id="fileInput" accept=".csv" hidden>
-    <button onclick="uploadFile()">Import</button>
+    <button onclick="uploadFile()">Preview trades</button>
 
     <!-- loader -->
     <div id="loader" class="loader hidden">
@@ -50,7 +50,7 @@
 
 <!-- ===== TABLE PREVIEW (OUTSIDE FLEX CONTAINER) ===== -->
 <div id="table-container">
-  <h2>Imported trades</h2><div id="confirm-container"></div>
+  <h2>Done !</h2><div id="confirm-container"></div>
 </div>
 
 <script>
