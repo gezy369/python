@@ -917,6 +917,7 @@ tr.trade-details-row td {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 .filter-group-label {
@@ -2287,18 +2288,20 @@ input:checked ~ .chart-icon {
 }
 
 .filter-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 110px auto 1fr;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap; /* keeps responsive behavior */
+  column-gap: 12px;
+  row-gap: 6px;
 }
 
-/* left label */
 .filter-group-label {
-  min-width: 90px; /* aligns all rows */
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 /* OR / AND toggle */
@@ -2310,7 +2313,7 @@ input:checked ~ .chart-icon {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 6px;
-  flex-shrink: 0;
+  justify-self: start;
 }
 
 /* buttons */
@@ -2353,7 +2356,7 @@ input:checked ~ .chart-icon {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  flex: 1;
+  align-items: center;
 }
 
 /* optional: make buttons look consistent inline */
