@@ -61,30 +61,37 @@
 <div class="filter-panel">
 
   <!-- STRATEGY -->
-  <div class="filter-column">
-    <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
-      <span>Strategies</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
-      </svg>
-    </div>
+<div class="filter-column">
 
-    <div id="strategySection" class="filter-section" style="display:none;">
-      <div class="filter-section-inner">
-        <div class="filter-logic-row">
-          <span>Match:</span>
-          <div class="logic-toggle-inline">
-            <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
-            <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
-          </div>
-        </div>
-        <div id="strategyFilter" class="filter-buttons-grid"></div>
-      </div>
-    </div>
+  <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
 
-    <!-- 👇 THIS is the part you asked about -->
-    <div id="activeFilters-strategy" class="active-filters"></div>
+    <!-- LEFT: label -->
+    <span class="filter-title">Strategies</span>
+
+    <!-- CENTER: chips -->
+    <div id="activeFilters-strategy" class="filter-chips"></div>
+
+    <!-- RIGHT: chevron -->
+    <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+      <path d="M3 4.5L6 7.5L9 4.5"/>
+    </svg>
+
   </div>
+
+  <div id="strategySection" class="filter-section" style="display:none;">
+    <div class="filter-section-inner">
+      <div class="filter-logic-row">
+        <span>Match:</span>
+        <div class="logic-toggle-inline">
+          <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
+          <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
+        </div>
+      </div>
+      <div id="strategyFilter" class="filter-buttons-grid"></div>
+    </div>
+  </div>
+
+</div>
 
 
   <!-- SETUP -->
@@ -272,23 +279,33 @@ function updateActiveFiltersDisplay() {
     let html = "";
 
     filters.forEach(id => {
-      let item;
+      let item, label, color;
 
       if (type === 'strategy') {
         item = STRATEGIES.find(x => toNum(x.id) === id);
-        html += `<span class="active-filter-tag" style="background:${item.color}" onclick="removeActiveFilter('${type}', ${id})">${item.strategy_name} ×</span>`;
+        label = item.strategy_name;
+        color = item.color;
       }
 
       if (type === 'setup') {
         item = SETUPS.find(x => toNum(x.id) === id);
-        html += `<span class="active-filter-tag" style="background:${item.color}" onclick="removeActiveFilter('${type}', ${id})">${item.setup_name} ×</span>`;
+        label = item.setup_name;
+        color = item.color;
       }
 
       if (type === 'emotion') {
         item = EMOTIONS.find(x => toNum(x.id) === id);
-        html += `<span class="active-filter-tag" style="background:${item.color || '#3a4050'}" onclick="removeActiveFilter('${type}', ${id})">${item.emotion} ×</span>`;
+        label = item.emotion;
+        color = item.color || "#3a4050";
       }
 
+      html += `
+        <span class="filter-chip"
+              style="background:${color}"
+              onclick="removeActiveFilter('${type}', ${id}); event.stopPropagation();">
+          ${label} ×
+        </span>
+      `;
     });
 
     container.innerHTML = html;
