@@ -96,10 +96,17 @@
 
   <!-- SETUP -->
   <div class="filter-column">
-    <div class="filter-header-item" onclick="toggleFilterSection('setup')">
+    <div class="filter-header-item" data-filter="setup" onclick="toggleFilterSection('setup')">
       <span>Setups</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
+
+      <div class="header-chips" id="setupHeaderChips"></div>
+
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M3 4.5L6 7.5L9 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
       </svg>
     </div>
 
@@ -122,10 +129,17 @@
 
   <!-- EMOTION -->
   <div class="filter-column">
-    <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
+    <div class="filter-header-item" data-filter="emotion" onclick="toggleFilterSection('emotion')">
       <span>Emotions</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
+
+      <div class="header-chips" id="emotionHeaderChips"></div>
+
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M3 4.5L6 7.5L9 4.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
       </svg>
     </div>
 
@@ -247,6 +261,48 @@ function setFilterLogic(type, logic) {
   applyFiltersAndRender();
 }
 
+function updateHeaderChips() {
+  const setupContainer = document.getElementById("setupHeaderChips");
+  const emotionContainer = document.getElementById("emotionHeaderChips");
+
+  setupContainer.innerHTML = "";
+  emotionContainer.innerHTML = "";
+
+  // SETUPS
+  activeFilters.setup.forEach(id => {
+    const s = SETUPS.find(x => toNum(x.id) === id);
+    if (!s) return;
+
+    const chip = document.createElement("span");
+    chip.className = "header-chip";
+    chip.style.background = s.color;
+    chip.textContent = s.setup_name + " ×";
+    chip.onclick = (e) => {
+      e.stopPropagation();
+      removeActiveFilter("setup", id);
+    };
+
+    setupContainer.appendChild(chip);
+  });
+
+  // EMOTIONS
+  activeFilters.emotion.forEach(id => {
+    const e = EMOTIONS.find(x => toNum(x.id) === id);
+    if (!e) return;
+
+    const chip = document.createElement("span");
+    chip.className = "header-chip";
+    chip.style.background = e.color || "#3a4050";
+    chip.textContent = e.emotion + " ×";
+    chip.onclick = (ev) => {
+      ev.stopPropagation();
+      removeActiveFilter("emotion", id);
+    };
+
+    emotionContainer.appendChild(chip);
+  });
+}
+
 // ── Toggle Filter ──────────────────────────────────────────────────────────
 function toggleFilter(type, id, btn) {
   const numId = toNum(id);
@@ -311,6 +367,7 @@ function updateActiveFiltersDisplay() {
     container.innerHTML = html;
 
   });
+  updateHeaderChips();
 }
 
 // ── Remove Active Filter ───────────────────────────────────────────────────
