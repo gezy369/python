@@ -2287,21 +2287,19 @@ input:checked ~ .chart-icon {
   font-family: 'IBM Plex Mono';
 }
 
+/* ===== HORIZONTAL FILTER LAYOUT ===== */
 .filter-row {
-  display: grid;
-  grid-template-columns: 110px auto 1fr;
+  display: flex;
   align-items: center;
-  column-gap: 12px;
-  row-gap: 6px;
+  gap: 12px;
 }
-
+ 
 .filter-group-label {
   font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
-  display: flex;
-  align-items: center;
-  height: 100%;
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 /* OR / AND toggle */
@@ -2313,9 +2311,9 @@ input:checked ~ .chart-icon {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 6px;
-  justify-self: start;
+  flex-shrink: 0;
 }
-
+ 
 /* buttons */
 .logic-btn {
   font-size: 10px;
@@ -2334,7 +2332,7 @@ input:checked ~ .chart-icon {
   color: var(--text-secondary);
   background: rgba(255,255,255,0.04);
 }
-
+ 
 /* ACTIVE state (important) */
 .logic-btn.active {
   background: var(--accent-blue);
@@ -2357,9 +2355,10 @@ input:checked ~ .chart-icon {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  flex: 1;
 }
-
-/* optional: make buttons look consistent inline */
+ 
+/* Makes buttons look consistent inline */
 .filter-buttons button {
   white-space: nowrap;
 }
