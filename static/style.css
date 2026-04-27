@@ -2367,7 +2367,7 @@ input:checked ~ .chart-icon {
 .filter-panel {
   display: flex;
   gap: 10px;
-  width: 100%;
+  width: calc(100% - 542px);
   align-items: flex-start; /* important */
 }
 
