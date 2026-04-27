@@ -60,54 +60,53 @@
 
 <div class="filter-panel">
 
-  <!-- STRATEGY -->
-<div class="filter-column">
-
-  <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
-
-    <!-- LEFT: label -->
-    <span class="filter-title">Strategies</span>
-
-    <!-- CENTER: chips -->
-    <div id="activeFilters-strategy" class="filter-chips"></div>
-
-    <!-- RIGHT: chevron -->
-    <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-      <path d="M3 4.5L6 7.5L9 4.5"/>
-    </svg>
-
-  </div>
-
-  <div id="strategySection" class="filter-section" style="display:none;">
-    <div class="filter-section-inner">
-      <div class="filter-logic-row">
-        <span>Match:</span>
-        <div class="logic-toggle-inline">
-          <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
-          <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
-        </div>
-      </div>
-      <div id="strategyFilter" class="filter-buttons-grid"></div>
-    </div>
-  </div>
-
-</div>
-
-
-  <!-- SETUP -->
+    <!-- STRATEGY -->
   <div class="filter-column">
-    <div class="filter-header-item" data-filter="setup" onclick="toggleFilterSection('setup')">
-      <span>Setups</span>
 
-      <div class="header-chips" id="setupHeaderChips"></div>
+    <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
 
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
+      <!-- LEFT: label -->
+      <span class="filter-title">Strategies</span>
+
+      <!-- CENTER: chips -->
+      <div id="activeFilters-strategy" class="filter-chips"></div>
+
+      <!-- RIGHT: chevron -->
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
       </svg>
+
+    </div>
+
+    <div id="strategySection" class="filter-section" style="display:none;">
+      <div class="filter-section-inner">
+        <div class="filter-logic-row">
+          <span>Match:</span>
+          <div class="logic-toggle-inline">
+            <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
+            <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
+          </div>
+        </div>
+        <div id="strategyFilter" class="filter-buttons-grid"></div>
+      </div>
+    </div>
+
+  </div>
+
+
+    <!-- SETUP -->
+  <div class="filter-column">
+
+    <div class="filter-header-item" onclick="toggleFilterSection('setup')">
+
+      <span class="filter-title">Setups</span>
+
+      <div id="activeFilters-setup" class="filter-chips"></div>
+
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
+      </svg>
+
     </div>
 
     <div id="setupSection" class="filter-section" style="display:none;">
@@ -123,24 +122,21 @@
       </div>
     </div>
 
-    <div id="activeFilters-setup" class="active-filters"></div>
   </div>
-
 
   <!-- EMOTION -->
   <div class="filter-column">
-    <div class="filter-header-item" data-filter="emotion" onclick="toggleFilterSection('emotion')">
-      <span>Emotions</span>
 
-      <div class="header-chips" id="emotionHeaderChips"></div>
+    <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
 
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
+      <span class="filter-title">Emotions</span>
+
+      <div id="activeFilters-emotion" class="filter-chips"></div>
+
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
       </svg>
+
     </div>
 
     <div id="emotionSection" class="filter-section" style="display:none;">
@@ -156,7 +152,6 @@
       </div>
     </div>
 
-    <div id="activeFilters-emotion" class="active-filters"></div>
   </div>
 
 </div>
