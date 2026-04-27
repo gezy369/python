@@ -59,40 +59,37 @@
 </div>
 
 <!-- Strategy and setup filters -->
-<div class="filter-group">
-  <div class="filter-row">
-    <span class="filter-group-label">Strategies</span>
-
-    <div class="logic-toggle">
-      <button class="logic-btn active" data-logic="or" data-filter="strategy">OR</button>
+<div id="strategySetup">
+  <div class="filter-group">
+    <div class="filter-header">
+      <span class="filter-group-label">Strategies</span>
+      <div class="logic-toggle">
+        <button class="logic-btn active" data-logic="or" data-filter="strategy" onclick="toggleLogic(event, 'strategy')">OR</button>
+        <button class="logic-btn" data-logic="and" data-filter="strategy" onclick="toggleLogic(event, 'strategy')">AND</button>
+      </div>
     </div>
-
     <div id="strategyFilter" class="filter-buttons single"></div>
   </div>
-</div>
-
-<div class="filter-group">
-  <div class="filter-row">
-    <span class="filter-group-label">Setups</span>
-
-    <div class="logic-toggle">
-      <button class="logic-btn active" data-logic="or" data-filter="setup">OR</button>
-      <button class="logic-btn" data-logic="and" data-filter="setup">AND</button>
+  
+  <div class="filter-group">
+    <div class="filter-header">
+      <span class="filter-group-label">Setups</span>
+      <div class="logic-toggle">
+        <button class="logic-btn active" data-logic="or" data-filter="setup" onclick="toggleLogic(event, 'setup')">OR</button>
+        <button class="logic-btn" data-logic="and" data-filter="setup" onclick="toggleLogic(event, 'setup')">AND</button>
+      </div>
     </div>
-
     <div id="setupFilter" class="filter-buttons multi"></div>
   </div>
-</div>
-
-<div class="filter-group">
-  <div class="filter-row">
-    <span class="filter-group-label">Emotions</span>
-
-    <div class="logic-toggle">
-      <button class="logic-btn active" data-logic="or" data-filter="emotion">OR</button>
-      <button class="logic-btn" data-logic="and" data-filter="emotion">AND</button>
+  
+  <div class="filter-group">
+    <div class="filter-header">
+      <span class="filter-group-label">Emotions</span>
+      <div class="logic-toggle">
+        <button class="logic-btn active" data-logic="or" data-filter="emotion" onclick="toggleLogic(event, 'emotion')">OR</button>
+        <button class="logic-btn" data-logic="and" data-filter="emotion" onclick="toggleLogic(event, 'emotion')">AND</button>
+      </div>
     </div>
-
     <div id="emotionFilter" class="filter-buttons multi"></div>
   </div>
 </div>
@@ -160,20 +157,23 @@ function waitForAccount() {
   });
 }
 
-const filters = {
-  strategy: {
-    selected: new Set(),
-    logic: "or"
-  },
-  setup: {
-    selected: new Set(),
-    logic: "or"
-  },
-  emotion: {
-    selected: new Set(),
-    logic: "or"
-  }
-};
+// ── Toggle logic (OR/AND) ──────────────────────────────────────────────────
+function toggleLogic(event, filterType) {
+  event.stopPropagation();
+  const clickedBtn = event.target;
+  const logic = clickedBtn.dataset.logic;
+  
+  // Update active state
+  const container = clickedBtn.parentElement;
+  container.querySelectorAll('.logic-btn').forEach(btn => btn.classList.remove('active'));
+  clickedBtn.classList.add('active');
+  
+  // Update state
+  filterLogic[filterType] = logic;
+  
+  // Re-apply filters
+  applyFiltersAndRender();
+}
 
 function applyFiltersAndRender() {
   if (!dataReady) return;
@@ -350,8 +350,6 @@ Promise.all([
   console.error("Journal init failed:", err);
 });
 
-initLogicToggles();
-
 let currentView = "table";
 
 function toggleView() {
@@ -410,11 +408,11 @@ function resetFilters() {
   document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
   document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
   
+  // Reset logic toggles to OR
   filterLogic = { strategy: 'or', setup: 'or', emotion: 'or' };
-
-  document.querySelectorAll(".logic-toggle").forEach(group => {
-    group.querySelectorAll(".logic-btn").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.logic === "or");
+  document.querySelectorAll('.logic-toggle').forEach(container => {
+    container.querySelectorAll('.logic-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.logic === 'or');
     });
   });
   
@@ -731,7 +729,7 @@ function toggleTradeDetails(tr, trade) {
     if (!setupId) return;
     const sid = toNum(setupId);
     if (trade.setups.includes(sid)) { setupSelect.value = ""; return; } // no duplicates
-    await fetch("/api/trade_setup", {
+    await fetch("/api/trade_setups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: sid })
@@ -929,29 +927,6 @@ async function showTradeChart(trade, containerId) {
   }
   chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
 }
-
-function initLogicToggles() {
-  document.querySelectorAll(".logic-toggle").forEach(group => {
-    const buttons = group.querySelectorAll(".logic-btn");
-    const filterType = buttons[0].dataset.filter;
-
-    buttons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const logic = btn.dataset.logic;
-
-        // update state
-        filterLogic[filterType] = logic;
-
-        // update UI
-        buttons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        applyFiltersAndRender();
-      });
-    });
-  });
-}
-
 </script>
 
 {% endblock %}
