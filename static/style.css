@@ -2293,7 +2293,7 @@ input:checked ~ .chart-icon {
   align-items: center;
   gap: 12px;
 }
- 
+
 .filter-group-label {
   font-size: 11px;
   color: var(--text-secondary);
@@ -2307,17 +2307,18 @@ input:checked ~ .chart-icon {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
+  padding: 1px 2px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 6px;
   flex-shrink: 0;
+  height: fit-content;
 }
- 
+
 /* buttons */
 .logic-btn {
   font-size: 10px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border: none;
   background: transparent;
   color: var(--text-faint);
@@ -2325,6 +2326,7 @@ input:checked ~ .chart-icon {
   border-radius: 4px;
   transition: all 0.15s ease;
   letter-spacing: 0.05em;
+  line-height: 1.4;
 }
 
 /* hover */
@@ -2332,21 +2334,12 @@ input:checked ~ .chart-icon {
   color: var(--text-secondary);
   background: rgba(255,255,255,0.04);
 }
- 
+
 /* ACTIVE state (important) */
 .logic-btn.active {
   background: var(--accent-blue);
   color: white;
   font-weight: 500;
-}
-
-.logic-toggle::before {
-  /*content: "logic";*/
-  font-size: 9px;
-  color: var(--text-faint);
-  margin-right: 6px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 /* buttons container takes remaining space */
@@ -2357,7 +2350,7 @@ input:checked ~ .chart-icon {
   align-items: center;
   flex: 1;
 }
- 
+
 /* Makes buttons look consistent inline */
 .filter-buttons button {
   white-space: nowrap;
