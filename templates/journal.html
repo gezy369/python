@@ -58,73 +58,86 @@
   </div>
 </div>
 
-<!-- New Collapsible Filter System -->
 <div class="filter-panel">
-  <div class="filter-headers">
-    <div class="filter-header-item" data-filter="strategy" onclick="toggleFilterSection('strategy')">
+
+  <!-- STRATEGY -->
+  <div class="filter-column">
+    <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
       <span>Strategies</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
       </svg>
     </div>
-    
-    <div class="filter-header-item" data-filter="setup" onclick="toggleFilterSection('setup')">
+
+    <div id="strategySection" class="filter-section" style="display:none;">
+      <div class="filter-section-inner">
+        <div class="filter-logic-row">
+          <span>Match:</span>
+          <div class="logic-toggle-inline">
+            <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
+            <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
+          </div>
+        </div>
+        <div id="strategyFilter" class="filter-buttons-grid"></div>
+      </div>
+    </div>
+
+    <!-- 👇 THIS is the part you asked about -->
+    <div id="activeFilters-strategy" class="active-filters"></div>
+  </div>
+
+
+  <!-- SETUP -->
+  <div class="filter-column">
+    <div class="filter-header-item" onclick="toggleFilterSection('setup')">
       <span>Setups</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
       </svg>
     </div>
-    
-    <div class="filter-header-item" data-filter="emotion" onclick="toggleFilterSection('emotion')">
+
+    <div id="setupSection" class="filter-section" style="display:none;">
+      <div class="filter-section-inner">
+        <div class="filter-logic-row">
+          <span>Match:</span>
+          <div class="logic-toggle-inline">
+            <button class="logic-btn-inline active" onclick="setFilterLogic('setup','or')">Any</button>
+            <button class="logic-btn-inline" onclick="setFilterLogic('setup','and')">All</button>
+          </div>
+        </div>
+        <div id="setupFilter" class="filter-buttons-grid"></div>
+      </div>
+    </div>
+
+    <div id="activeFilters-setup" class="active-filters"></div>
+  </div>
+
+
+  <!-- EMOTION -->
+  <div class="filter-column">
+    <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
       <span>Emotions</span>
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+        <path d="M3 4.5L6 7.5L9 4.5"/>
       </svg>
     </div>
-  </div>
 
-  <!-- Expandable sections -->
-  <div id="strategySection" class="filter-section" style="display: none;">
-    <div class="filter-section-inner">
-      <div class="filter-logic-row">
-        <span class="filter-logic-label">Match:</span>
-        <div class="logic-toggle-inline">
-          <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('strategy', 'or')">Any</button>
-          <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('strategy', 'and')">All</button>
+    <div id="emotionSection" class="filter-section" style="display:none;">
+      <div class="filter-section-inner">
+        <div class="filter-logic-row">
+          <span>Match:</span>
+          <div class="logic-toggle-inline">
+            <button class="logic-btn-inline active" onclick="setFilterLogic('emotion','or')">Any</button>
+            <button class="logic-btn-inline" onclick="setFilterLogic('emotion','and')">All</button>
+          </div>
         </div>
+        <div id="emotionFilter" class="filter-buttons-grid"></div>
       </div>
-      <div id="strategyFilter" class="filter-buttons-grid"></div>
     </div>
+
+    <div id="activeFilters-emotion" class="active-filters"></div>
   </div>
 
-  <div id="setupSection" class="filter-section" style="display: none;">
-    <div class="filter-section-inner">
-      <div class="filter-logic-row">
-        <span class="filter-logic-label">Match:</span>
-        <div class="logic-toggle-inline">
-          <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('setup', 'or')">Any</button>
-          <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('setup', 'and')">All</button>
-        </div>
-      </div>
-      <div id="setupFilter" class="filter-buttons-grid"></div>
-    </div>
-  </div>
-
-  <div id="emotionSection" class="filter-section" style="display: none;">
-    <div class="filter-section-inner">
-      <div class="filter-logic-row">
-        <span class="filter-logic-label">Match:</span>
-        <div class="logic-toggle-inline">
-          <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('emotion', 'or')">Any</button>
-          <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('emotion', 'and')">All</button>
-        </div>
-      </div>
-      <div id="emotionFilter" class="filter-buttons-grid"></div>
-    </div>
-  </div>
-
-  <!-- Active filters display -->
-  <div id="activeFilters" class="active-filters" style="display: none;"></div>
 </div>
 
 <!-- Table + Chart column -->
@@ -245,45 +258,42 @@ function toggleFilter(type, id, btn) {
 
 // ── Update Active Filters Display ──────────────────────────────────────────
 function updateActiveFiltersDisplay() {
-  const container = document.getElementById('activeFilters');
-  const hasFilters = activeFilters.strategy.size > 0 || 
-                     activeFilters.setup.size > 0 || 
-                     activeFilters.emotion.size > 0;
-  
-  if (!hasFilters) {
-    container.style.display = 'none';
-    return;
-  }
-  
-  container.style.display = 'block';
-  let html = '<div class="active-filters-label">Active filters:</div><div class="active-filters-tags">';
-  
-  // Strategies
-  activeFilters.strategy.forEach(id => {
-    const s = STRATEGIES.find(x => toNum(x.id) === id);
-    if (s) {
-      html += `<span class="active-filter-tag" style="background:${s.color}" onclick="removeActiveFilter('strategy', ${id})">${s.strategy_name} ×</span>`;
+
+  ['strategy','setup','emotion'].forEach(type => {
+
+    const container = document.getElementById(`activeFilters-${type}`);
+    const filters = activeFilters[type];
+
+    if (!filters.size) {
+      container.innerHTML = "";
+      return;
     }
+
+    let html = "";
+
+    filters.forEach(id => {
+      let item;
+
+      if (type === 'strategy') {
+        item = STRATEGIES.find(x => toNum(x.id) === id);
+        html += `<span class="active-filter-tag" style="background:${item.color}" onclick="removeActiveFilter('${type}', ${id})">${item.strategy_name} ×</span>`;
+      }
+
+      if (type === 'setup') {
+        item = SETUPS.find(x => toNum(x.id) === id);
+        html += `<span class="active-filter-tag" style="background:${item.color}" onclick="removeActiveFilter('${type}', ${id})">${item.setup_name} ×</span>`;
+      }
+
+      if (type === 'emotion') {
+        item = EMOTIONS.find(x => toNum(x.id) === id);
+        html += `<span class="active-filter-tag" style="background:${item.color || '#3a4050'}" onclick="removeActiveFilter('${type}', ${id})">${item.emotion} ×</span>`;
+      }
+
+    });
+
+    container.innerHTML = html;
+
   });
-  
-  // Setups
-  activeFilters.setup.forEach(id => {
-    const s = SETUPS.find(x => toNum(x.id) === id);
-    if (s) {
-      html += `<span class="active-filter-tag" style="background:${s.color}" onclick="removeActiveFilter('setup', ${id})">${s.setup_name} ×</span>`;
-    }
-  });
-  
-  // Emotions
-  activeFilters.emotion.forEach(id => {
-    const e = EMOTIONS.find(x => toNum(x.id) === id);
-    if (e) {
-      html += `<span class="active-filter-tag" style="background:${e.color || '#3a4050'}" onclick="removeActiveFilter('emotion', ${id})">${e.emotion} ×</span>`;
-    }
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
 }
 
 // ── Remove Active Filter ───────────────────────────────────────────────────
