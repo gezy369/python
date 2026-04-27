@@ -198,17 +198,21 @@ function waitForAccount() {
 
 // ── Filter Section Toggle ──────────────────────────────────────────────────
 function toggleFilterSection(type) {
+  document.querySelectorAll('.filter-section').forEach(s => {
+    if (s.id !== `${type}Section`) s.style.display = 'none';
+  });
+
+  document.querySelectorAll('.filter-header-item').forEach(h => {
+    if (h.dataset.filter !== type) h.classList.remove('open');
+  });
+
   const section = document.getElementById(`${type}Section`);
   const header = document.querySelector(`[data-filter="${type}"]`);
+
   const isOpen = section.style.display !== 'none';
-  
-  if (isOpen) {
-    section.style.display = 'none';
-    header.classList.remove('open');
-  } else {
-    section.style.display = 'block';
-    header.classList.add('open');
-  }
+
+  section.style.display = isOpen ? 'none' : 'block';
+  header.classList.toggle('open', !isOpen);
 }
 
 // ── Set Filter Logic ───────────────────────────────────────────────────────

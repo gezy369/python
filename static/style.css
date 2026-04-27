@@ -2363,3 +2363,149 @@ input:checked ~ .chart-icon {
 .filter-buttons button {
   white-space: nowrap;
 }
+
+.filter-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-headers {
+  display: flex;
+  flex-direction: column; /* KEY: vertical */
+  gap: 4px;
+}
+
+.filter-header-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  width: 100%;
+  padding: 10px 12px;
+
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-header-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.filter-header-item .chevron {
+  transition: transform 0.2s ease;
+}
+
+.filter-header-item.open .chevron {
+  transform: rotate(180deg);
+}
+
+.filter-section {
+  padding: 6px 8px 10px 8px;
+  border-left: 2px solid var(--border-default);
+  margin-left: 6px;
+}
+
+.filter-section-inner {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.filter-logic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.filter-logic-label {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.logic-toggle-inline {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.logic-btn-inline {
+  font-size: 10px;
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.logic-btn-inline.active {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.filter-buttons-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-buttons-grid button {
+  font-size: 11px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.filter-buttons-grid button:hover {
+  opacity: 1;
+}
+
+.filter-buttons-grid button.active {
+  outline: 2px solid white;
+  opacity: 1;
+}
+
+.active-filters {
+  margin-top: 6px;
+  padding: 6px 8px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.active-filters-label {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.active-filters-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.active-filter-tag {
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  white-space: nowrap;
+}
