@@ -2370,6 +2370,7 @@ input:checked ~ .chart-icon {
   width: 100%;
   align-items: flex-start;
   flex: 1;
+  margin-bottom: 10px;
 }
 
 .filter-column {
