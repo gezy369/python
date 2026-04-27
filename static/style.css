@@ -2367,8 +2367,9 @@ input:checked ~ .chart-icon {
 .filter-panel {
   display: flex;
   gap: 10px;
-  width: calc(100% - 542px);
-  align-items: flex-start; /* important */
+  width: 100%;
+  align-items: flex-start;
+  flex: 1;
 }
 
 .filter-column {
@@ -2376,6 +2377,17 @@ input:checked ~ .chart-icon {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.filters-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px; /* optional spacing */
+}
+
+.filter-side-placeholder {
+  width: 542px;
+  min-width: 542px; /* prevents shrinking */
 }
 
 .filter-chips {

@@ -57,105 +57,106 @@
     <button class="btn-danger" onclick="deleteSelected()">Delete selected</button>
   </div>
 </div>
+<div class="filters-row">
+  <div class="filter-panel">
 
-<div class="filter-panel">
+      <!-- STRATEGY -->
+    <div class="filter-column">
 
-    <!-- STRATEGY -->
-  <div class="filter-column">
+      <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
 
-    <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
+        <!-- LEFT: label -->
+        <span class="filter-title">Strategies</span>
 
-      <!-- LEFT: label -->
-      <span class="filter-title">Strategies</span>
+        <!-- CENTER: chips -->
+        <div id="activeFilters-strategy" class="filter-chips"></div>
 
-      <!-- CENTER: chips -->
-      <div id="activeFilters-strategy" class="filter-chips"></div>
+        <!-- RIGHT: chevron -->
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
 
-      <!-- RIGHT: chevron -->
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
-      </svg>
+      </div>
+
+      <div id="strategySection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
+              <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
+            </div>
+          </div>
+          <div id="strategyFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
 
     </div>
 
-    <div id="strategySection" class="filter-section" style="display:none;">
-      <div class="filter-section-inner">
-        <div class="filter-logic-row">
-          <span>Match:</span>
-          <div class="logic-toggle-inline">
-            <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
-            <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
-          </div>
-        </div>
-        <div id="strategyFilter" class="filter-buttons-grid"></div>
+
+      <!-- SETUP -->
+    <div class="filter-column">
+
+      <div class="filter-header-item" onclick="toggleFilterSection('setup')">
+
+        <span class="filter-title">Setups</span>
+
+        <div id="activeFilters-setup" class="filter-chips"></div>
+
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
+
       </div>
+
+      <div id="setupSection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" onclick="setFilterLogic('setup','or')">Any</button>
+              <button class="logic-btn-inline" onclick="setFilterLogic('setup','and')">All</button>
+            </div>
+          </div>
+          <div id="setupFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EMOTION -->
+    <div class="filter-column">
+
+      <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
+
+        <span class="filter-title">Emotions</span>
+
+        <div id="activeFilters-emotion" class="filter-chips"></div>
+
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
+
+      </div>
+
+      <div id="emotionSection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" onclick="setFilterLogic('emotion','or')">Any</button>
+              <button class="logic-btn-inline" onclick="setFilterLogic('emotion','and')">All</button>
+            </div>
+          </div>
+          <div id="emotionFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
+
     </div>
 
   </div>
-
-
-    <!-- SETUP -->
-  <div class="filter-column">
-
-    <div class="filter-header-item" onclick="toggleFilterSection('setup')">
-
-      <span class="filter-title">Setups</span>
-
-      <div id="activeFilters-setup" class="filter-chips"></div>
-
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
-      </svg>
-
-    </div>
-
-    <div id="setupSection" class="filter-section" style="display:none;">
-      <div class="filter-section-inner">
-        <div class="filter-logic-row">
-          <span>Match:</span>
-          <div class="logic-toggle-inline">
-            <button class="logic-btn-inline active" onclick="setFilterLogic('setup','or')">Any</button>
-            <button class="logic-btn-inline" onclick="setFilterLogic('setup','and')">All</button>
-          </div>
-        </div>
-        <div id="setupFilter" class="filter-buttons-grid"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- EMOTION -->
-  <div class="filter-column">
-
-    <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
-
-      <span class="filter-title">Emotions</span>
-
-      <div id="activeFilters-emotion" class="filter-chips"></div>
-
-      <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
-        <path d="M3 4.5L6 7.5L9 4.5"/>
-      </svg>
-
-    </div>
-
-    <div id="emotionSection" class="filter-section" style="display:none;">
-      <div class="filter-section-inner">
-        <div class="filter-logic-row">
-          <span>Match:</span>
-          <div class="logic-toggle-inline">
-            <button class="logic-btn-inline active" onclick="setFilterLogic('emotion','or')">Any</button>
-            <button class="logic-btn-inline" onclick="setFilterLogic('emotion','and')">All</button>
-          </div>
-        </div>
-        <div id="emotionFilter" class="filter-buttons-grid"></div>
-      </div>
-    </div>
-
-  </div>
-
+  <div class="filter-side-placeholder"></div>
 </div>
-
 <!-- Table + Chart column -->
 <div id="tableView" style="display:flex; gap:20px; align-items:flex-start;">
 
