@@ -234,8 +234,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             exit_ts = exit_ts.tz_localize("Europe/Paris")
 
         df = df[
-            (df.index >= entry_ts - timedelta(hours=2)) &
-            (df.index <= exit_ts  + timedelta(hours=2))
+            (df.index >= entry_ts - timedelta(hours=3)) &
+            (df.index <= exit_ts  + timedelta(hours=4))
         ]
         if df.empty:
             print(f"No candles in trade window for {yahoo_symbol}")

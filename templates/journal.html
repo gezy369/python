@@ -6,7 +6,6 @@
   <h2>Trade Journal</h2>
 
   <div class="view-toggle">
-
     <!-- TABLE ICON -->
     <span class="toggle-icon table-icon">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
@@ -33,10 +32,8 @@
         <polyline points="11,3 15,3 15,7"/>
       </svg>
     </span>
-
   </div>
 </div>
-
 
 <!-- ================= CONTROLS ================= -->
 <div class="journal-controls">
@@ -57,25 +54,17 @@
     <button class="btn-danger" onclick="deleteSelected()">Delete selected</button>
   </div>
 </div>
+
 <div class="filters-row">
   <div class="filter-panel">
-
-      <!-- STRATEGY -->
+    <!-- STRATEGY -->
     <div class="filter-column">
-
       <div class="filter-header-item" onclick="toggleFilterSection('strategy')">
-
-        <!-- LEFT: label -->
         <span class="filter-title">Strategies</span>
-
-        <!-- CENTER: chips -->
         <div id="activeFilters-strategy" class="filter-chips"></div>
-
-        <!-- RIGHT: chevron -->
         <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
           <path d="M3 4.5L6 7.5L9 4.5"/>
         </svg>
-
       </div>
 
       <div id="strategySection" class="filter-section" style="display:none;">
@@ -83,30 +72,23 @@
           <div class="filter-logic-row">
             <span>Match:</span>
             <div class="logic-toggle-inline">
-              <button class="logic-btn-inline active" onclick="setFilterLogic('strategy','or')">Any</button>
-              <button class="logic-btn-inline" onclick="setFilterLogic('strategy','and')">All</button>
+              <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('strategy','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('strategy','and')">All</button>
             </div>
           </div>
           <div id="strategyFilter" class="filter-buttons-grid"></div>
         </div>
       </div>
-
     </div>
 
-
-      <!-- SETUP -->
+    <!-- SETUP -->
     <div class="filter-column">
-
       <div class="filter-header-item" onclick="toggleFilterSection('setup')">
-
         <span class="filter-title">Setups</span>
-
         <div id="activeFilters-setup" class="filter-chips"></div>
-
         <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
           <path d="M3 4.5L6 7.5L9 4.5"/>
         </svg>
-
       </div>
 
       <div id="setupSection" class="filter-section" style="display:none;">
@@ -114,29 +96,23 @@
           <div class="filter-logic-row">
             <span>Match:</span>
             <div class="logic-toggle-inline">
-              <button class="logic-btn-inline active" onclick="setFilterLogic('setup','or')">Any</button>
-              <button class="logic-btn-inline" onclick="setFilterLogic('setup','and')">All</button>
+              <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('setup','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('setup','and')">All</button>
             </div>
           </div>
           <div id="setupFilter" class="filter-buttons-grid"></div>
         </div>
       </div>
-
     </div>
 
     <!-- EMOTION -->
     <div class="filter-column">
-
       <div class="filter-header-item" onclick="toggleFilterSection('emotion')">
-
         <span class="filter-title">Emotions</span>
-
         <div id="activeFilters-emotion" class="filter-chips"></div>
-
         <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
           <path d="M3 4.5L6 7.5L9 4.5"/>
         </svg>
-
       </div>
 
       <div id="emotionSection" class="filter-section" style="display:none;">
@@ -144,22 +120,20 @@
           <div class="filter-logic-row">
             <span>Match:</span>
             <div class="logic-toggle-inline">
-              <button class="logic-btn-inline active" onclick="setFilterLogic('emotion','or')">Any</button>
-              <button class="logic-btn-inline" onclick="setFilterLogic('emotion','and')">All</button>
+              <button class="logic-btn-inline active" data-logic="or" onclick="setFilterLogic('emotion','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setFilterLogic('emotion','and')">All</button>
             </div>
           </div>
           <div id="emotionFilter" class="filter-buttons-grid"></div>
         </div>
       </div>
-
     </div>
-
   </div>
   <div class="filter-side-placeholder"></div>
 </div>
+
 <!-- Table + Chart column -->
 <div id="tableView" style="display:flex; gap:20px; align-items:flex-start;">
-
   <div style="flex:2;">
     <table id="tradeTable">
       <thead><tr id="headerRow"></tr></thead>
@@ -175,7 +149,7 @@
   </div>
 </div>
 
-<!-- NEW: Chart Grid View -->
+<!-- Chart Grid View -->
 <div id="chartView" style="display:none;">
   <div id="chartGrid" class="chart-grid"></div>
 </div>
@@ -183,69 +157,159 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
 let originalData = [];
-let charts       = {};
-let openRow      = null;
-let STRATEGIES   = [];
-let SETUPS       = [];
-let EMOTIONS     = [];
-let dataReady    = false;
-let setupsByTrade   = {};
-let emotionsByTrade = {};
+let charts = {};
+let openRow = null;
+let STRATEGIES = [];
+let SETUPS = [];
+let EMOTIONS = [];
+let dataReady = false;
+let currentView = "table";
 let currentAccountRequest = 0;
 
-// Filter logic state
-let filterLogic = {
+const filterLogic = {
   strategy: 'or',
   setup: 'or',
   emotion: 'or'
 };
 
-// Active filters
-let activeFilters = {
+const activeFilters = {
   strategy: new Set(),
   setup: new Set(),
   emotion: new Set()
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-const pad        = n  => String(n).padStart(2, "0");
-const formatDate = d  => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatTime = d  => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const formatPnL  = v  => { const n=Number(v)||0; const f=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2}); return n<0?`($${f})`:`$${f}`; };
-const toNum      = v  => Number(v);
-
 const COLUMN_ORDER = ["select","symbol","entryTimestamp","exitTimestamp","duration","side","qty","entryPrice","exitPrice","pnl"];
-const COLUMN_NAMES = { select:"", symbol:"Symbol", entryTimestamp:"Entry Time", exitTimestamp:"Exit Time", duration:"Duration", side:"Side", qty:"Qty", entryPrice:"Entry Price", exitPrice:"Exit Price", pnl:"PnL" };
+const COLUMN_NAMES = { 
+  select:"", 
+  symbol:"Symbol", 
+  entryTimestamp:"Entry Time", 
+  exitTimestamp:"Exit Time", 
+  duration:"Duration", 
+  side:"Side", 
+  qty:"Qty", 
+  entryPrice:"Entry Price", 
+  exitPrice:"Exit Price", 
+  pnl:"PnL" 
+};
 
-function waitForAccount() {
-  return new Promise(resolve => {
+// ══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════════════════
+const pad = n => String(n).padStart(2, "0");
+const toNum = v => Number(v);
+
+const formatDate = d => 
+  `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+const formatTime = d => 
+  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+const formatPnL = v => {
+  const n = Number(v) || 0;
+  const f = Math.abs(n).toLocaleString("en-US", {minimumFractionDigits:2});
+  return n < 0 ? `($${f})` : `$${f}`;
+};
+
+const findById = (array, id) => 
+  array.find(x => toNum(x.id) === toNum(id));
+
+const waitForAccount = () => 
+  new Promise(resolve => {
     if (window.accountSelectorReady) return resolve();
     document.addEventListener("accountReady", resolve, { once: true });
   });
+
+// ══════════════════════════════════════════════════════════════════════════
+// TRADE ENRICHMENT
+// ══════════════════════════════════════════════════════════════════════════
+function enrichTrades(rawTrades, tradeSetups, emotionTrades) {
+  // Build lookup maps
+  const setupsByTrade = {};
+  tradeSetups.forEach(ts => {
+    const tid = toNum(ts.key_trade_id);
+    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
+  });
+
+  const emotionsByTrade = {};
+  emotionTrades.forEach(et => {
+    const tid = toNum(et.trade_id);
+    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
+  });
+
+  // Enrich trades
+  return rawTrades.map(t => ({
+    ...t,
+    id: toNum(t.id),
+    entryTimestamp: new Date(t.entryTimestamp),
+    exitTimestamp: new Date(t.exitTimestamp),
+    setups: setupsByTrade[toNum(t.id)] || [],
+    emotions: emotionsByTrade[toNum(t.id)] || [],
+  }));
 }
 
-// ── Filter Section Toggle ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════
+// FILTER UI
+// ══════════════════════════════════════════════════════════════════════════
+function buildFilterButtons() {
+  // Strategy filters
+  const strategyContainer = document.getElementById("strategyFilter");
+  strategyContainer.innerHTML = "";
+  STRATEGIES.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.strategy_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    btn.onclick = () => toggleFilter('strategy', s.id, btn);
+    strategyContainer.appendChild(btn);
+  });
+
+  // Setup filters
+  const setupContainer = document.getElementById("setupFilter");
+  setupContainer.innerHTML = "";
+  SETUPS.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.setup_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    btn.onclick = () => toggleFilter('setup', s.id, btn);
+    setupContainer.appendChild(btn);
+  });
+
+  // Emotion filters
+  const emotionContainer = document.getElementById("emotionFilter");
+  emotionContainer.innerHTML = "";
+  EMOTIONS.forEach(e => {
+    const btn = document.createElement("button");
+    btn.textContent = e.emotion;
+    btn.dataset.id = e.id;
+    btn.style.background = e.color || "#3a4050";
+    btn.onclick = () => toggleFilter('emotion', e.id, btn);
+    emotionContainer.appendChild(btn);
+  });
+}
+
 function toggleFilterSection(type) {
+  // Close all other sections
   document.querySelectorAll('.filter-section').forEach(s => {
     if (s.id !== `${type}Section`) s.style.display = 'none';
   });
 
   document.querySelectorAll('.filter-header-item').forEach(h => {
-    if (h.dataset.filter !== type) h.classList.remove('open');
+    if (h !== event.currentTarget) h.classList.remove('open');
   });
 
+  // Toggle this section
   const section = document.getElementById(`${type}Section`);
-  const header = document.querySelector(`[data-filter="${type}"]`);
-
   const isOpen = section.style.display !== 'none';
 
   section.style.display = isOpen ? 'none' : 'block';
-  header.classList.toggle('open', !isOpen);
+  event.currentTarget.classList.toggle('open', !isOpen);
 }
 
-// ── Set Filter Logic ───────────────────────────────────────────────────────
 function setFilterLogic(type, logic) {
   filterLogic[type] = logic;
   
@@ -257,49 +321,6 @@ function setFilterLogic(type, logic) {
   applyFiltersAndRender();
 }
 
-function updateHeaderChips() {
-  const setupContainer = document.getElementById("setupHeaderChips");
-  const emotionContainer = document.getElementById("emotionHeaderChips");
-
-  setupContainer.innerHTML = "";
-  emotionContainer.innerHTML = "";
-
-  // SETUPS
-  activeFilters.setup.forEach(id => {
-    const s = SETUPS.find(x => toNum(x.id) === id);
-    if (!s) return;
-
-    const chip = document.createElement("span");
-    chip.className = "header-chip";
-    chip.style.background = s.color;
-    chip.textContent = s.setup_name + " ×";
-    chip.onclick = (e) => {
-      e.stopPropagation();
-      removeActiveFilter("setup", id);
-    };
-
-    setupContainer.appendChild(chip);
-  });
-
-  // EMOTIONS
-  activeFilters.emotion.forEach(id => {
-    const e = EMOTIONS.find(x => toNum(x.id) === id);
-    if (!e) return;
-
-    const chip = document.createElement("span");
-    chip.className = "header-chip";
-    chip.style.background = e.color || "#3a4050";
-    chip.textContent = e.emotion + " ×";
-    chip.onclick = (ev) => {
-      ev.stopPropagation();
-      removeActiveFilter("emotion", id);
-    };
-
-    emotionContainer.appendChild(chip);
-  });
-}
-
-// ── Toggle Filter ──────────────────────────────────────────────────────────
 function toggleFilter(type, id, btn) {
   const numId = toNum(id);
   
@@ -315,58 +336,6 @@ function toggleFilter(type, id, btn) {
   applyFiltersAndRender();
 }
 
-// ── Update Active Filters Display ──────────────────────────────────────────
-function updateActiveFiltersDisplay() {
-
-  ['strategy','setup','emotion'].forEach(type => {
-
-    const container = document.getElementById(`activeFilters-${type}`);
-    const filters = activeFilters[type];
-
-    if (!filters.size) {
-      container.innerHTML = "";
-      return;
-    }
-
-    let html = "";
-
-    filters.forEach(id => {
-      let item, label, color;
-
-      if (type === 'strategy') {
-        item = STRATEGIES.find(x => toNum(x.id) === id);
-        label = item.strategy_name;
-        color = item.color;
-      }
-
-      if (type === 'setup') {
-        item = SETUPS.find(x => toNum(x.id) === id);
-        label = item.setup_name;
-        color = item.color;
-      }
-
-      if (type === 'emotion') {
-        item = EMOTIONS.find(x => toNum(x.id) === id);
-        label = item.emotion;
-        color = item.color || "#3a4050";
-      }
-
-      html += `
-        <span class="filter-chip"
-              style="background:${color}"
-              onclick="removeActiveFilter('${type}', ${id}); event.stopPropagation();">
-          ${label} ×
-        </span>
-      `;
-    });
-
-    container.innerHTML = html;
-
-  });
-  updateHeaderChips();
-}
-
-// ── Remove Active Filter ───────────────────────────────────────────────────
 function removeActiveFilter(type, id) {
   const numId = toNum(id);
   activeFilters[type].delete(numId);
@@ -379,63 +348,135 @@ function removeActiveFilter(type, id) {
   applyFiltersAndRender();
 }
 
-function applyFiltersAndRender() {
-  if (!dataReady) return;
+function updateActiveFiltersDisplay() {
+  ['strategy', 'setup', 'emotion'].forEach(type => {
+    const container = document.getElementById(`activeFilters-${type}`);
+    const filters = activeFilters[type];
 
+    if (!filters.size) {
+      container.innerHTML = "";
+      return;
+    }
+
+    let html = "";
+    filters.forEach(id => {
+      const item = findById(
+        type === 'strategy' ? STRATEGIES : 
+        type === 'setup' ? SETUPS : 
+        EMOTIONS, 
+        id
+      );
+
+      if (!item) return;
+
+      const label = item.strategy_name || item.setup_name || item.emotion;
+      const color = item.color || "#3a4050";
+
+      html += `
+        <span class="filter-chip"
+              style="background:${color}"
+              onclick="removeActiveFilter('${type}', ${id}); event.stopPropagation();">
+          ${label} ×
+        </span>
+      `;
+    });
+
+    container.innerHTML = html;
+  });
+}
+
+function resetFilters() {
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
+  
+  activeFilters.strategy.clear();
+  activeFilters.setup.clear();
+  activeFilters.emotion.clear();
+  
+  document.querySelectorAll(".filter-buttons-grid button").forEach(b => b.classList.remove("active"));
+  
+  filterLogic.strategy = 'or';
+  filterLogic.setup = 'or';
+  filterLogic.emotion = 'or';
+  
+  document.querySelectorAll(".logic-toggle-inline").forEach(group => {
+    group.querySelectorAll(".logic-btn-inline").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.logic === "or");
+    });
+  });
+  
+  document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
+  document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
+  
+  updateActiveFiltersDisplay();
+  window.history.replaceState({}, "", "/journal");
+  applyFiltersAndRender();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FILTERING & RENDERING
+// ══════════════════════════════════════════════════════════════════════════
+function filterByDateRange(data) {
   const fromVal = document.getElementById("dateFrom")?.value;
-  const toVal   = document.getElementById("dateTo")?.value;
-  const fromD   = fromVal ? new Date(fromVal) : null;
-  const toD     = toVal   ? new Date(toVal + "T23:59:59") : null;
+  const toVal = document.getElementById("dateTo")?.value;
+  const fromD = fromVal ? new Date(fromVal) : null;
+  const toD = toVal ? new Date(toVal + "T23:59:59") : null;
 
-  let data = originalData.slice();
-
-  // Date range
   if (fromD) data = data.filter(t => t.entryTimestamp >= fromD);
-  if (toD)   data = data.filter(t => t.entryTimestamp <= toD);
+  if (toD) data = data.filter(t => t.entryTimestamp <= toD);
+  
+  return data;
+}
 
-  // Column text filters
+function filterByColumnText(data) {
   document.querySelectorAll("th input[data-col]").forEach(input => {
     if (!input.value) return;
     const val = input.value.toLowerCase();
     data = data.filter(r => String(r[input.dataset.col] ?? "").toLowerCase().includes(val));
   });
+  return data;
+}
 
-  // Setup filter
-  if (activeFilters.setup.size > 0) {
-    const selectedSetups = Array.from(activeFilters.setup);
-    if (filterLogic.setup === 'and') {
-      data = data.filter(t => selectedSetups.every(id => t.setups.includes(id)));
-    } else {
-      data = data.filter(t => selectedSetups.some(id => t.setups.includes(id)));
-    }
+function filterByCategory(data, type, getTradeValue) {
+  if (!activeFilters[type].size) return data;
+  
+  const activeIds = Array.from(activeFilters[type]);
+  const logic = filterLogic[type];
+  
+  if (logic === 'and') {
+    return data.filter(t => activeIds.every(id => {
+      const value = getTradeValue(t);
+      return Array.isArray(value) ? value.includes(id) : toNum(value) === id;
+    }));
+  } else {
+    return data.filter(t => activeIds.some(id => {
+      const value = getTradeValue(t);
+      return Array.isArray(value) ? value.includes(id) : toNum(value) === id;
+    }));
   }
+}
 
-  // Strategy filter
-  if (activeFilters.strategy.size > 0) {
-    const activeStrategies = Array.from(activeFilters.strategy);
-    if (filterLogic.strategy === 'and') {
-      data = data.filter(t => activeStrategies.every(id => toNum(t.key_strategies_id) === id));
-    } else {
-      data = data.filter(t => activeStrategies.includes(toNum(t.key_strategies_id)));
-    }
-  }
+function applyFiltersAndRender() {
+  if (!dataReady) return;
 
-  // Emotion filter
-  if (activeFilters.emotion.size > 0) {
-    const activeEmotions = Array.from(activeFilters.emotion);
-    if (filterLogic.emotion === 'and') {
-      data = data.filter(t => activeEmotions.every(id => t.emotions.includes(id)));
-    } else {
-      data = data.filter(t => activeEmotions.some(id => t.emotions.includes(id)));
-    }
-  }
+  let data = originalData.slice();
+
+  // Apply all filters
+  data = filterByDateRange(data);
+  data = filterByColumnText(data);
+  data = filterByCategory(data, 'setup', t => t.setups);
+  data = filterByCategory(data, 'strategy', t => toNum(t.key_strategies_id));
+  data = filterByCategory(data, 'emotion', t => t.emotions);
 
   // Account filter
   const acct = accountSelect?.value;
   if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
 
+  // Sort by entry time
   data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
 
+  // Render appropriate view
   if (currentView === "table") {
     buildRows(data);
     updatePnLChart(data);
@@ -445,248 +486,30 @@ function applyFiltersAndRender() {
   }
 }
 
-// ── Read URL params ────────────────────────────────────────────────────────
-function loadFiltersFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const from = params.get("from");
-  const to = params.get("to");
-  
-  if (from) document.getElementById("dateFrom").value = from;
-  if (to) document.getElementById("dateTo").value = to;
-}
-
-loadFiltersFromURL();
-
-// ── Init ───────────────────────────────────────────────────────────────────
-Promise.all([
-  fetch("/api/strategies").then(r => r.json()),
-  fetch("/api/setups").then(r => r.json()),
-  fetch("/api/trade_setups").then(r => r.json()),
-  fetch("/api/emotions").then(r => r.json()).catch(() => []),
-  fetch("/api/emotions_trades").then(r => r.json()).catch(() => []),
-]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
-  await waitForAccount();
-
-  STRATEGIES = strategies;
-  SETUPS     = setups;
-  EMOTIONS   = emotions;
-
-  // Build strategy filter buttons
-  const strategyContainer = document.getElementById("strategyFilter");
-  strategyContainer.innerHTML = "";
-  STRATEGIES.forEach(s => {
-    const btn = document.createElement("button");
-    btn.textContent  = s.strategy_name;
-    btn.dataset.id   = s.id;
-    btn.style.background = s.color;
-    btn.onclick = (e) => toggleFilter('strategy', s.id, btn);
-    strategyContainer.appendChild(btn);
-  });
-
-  // Build setup filter buttons
-  const setupContainer = document.getElementById("setupFilter");
-  setupContainer.innerHTML = "";
-  SETUPS.forEach(s => {
-    const btn = document.createElement("button");
-    btn.textContent  = s.setup_name;
-    btn.dataset.id   = s.id;
-    btn.style.background = s.color;
-    btn.onclick = (e) => toggleFilter('setup', s.id, btn);
-    setupContainer.appendChild(btn);
-  });
-
-  // Build emotion filter buttons
-  const emotionContainer = document.getElementById("emotionFilter");
-  emotionContainer.innerHTML = "";
-  EMOTIONS.forEach(e => {
-    const btn = document.createElement("button");
-    btn.textContent  = e.emotion;
-    btn.dataset.id   = e.id;
-    btn.style.background = e.color || "#3a4050";
-    btn.onclick = (ev) => toggleFilter('emotion', e.id, btn);
-    emotionContainer.appendChild(btn);
-  });
-
-  // Fetch raw trades
-  const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });
-
-  // Build lookup maps
-  setupsByTrade   = {};
-  tradeSetups.forEach(ts => {
-    const tid = toNum(ts.key_trade_id);
-    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
-  });
-
-  emotionsByTrade = {};
-  emotionTrades.forEach(et => {
-    const tid = toNum(et.trade_id);
-    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
-  });
-
-  // Enrich trades
-  originalData = rawTrades.map(t => ({
-    ...t,
-    id:             toNum(t.id),
-    entryTimestamp: new Date(t.entryTimestamp),
-    exitTimestamp:  new Date(t.exitTimestamp),
-    setups:         setupsByTrade[toNum(t.id)]   || [],
-    emotions:       emotionsByTrade[toNum(t.id)] || [],
-  }));
-
-  buildHeaders();
-  dataReady = true;
-  applyFiltersAndRender();
-}).catch(err => {
-  console.error("Journal init failed:", err);
-});
-
-let currentView = "table";
-
-function toggleView() {
-  const checked = document.getElementById("viewSwitch").checked;
-  currentView = checked ? "chart" : "table";
-
-  document.getElementById("tableView").style.display = checked ? "none" : "flex";
-  document.getElementById("chartView").style.display = checked ? "block" : "none";
-  document.querySelector(".journal-controls-right").style.display = checked ? "none" : "flex";
-
-  applyFiltersAndRender();
-}
-
-async function applyFeesToSelected() {
-  const checked = [...document.querySelectorAll(".row-select:checked")];
-  if (!checked.length) { alert("No trades selected."); return; }
-
-  const ids = checked.map(cb => Number(cb.dataset.id));
-  const res = await fetch("/api/trades/apply-fees", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids })
-  });
-
-  if (!res.ok) { alert("Failed to apply fees."); return; }
-
-  const updatedTrades = await res.json();
-  updatedTrades.forEach(updated => {
-    const t = originalData.find(x => x.id === updated.id);
-    if (t) {
-      t.fees = updated.fees;
-      t.pnl  = updated.pnl;
-    }
-  });
-
-  applyFiltersAndRender();
-}
-
-function resetFilters() {
-  document.getElementById("dateFrom").value = "";
-  document.getElementById("dateTo").value   = "";
-  document.querySelectorAll("th input[data-col]").forEach(i => i.value = "");
-  
-  // Clear active filters
-  activeFilters = { strategy: new Set(), setup: new Set(), emotion: new Set() };
-  
-  // Reset button states
-  document.querySelectorAll(".filter-buttons-grid button").forEach(b => b.classList.remove("active"));
-  
-  // Reset logic to OR
-  filterLogic = { strategy: 'or', setup: 'or', emotion: 'or' };
-  document.querySelectorAll(".logic-toggle-inline").forEach(group => {
-    group.querySelectorAll(".logic-btn-inline").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.logic === "or");
-    });
-  });
-  
-  // Close all sections
-  document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
-  document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
-  
-  updateActiveFiltersDisplay();
-  window.history.replaceState({}, "", "/journal");
-  applyFiltersAndRender();
-}
-
-function renderChartGrid(data) {
-  const grid = document.getElementById("chartGrid");
-  if (!grid) return;
-
-  grid.innerHTML = "";
-
-  data.forEach(trade => {
-    const card = document.createElement("div");
-    card.className = "chart-card";
-
-    card.innerHTML = `
-      <div class="chart-card-image"
-           onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})">
-        <div id="chart-${trade.id}" class="chart-img"></div>
-      </div>
-
-      <div class="chart-card-info">
-        <span class="chart-symbol">${trade.symbol}</span>
-        <span class="side-${String(trade.side).toLowerCase()}" style="font-size:11px;font-weight:500;">
-          ${trade.side}
-        </span>
-        <span class="chart-pnl ${Number(trade.pnl) >= 0 ? "pnl-positive" : "pnl-negative"}">
-          ${formatPnL(trade.pnl)}
-        </span>
-      </div>
-    `;
-
-    grid.appendChild(card);
-    showTradeChart(trade, `chart-${trade.id}`);
-  });
-}
-
-function renderJournalStats(data) {
-  const statsEl = document.getElementById("journalStats");
-  if (!statsEl) return;
-  const totalTrades = data.length;
-  const longs    = data.filter(t => String(t.side).toLowerCase() === "long");
-  const shorts   = data.filter(t => String(t.side).toLowerCase() === "short");
-  const longPnL  = longs.reduce((s, t)  => s + (Number(t.pnl) || 0), 0);
-  const shortPnL = shorts.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-  const wins     = data.filter(t => Number(t.pnl) > 0).length;
-  const winRate  = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
-  statsEl.innerHTML = `
-    <div class="stat-block"><span class="stat-block-label">Total trades</span><span class="stat-block-val">${totalTrades}</span></div>
-    <div class="stat-block"><span class="stat-block-label">Longs</span><span class="stat-block-val">${longs.length} — <span class="${longPnL>=0?"positive":"negative"}">${longPnL>=0?"+":""}$${longPnL.toFixed(2)}</span></span></div>
-    <div class="stat-block"><span class="stat-block-label">Shorts</span><span class="stat-block-val">${shorts.length} — <span class="${shortPnL>=0?"positive":"negative"}">${shortPnL>=0?"+":""}$${shortPnL.toFixed(2)}</span></span></div>
-    <div class="stat-block"><span class="stat-block-label">Win rate</span><span class="stat-block-val">${winRate}%</span></div>`;
-}
-
-async function deleteSelected() {
-  const checked = [...document.querySelectorAll(".row-select:checked")];
-  if (!checked.length) { alert("No trades selected."); return; }
-  if (!confirm(`Delete ${checked.length} trade(s)?`)) return;
-  const ids = checked.map(cb => toNum(cb.dataset.id));
-  const res = await fetch("/api/trades", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
-  if (res.ok) {
-    originalData = originalData.filter(t => !ids.includes(t.id));
-    applyFiltersAndRender();
-  } else {
-    alert("Delete failed.");
-  }
-}
-
+// ══════════════════════════════════════════════════════════════════════════
+// TABLE RENDERING
+// ══════════════════════════════════════════════════════════════════════════
 function buildHeaders() {
   const tr = document.getElementById("headerRow");
   tr.innerHTML = "";
+  
   COLUMN_ORDER.forEach(col => {
     const th = document.createElement("th");
+    
     if (col === "select") {
       const cb = document.createElement("input");
-      cb.type    = "checkbox";
+      cb.type = "checkbox";
       cb.onclick = e => document.querySelectorAll(".row-select").forEach(x => x.checked = e.target.checked);
       th.appendChild(cb);
     } else {
       th.textContent = COLUMN_NAMES[col] ?? col;
       const input = document.createElement("input");
-      input.placeholder  = "Filter";
-      input.dataset.col  = col;
-      input.onkeyup      = applyFiltersAndRender;
+      input.placeholder = "Filter";
+      input.dataset.col = col;
+      input.onkeyup = applyFiltersAndRender;
       th.append(document.createElement("br"), input);
     }
+    
     tr.appendChild(th);
   });
 }
@@ -694,16 +517,18 @@ function buildHeaders() {
 function buildRows(data) {
   const tbody = document.querySelector("#tradeTable tbody");
   tbody.innerHTML = "";
+  
   data.forEach(row => {
-    const original = originalData.find(t => t.id === row.id) || row;
     const tr = document.createElement("tr");
     tr.className = "trade-row";
-    tr.onclick   = () => toggleTradeDetails(tr, original);
+    tr.onclick = () => toggleTradeDetails(tr, row);
+    
     COLUMN_ORDER.forEach(col => {
       const td = document.createElement("td");
+      
       if (col === "select") {
         const cb = document.createElement("input");
-        cb.type      = "checkbox";
+        cb.type = "checkbox";
         cb.className = "row-select";
         cb.dataset.id = row.id;
         cb.addEventListener("click", e => e.stopPropagation());
@@ -711,91 +536,116 @@ function buildRows(data) {
       } else if (col === "pnl") {
         const v = Number(row[col]) || 0;
         td.textContent = formatPnL(v);
-        td.className   = v >= 0 ? "pnl-positive" : "pnl-negative";
+        td.className = v >= 0 ? "pnl-positive" : "pnl-negative";
       } else if (col === "side") {
         td.textContent = row[col] ?? "";
-        td.className   = `side-${String(row[col]).toLowerCase()}`;
+        td.className = `side-${String(row[col]).toLowerCase()}`;
       } else if (col.includes("Timestamp")) {
         td.textContent = formatDate(row[col]);
       } else {
         td.textContent = row[col] ?? "";
       }
+      
       tr.appendChild(td);
     });
+    
     tbody.appendChild(tr);
   });
 }
 
-function renderStrategyTag(strategyId) {
-  const sid = toNum(strategyId);
-  if (!sid) return `<span class="strategy-tag muted" data-remove-strategy>None ×</span>`;
-  const s = STRATEGIES.find(x => toNum(x.id) === sid);
-  if (!s) return "";
-  return `<span class="strategy-tag" style="background:${s.color}" data-remove-strategy>${s.strategy_name} ×</span>`;
+// ══════════════════════════════════════════════════════════════════════════
+// TAG RENDERING
+// ══════════════════════════════════════════════════════════════════════════
+function createTag(content, color, onRemove) {
+  const span = document.createElement("span");
+  span.className = onRemove ? "setup-tag" : "setup-tag muted";
+  span.style.background = color;
+  span.textContent = content;
+  
+  if (onRemove) {
+    const removeBtn = document.createElement("span");
+    removeBtn.className = "tag-remove";
+    removeBtn.textContent = "×";
+    removeBtn.onclick = onRemove;
+    span.appendChild(removeBtn);
+  }
+  
+  return span;
 }
 
-function renderSetupTags(trade) {
-  if (!trade.setups?.length) return `<span class="setup-tag muted">No setup</span>`;
-  return trade.setups.map(id => {
-    const s = SETUPS.find(x => toNum(x.id) === toNum(id));
-    if (!s) return "";
-    return `<span class="setup-tag" style="background:${s.color};">${s.setup_name}<span class="tag-remove" onclick="removeSetup(event,${trade.id},${id})">×</span></span>`;
-  }).join("");
+function renderStrategyTag(trade, container) {
+  container.innerHTML = "";
+  
+  const strategyId = toNum(trade.key_strategies_id);
+  if (!strategyId) {
+    container.appendChild(createTag("None", "var(--bg-elevated)", () => {}));
+    return;
+  }
+  
+  const strategy = findById(STRATEGIES, strategyId);
+  if (!strategy) return;
+  
+  container.appendChild(createTag(
+    strategy.strategy_name,
+    strategy.color,
+    (e) => {
+      e.stopPropagation();
+      updateTradeStrategy(trade, null, container);
+    }
+  ));
 }
 
-function renderEmotionTags(trade) {
-  if (!trade.emotions?.length) return `<span class="setup-tag muted">None</span>`;
-  const tags = trade.emotions.map(id => {
-    const e = EMOTIONS.find(x => toNum(x.id) === toNum(id));
-    if (!e) return "";
-    return `<span class="setup-tag" style="background:${e.color || "#3a4050"};">${e.emotion}<span class="tag-remove" onclick="removeEmotion(event,${trade.id},${id})">×</span></span>`;
-  }).join("");
-  return tags || `<span class="setup-tag muted">None</span>`;
-}
-
-function removeSetup(e, tradeId, setupId) {
-  e.stopPropagation();
-  const tid = toNum(tradeId);
-  const sid = toNum(setupId);
-  fetch("/api/trade_setups", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ trade_id: tid, setup_id: sid })
-  }).then(() => {
-    const trade = originalData.find(t => t.id === tid);
-    if (!trade) return;
-    trade.setups = trade.setups.filter(id => toNum(id) !== sid);
-    const container = openRow?.panel?.querySelector(".setup-tag-container");
-    if (container) container.innerHTML = renderSetupTags(trade);
+function renderSetupTags(trade, container) {
+  container.innerHTML = "";
+  
+  if (!trade.setups?.length) {
+    container.appendChild(createTag("No setup", "var(--bg-elevated)", null));
+    return;
+  }
+  
+  trade.setups.forEach(setupId => {
+    const setup = findById(SETUPS, setupId);
+    if (!setup) return;
+    
+    container.appendChild(createTag(
+      setup.setup_name,
+      setup.color,
+      (e) => removeSetup(e, trade, setupId, container)
+    ));
   });
 }
 
-function removeEmotion(e, tradeId, emotionId) {
-  e.stopPropagation();
-  const tid = toNum(tradeId);
-  const eid = toNum(emotionId);
-  fetch("/api/emotions_trades", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ trade_id: tid, emotions_id: eid })
-  }).then(() => {
-    const trade = originalData.find(t => t.id === tid);
-    if (!trade) return;
-    trade.emotions = trade.emotions.filter(id => toNum(id) !== eid);
-    const container = openRow?.panel?.querySelector(".emotion-tag-container");
-    if (container) container.innerHTML = renderEmotionTags(trade);
+function renderEmotionTags(trade, container) {
+  container.innerHTML = "";
+  
+  if (!trade.emotions?.length) {
+    container.appendChild(createTag("None", "var(--bg-elevated)", null));
+    return;
+  }
+  
+  trade.emotions.forEach(emotionId => {
+    const emotion = findById(EMOTIONS, emotionId);
+    if (!emotion) return;
+    
+    container.appendChild(createTag(
+      emotion.emotion,
+      emotion.color || "#3a4050",
+      (e) => removeEmotion(e, trade, emotionId, container)
+    ));
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// TRADE DETAILS PANEL
+// ══════════════════════════════════════════════════════════════════════════
 function toggleTradeDetails(tr, trade) {
-  if (openRow && openRow.tr === tr) { closeDetails(); return; }
+  if (openRow && openRow.tr === tr) {
+    closeDetails();
+    return;
+  }
+  
   closeDetails();
   tr.classList.add("expanded");
-
-  const strategyOptions = [
-    `<option value="">No strategy</option>`,
-    ...STRATEGIES.map(s => `<option value="${s.id}" ${toNum(s.id) === toNum(trade.key_strategies_id) ? "selected" : ""}>${s.strategy_name}</option>`)
-  ].join("");
 
   const detailsTr = document.createElement("tr");
   detailsTr.className = "trade-details-row";
@@ -803,9 +653,9 @@ function toggleTradeDetails(tr, trade) {
   td.colSpan = COLUMN_ORDER.length;
 
   const durSec = Math.round((trade.exitTimestamp - trade.entryTimestamp) / 1000);
-  const durH   = Math.floor(durSec / 3600);
-  const durM   = Math.floor((durSec % 3600) / 60);
-  const durS   = durSec % 60;
+  const durH = Math.floor(durSec / 3600);
+  const durM = Math.floor((durSec % 3600) / 60);
+  const durS = durSec % 60;
 
   td.innerHTML = `
     <div class="trade-details">
@@ -829,21 +679,24 @@ function toggleTradeDetails(tr, trade) {
               <option value="">+ Add emotion</option>
               ${EMOTIONS.map(e => `<option value="${e.id}">${e.emotion}</option>`).join("")}
             </select>
-            <div class="emotion-tag-container">${renderEmotionTags(trade)}</div>
+            <div class="emotion-tag-container"></div>
           </div>
         </div>
 
         <div class="td-col">
           <div class="td-section-label">Strategy</div>
-          <select class="trade-strategy dark-select">${strategyOptions}</select>
-          <div class="strategy-tag-container">${renderStrategyTag(trade.key_strategies_id)}</div>
+          <select class="trade-strategy dark-select">
+            <option value="">No strategy</option>
+            ${STRATEGIES.map(s => `<option value="${s.id}" ${toNum(s.id) === toNum(trade.key_strategies_id) ? "selected" : ""}>${s.strategy_name}</option>`).join("")}
+          </select>
+          <div class="strategy-tag-container"></div>
 
           <div class="td-section-label" style="margin-top:10px;">Setups</div>
           <select class="setup-add dark-select">
             <option value="">+ Add setup</option>
             ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
-          <div class="setup-tag-container">${renderSetupTags(trade)}</div>
+          <div class="setup-tag-container"></div>
         </div>
 
         <div class="td-col td-col-chart">
@@ -856,15 +709,34 @@ function toggleTradeDetails(tr, trade) {
 
   detailsTr.appendChild(td);
   tr.after(detailsTr);
+  
   const panel = td.querySelector(".trade-details");
   panel.offsetHeight;
   requestAnimationFrame(() => panel.classList.add("open"));
+  
   openRow = { tr, detailsTr, panel };
 
-  showTradeChart(trade, `tradeChart-${trade.id}`);
+  // Render tags
+  const strategyContainer = td.querySelector(".strategy-tag-container");
+  const setupContainer = td.querySelector(".setup-tag-container");
+  const emotionContainer = td.querySelector(".emotion-tag-container");
+  
+  renderStrategyTag(trade, strategyContainer);
+  renderSetupTags(trade, setupContainer);
+  renderEmotionTags(trade, emotionContainer);
 
+  // Setup event handlers
+  setupNotesHandler(td, trade);
+  setupStrategyHandler(td, trade, strategyContainer);
+  setupSetupHandler(td, trade, setupContainer);
+  setupEmotionHandler(td, trade, emotionContainer);
+  showTradeChart(trade, `tradeChart-${trade.id}`);
+}
+
+function setupNotesHandler(td, trade) {
   const notesEl = td.querySelector(".trade-notes");
   let notesTimer = null;
+  
   notesEl.addEventListener("input", () => {
     clearTimeout(notesTimer);
     notesTimer = setTimeout(() => {
@@ -876,46 +748,54 @@ function toggleTradeDetails(tr, trade) {
       trade.notes = notesEl.value;
     }, 600);
   });
+}
 
-  const strategySelect    = td.querySelector(".trade-strategy");
-  const strategyContainer = td.querySelector(".strategy-tag-container");
+function setupStrategyHandler(td, trade, container) {
+  const strategySelect = td.querySelector(".trade-strategy");
+  
   strategySelect.addEventListener("change", () => {
     const val = strategySelect.value || null;
-    fetch(`/api/trades/${trade.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key_strategies_id: val })
-    });
-    trade.key_strategies_id = val ? toNum(val) : null;
-    strategyContainer.innerHTML = renderStrategyTag(trade.key_strategies_id);
-    attachStrategyRemoveHandler(trade, strategyContainer);
+    updateTradeStrategy(trade, val, container);
   });
-  attachStrategyRemoveHandler(trade, strategyContainer);
+}
 
-  const setupSelect    = td.querySelector(".setup-add");
-  const setupContainer = td.querySelector(".setup-tag-container");
+function setupSetupHandler(td, trade, container) {
+  const setupSelect = td.querySelector(".setup-add");
+  
   setupSelect.addEventListener("change", async () => {
     const setupId = setupSelect.value;
     if (!setupId) return;
+    
     const sid = toNum(setupId);
-    if (trade.setups.includes(sid)) { setupSelect.value = ""; return; }
+    if (trade.setups.includes(sid)) {
+      setupSelect.value = "";
+      return;
+    }
+    
     await fetch("/api/trade_setups", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key_trade_id: trade.id, key_setup_id: sid })
     });
+    
     trade.setups.push(sid);
-    setupContainer.innerHTML = renderSetupTags(trade);
+    renderSetupTags(trade, container);
     setupSelect.value = "";
   });
+}
 
-  const emotionSelect    = td.querySelector(".emotion-add");
-  const emotionContainer = td.querySelector(".emotion-tag-container");
+function setupEmotionHandler(td, trade, container) {
+  const emotionSelect = td.querySelector(".emotion-add");
+  
   emotionSelect.addEventListener("change", async () => {
     const emotionId = emotionSelect.value;
     if (!emotionId) return;
+    
     const eid = toNum(emotionId);
-    if (trade.emotions.includes(eid)) { emotionSelect.value = ""; return; }
+    if (trade.emotions.includes(eid)) {
+      emotionSelect.value = "";
+      return;
+    }
 
     await fetch("/api/emotions_trades", {
       method: "POST",
@@ -924,55 +804,157 @@ function toggleTradeDetails(tr, trade) {
     });
 
     trade.emotions.push(eid);
-    emotionContainer.innerHTML = renderEmotionTags(trade);
+    renderEmotionTags(trade, container);
     emotionSelect.value = "";
   });
 }
 
-const accountSelect = document.getElementById("accountSelect");
+function closeDetails() {
+  if (!openRow) return;
+  
+  const { tr, detailsTr, panel } = openRow;
+  tr.classList.remove("expanded");
+  panel.classList.remove("open");
+  setTimeout(() => detailsTr.remove(), 250);
+  openRow = null;
+}
 
-if (accountSelect) accountSelect.addEventListener("change", async () => {
-  const accountId = accountSelect.value;
-  if (!accountId) return;
+// ══════════════════════════════════════════════════════════════════════════
+// TRADE UPDATES
+// ══════════════════════════════════════════════════════════════════════════
+async function updateTradeStrategy(trade, strategyId, container) {
+  await fetch(`/api/trades/${trade.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key_strategies_id: strategyId })
+  });
+  
+  trade.key_strategies_id = strategyId ? toNum(strategyId) : null;
+  renderStrategyTag(trade, container);
+}
 
-  const requestId = ++currentAccountRequest;
+async function removeSetup(e, trade, setupId, container) {
+  e.stopPropagation();
+  
+  await fetch("/api/trade_setups", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trade_id: trade.id, setup_id: setupId })
+  });
+  
+  trade.setups = trade.setups.filter(id => toNum(id) !== toNum(setupId));
+  renderSetupTags(trade, container);
+}
 
-  const [rawTrades, tradeSetups, emotionTrades] = await Promise.all([
-    fetchFilteredTrades({ account: accountId }),
-    fetch("/api/trade_setups").then(r => r.json()),
-    fetch("/api/emotions_trades").then(r => r.json())
-  ]);
+async function removeEmotion(e, trade, emotionId, container) {
+  e.stopPropagation();
+  
+  await fetch("/api/emotions_trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trade_id: trade.id, emotions_id: emotionId })
+  });
+  
+  trade.emotions = trade.emotions.filter(id => toNum(id) !== toNum(emotionId));
+  renderEmotionTags(trade, container);
+}
 
-  if (requestId !== currentAccountRequest) return;
+// ══════════════════════════════════════════════════════════════════════════
+// BULK OPERATIONS
+// ══════════════════════════════════════════════════════════════════════════
+async function applyFeesToSelected() {
+  const checked = [...document.querySelectorAll(".row-select:checked")];
+  if (!checked.length) {
+    alert("No trades selected.");
+    return;
+  }
 
-  setupsByTrade = {};
-  tradeSetups.forEach(ts => {
-    const tid = toNum(ts.key_trade_id);
-    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(toNum(ts.key_setup_id));
+  const ids = checked.map(cb => Number(cb.dataset.id));
+  const res = await fetch("/api/trades/apply-fees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
   });
 
-  emotionsByTrade = {};
-  emotionTrades.forEach(et => {
-    const tid = toNum(et.trade_id);
-    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
+  if (!res.ok) {
+    alert("Failed to apply fees.");
+    return;
+  }
+
+  const updatedTrades = await res.json();
+  updatedTrades.forEach(updated => {
+    const t = originalData.find(x => x.id === updated.id);
+    if (t) {
+      t.fees = updated.fees;
+      t.pnl = updated.pnl;
+    }
   });
 
-  originalData = enrichTrades(rawTrades);
   applyFiltersAndRender();
-});
+}
+
+async function deleteSelected() {
+  const checked = [...document.querySelectorAll(".row-select:checked")];
+  if (!checked.length) {
+    alert("No trades selected.");
+    return;
+  }
+  
+  if (!confirm(`Delete ${checked.length} trade(s)?`)) return;
+  
+  const ids = checked.map(cb => toNum(cb.dataset.id));
+  const res = await fetch("/api/trades", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids })
+  });
+  
+  if (res.ok) {
+    originalData = originalData.filter(t => !ids.includes(t.id));
+    applyFiltersAndRender();
+  } else {
+    alert("Delete failed.");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STATS & CHARTS
+// ══════════════════════════════════════════════════════════════════════════
+function renderJournalStats(data) {
+  const statsEl = document.getElementById("journalStats");
+  if (!statsEl) return;
+  
+  const totalTrades = data.length;
+  const longs = data.filter(t => String(t.side).toLowerCase() === "long");
+  const shorts = data.filter(t => String(t.side).toLowerCase() === "short");
+  const longPnL = longs.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const shortPnL = shorts.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const wins = data.filter(t => Number(t.pnl) > 0).length;
+  const winRate = totalTrades ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+  
+  statsEl.innerHTML = `
+    <div class="stat-block"><span class="stat-block-label">Total trades</span><span class="stat-block-val">${totalTrades}</span></div>
+    <div class="stat-block"><span class="stat-block-label">Longs</span><span class="stat-block-val">${longs.length} — <span class="${longPnL>=0?"positive":"negative"}">${longPnL>=0?"+":""}$${longPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Shorts</span><span class="stat-block-val">${shorts.length} — <span class="${shortPnL>=0?"positive":"negative"}">${shortPnL>=0?"+":""}$${shortPnL.toFixed(2)}</span></span></div>
+    <div class="stat-block"><span class="stat-block-label">Win rate</span><span class="stat-block-val">${winRate}%</span></div>`;
+}
 
 function updatePnLChart(data) {
   const ctx = document.getElementById("pnlChart");
   if (!ctx) return;
+  
   if (charts.pnl) charts.pnl.destroy();
+  
   const daily = {};
   data.forEach(t => {
     const d = t.entryTimestamp.toISOString().slice(0, 10);
     daily[d] = (daily[d] || 0) + (Number(t.pnl) || 0);
   });
+  
   const dates = Object.keys(daily).sort();
   let cum = 0;
   const values = dates.map(d => (cum += daily[d], +cum.toFixed(2)));
+  
   charts.pnl = new Chart(ctx, {
     type: "line",
     data: {
@@ -1009,44 +991,59 @@ function updatePnLChart(data) {
   });
 }
 
-function enrichTrades(rawTrades) {
-  return rawTrades.map(t => ({
-    ...t,
-    id: toNum(t.id),
-    entryTimestamp: new Date(t.entryTimestamp),
-    exitTimestamp:  new Date(t.exitTimestamp),
-    setups:   setupsByTrade[toNum(t.id)]   || [],
-    emotions: emotionsByTrade[toNum(t.id)] || [],
-  }));
-}
+function renderChartGrid(data) {
+  const grid = document.getElementById("chartGrid");
+  if (!grid) return;
 
-function attachStrategyRemoveHandler(trade, container) {
-  const tag = container.querySelector("[data-remove-strategy]");
-  if (tag) tag.addEventListener("click", () => {
-    fetch(`/api/trades/${trade.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key_strategies_id: null })
-    });
-    trade.key_strategies_id = null;
-    container.innerHTML = renderStrategyTag(null);
-    attachStrategyRemoveHandler(trade, container);
+  grid.innerHTML = "";
+
+  data.forEach(trade => {
+    const card = document.createElement("div");
+    card.className = "chart-card";
+
+    card.innerHTML = `
+      <div class="chart-card-image"
+           onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})">
+        <div id="chart-${trade.id}" class="chart-img"></div>
+      </div>
+
+      <div class="chart-card-info">
+        <span class="chart-symbol">${trade.symbol}</span>
+        <span class="side-${String(trade.side).toLowerCase()}" style="font-size:11px;font-weight:500;">
+          ${trade.side}
+        </span>
+        <span class="chart-pnl ${Number(trade.pnl) >= 0 ? "pnl-positive" : "pnl-negative"}">
+          ${formatPnL(trade.pnl)}
+        </span>
+      </div>
+    `;
+
+    grid.appendChild(card);
+    showTradeChart(trade, `chart-${trade.id}`);
   });
 }
 
-function closeDetails() {
-  if (!openRow) return;
-  const { tr, detailsTr, panel } = openRow;
-  tr.classList.remove("expanded");
-  panel.classList.remove("open");
-  setTimeout(() => detailsTr.remove(), 250);
-  openRow = null;
+async function showTradeChart(trade, containerId) {
+  const chartEl = document.getElementById(containerId);
+  if (!chartEl) return;
+  
+  chartEl.innerHTML = "";
+  
+  if (trade.chart_image) {
+    chartEl.innerHTML = `<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>`;
+    return;
+  }
+  
+  chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// CHART OVERLAY
+// ══════════════════════════════════════════════════════════════════════════
 function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
   const overlay = document.createElement("div");
   overlay.className = "chart-overlay";
-  overlay.id        = "chartOverlay";
+  overlay.id = "chartOverlay";
   overlay.innerHTML = `
     <div class="chart-overlay-inner">
       <div class="chart-overlay-header">
@@ -1057,9 +1054,11 @@ function openChartOverlay(tradeId, symbol, entryPrice, exitPrice) {
         <div id="chartOverlayContent" style="height:100%;min-height:500px;"></div>
       </div>
     </div>`;
+  
   document.body.appendChild(overlay);
   overlay.addEventListener("click", e => { if (e.target === overlay) closeChartOverlay(); });
   document.addEventListener("keydown", overlayKeyHandler);
+  
   const trade = originalData.find(t => t.id == toNum(tradeId));
   if (trade) showTradeChart(trade, "chartOverlayContent");
 }
@@ -1074,16 +1073,83 @@ function overlayKeyHandler(e) {
   if (e.key === "Escape") closeChartOverlay();
 }
 
-async function showTradeChart(trade, containerId) {
-  const chartEl = document.getElementById(containerId);
-  if (!chartEl) return;
-  chartEl.innerHTML = "";
-  if (trade.chart_image) {
-    chartEl.innerHTML = `<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>`;
-    return;
-  }
-  chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
+// ══════════════════════════════════════════════════════════════════════════
+// VIEW TOGGLE
+// ══════════════════════════════════════════════════════════════════════════
+function toggleView() {
+  const checked = document.getElementById("viewSwitch").checked;
+  currentView = checked ? "chart" : "table";
+
+  document.getElementById("tableView").style.display = checked ? "none" : "flex";
+  document.getElementById("chartView").style.display = checked ? "block" : "none";
+  document.querySelector(".journal-controls-right").style.display = checked ? "none" : "flex";
+
+  applyFiltersAndRender();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// ACCOUNT SELECTION
+// ══════════════════════════════════════════════════════════════════════════
+const accountSelect = document.getElementById("accountSelect");
+
+if (accountSelect) {
+  accountSelect.addEventListener("change", async () => {
+    const accountId = accountSelect.value;
+    if (!accountId) return;
+
+    const requestId = ++currentAccountRequest;
+
+    const [rawTrades, tradeSetups, emotionTrades] = await Promise.all([
+      fetchFilteredTrades({ account: accountId }),
+      fetch("/api/trade_setups").then(r => r.json()),
+      fetch("/api/emotions_trades").then(r => r.json())
+    ]);
+
+    if (requestId !== currentAccountRequest) return;
+
+    originalData = enrichTrades(rawTrades, tradeSetups, emotionTrades);
+    applyFiltersAndRender();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════════════════════════════
+function loadFiltersFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get("from");
+  const to = params.get("to");
+  
+  if (from) document.getElementById("dateFrom").value = from;
+  if (to) document.getElementById("dateTo").value = to;
+}
+
+loadFiltersFromURL();
+
+Promise.all([
+  fetch("/api/strategies").then(r => r.json()),
+  fetch("/api/setups").then(r => r.json()),
+  fetch("/api/trade_setups").then(r => r.json()),
+  fetch("/api/emotions").then(r => r.json()).catch(() => []),
+  fetch("/api/emotions_trades").then(r => r.json()).catch(() => []),
+]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
+  await waitForAccount();
+
+  STRATEGIES = strategies;
+  SETUPS = setups;
+  EMOTIONS = emotions;
+
+  buildFilterButtons();
+
+  const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });
+  originalData = enrichTrades(rawTrades, tradeSetups, emotionTrades);
+
+  buildHeaders();
+  dataReady = true;
+  applyFiltersAndRender();
+}).catch(err => {
+  console.error("Journal init failed:", err);
+});
 </script>
 
 {% endblock %}
