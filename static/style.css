@@ -2216,27 +2216,29 @@ tr.trade-details-row td {
   border-radius: 50%;
 }
 
-input:checked + .slider {
-  background-color: var(--accent-blue);
-  border-color: var(--accent-blue);
+/* 1. Base States (Default: Table Active) */
+.table-icon {
+  opacity: 1;
+  color: var(--text-primary);
 }
 
-input:checked + .slider:before {
-  transform: translateX(20px);
-  background-color: white;
+.chart-icon {
+  opacity: 0.35;
+  color: var(--text-faint);
 }
 
-/* Icon active states */
-.view-toggle .table-icon {
-  color: var(--text-default);
+/* 2. When Checkbox is Checked (Switching to Chart Active) */
+
+/* Dim the Table */
+.view-toggle:has(#viewSwitch:checked) .table-icon {
+  opacity: 0.35;
+  color: var(--text-faint);
 }
 
-input:checked ~ .table-icon {
-  color: var(--text-muted);
-}
-
-input:checked ~ .chart-icon {
-  color: var(--accent-blue);
+/* Brighten the Chart */
+.view-toggle:has(#viewSwitch:checked) .chart-icon {
+  opacity: 1;
+  color: var(--accent-blue); /* Or var(--text-primary) */
 }
 
 .chart-grid {
