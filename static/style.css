@@ -2142,10 +2142,16 @@ tr.trade-details-row td {
   flex-shrink: 0;
 }
 
-.view-toggle .toggle-icon {
+.view-toggle {
   display: flex;
   align-items: center;
-  opacity: 0.3;
+  gap: 10px;
+}
+
+.toggle-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.35;
   color: var(--text-faint);
   transition: all 0.2s ease;
 }
