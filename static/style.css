@@ -2216,6 +2216,16 @@ tr.trade-details-row td {
   border-radius: 50%;
 }
 
+input:checked + .slider {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+  background-color: white;
+}
+
 /* 1. Base States (Default: Table Active) */
 .table-icon {
   opacity: 1;
