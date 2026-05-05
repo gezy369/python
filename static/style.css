@@ -2145,14 +2145,15 @@ tr.trade-details-row td {
 .view-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toggle-icon {
   display: flex;
   align-items: center;
-  color: var(--text-muted);
-  transition: color 0.2s;
+  opacity: 0.35;
+  color: var(--text-faint);
+  transition: all 0.2s ease;
 }
 
 .toggle-icon svg {
@@ -2163,17 +2164,17 @@ tr.trade-details-row td {
 /* DEFAULT → table active */
 .table-icon {
   opacity: 1;
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 /* WHEN SWITCH IS CHECKED → chart active */
 #viewSwitch:checked ~ .chart-icon {
   opacity: 1;
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 #viewSwitch:checked ~ .table-icon {
-  opacity: 0.4;
+  opacity: 0.3;
   color: var(--text-faint);
 }
 
@@ -2561,4 +2562,11 @@ input:checked ~ .chart-icon {
   color: white;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* key */
+  margin-bottom: 10px;
 }
