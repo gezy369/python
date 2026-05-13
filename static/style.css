@@ -2571,14 +2571,11 @@ input:checked + .slider:before {
 .bulk-modal-content{
   width:700px;
   max-width:90vw;
-  /* stronger contrast */
   background:var(--bg-primary);
   border:1px solid rgba(255,255,255,0.08);
-  /* makes it "pop" above dark overlay */
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   border-radius:12px;
   padding:20px;
-  /* improves text clarity */
   backdrop-filter: blur(6px);
 }
 
@@ -2606,7 +2603,7 @@ input:checked + .slider:before {
 .tag-btn {
   border: 1.5px solid transparent;
   padding: 3px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -2627,7 +2624,7 @@ input:checked + .slider:before {
 .bulk-tag-btn {
   border: 1.5px solid transparent;
   padding: 3px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
