@@ -2587,7 +2587,7 @@ input:checked + .slider:before {
 .bulk-modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6);
+  background:rgba(0,0,0,.75);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2597,9 +2597,15 @@ input:checked + .slider:before {
 .bulk-modal-content{
   width:700px;
   max-width:90vw;
+  /* stronger contrast */
   background:var(--bg-primary);
+  border:1px solid rgba(255,255,255,0.08);
+  /* makes it "pop" above dark overlay */
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   border-radius:12px;
   padding:20px;
+  /* improves text clarity */
+  backdrop-filter: blur(6px);
 }
 
 .bulk-modal-header,
