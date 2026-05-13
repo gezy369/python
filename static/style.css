@@ -820,7 +820,7 @@ tr.trade-details-row td {
   gap: 6px;
 }
 
-.filter-buttons button {
+.filter-buttons button, .bulk-tag-btn {
   border: 1.5px solid transparent;
   padding: 3px 10px;
   border-radius: 999px;
@@ -833,9 +833,9 @@ tr.trade-details-row td {
   transition: opacity 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.filter-buttons button:hover { opacity: 0.7; }
+.filter-buttons button:hover, .bulk-tag-btn:hover { opacity: 0.7; }
 
-.filter-buttons button.active {
+.filter-buttons button.active, .bulk-tag-btn.active {
   opacity: 1;
   border-color: #ffffff;
   transform: scale(1.04);
@@ -2627,21 +2627,4 @@ input:checked + .slider:before {
   flex-wrap:wrap;
   gap:8px;
   margin-top:10px;
-}
-
-.bulk-tag-btn{
-  border:none;
-  padding:6px 10px;
-  border-radius:999px;
-  cursor:pointer;
-  opacity:.5;
-}
-
-.bulk-tag-btn.active{
-  opacity:1;
-  outline:2px solid white;
-}
-
-.bulk-tag-btn.remove.active{
-  outline:2px solid #ff6b6b;
 }
