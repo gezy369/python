@@ -820,7 +820,9 @@ tr.trade-details-row td {
   gap: 6px;
 }
 
-.filter-buttons button, .bulk-tag-btn {
+.filter-buttons button,
+.filter-buttons-grid button,
+.bulk-tag-btn {
   border: 1.5px solid transparent;
   padding: 3px 10px;
   border-radius: 999px;
@@ -2472,14 +2474,6 @@ input:checked + .slider:before {
   transform: rotate(180deg);
 }
 
-.filter-section {
-  display: none; /* controlled by JS */
-}
-
-.filter-section {
-  display: none; /* controlled by JS */
-}
-
 .filter-column .filter-section {
   width: 100%;
 }
@@ -2527,25 +2521,6 @@ input:checked + .slider:before {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-/*.filter-buttons-grid button {
-  font-size: 11px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: all 0.15s ease;
-}*/
-
-.filter-buttons-grid button:hover {
-  /*opacity: 1;*/
-}
-
-.filter-buttons-grid button.active {
- /* outline: 2px solid white;
-  opacity: 1;*/
 }
 
 .active-filters {
@@ -2645,4 +2620,33 @@ input:checked + .slider:before {
   opacity: 1;
   border-color: #fff;
   transform: scale(1.02);
+}
+
+.filter-buttons button,
+.filter-buttons-grid button,
+.bulk-tag-btn {
+  border: 1.5px solid transparent;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.75;
+  color: #fff;
+  margin-top: 0;
+  transition: opacity 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.filter-buttons button:hover,
+.filter-buttons-grid button:hover,
+.bulk-tag-btn:hover {
+  opacity: 0.7;
+}
+
+.filter-buttons button.active,
+.filter-buttons-grid button.active,
+.bulk-tag-btn.active {
+  opacity: 1;
+  border-color: #ffffff;
+  transform: scale(1.04);
 }
