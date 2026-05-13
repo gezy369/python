@@ -2627,7 +2627,7 @@ input:checked + .slider:before {
 .bulk-tag-btn {
   border: 1.5px solid transparent;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
