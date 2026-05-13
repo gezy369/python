@@ -2529,7 +2529,7 @@ input:checked + .slider:before {
   gap: 6px;
 }
 
-.filter-buttons-grid button {
+/*.filter-buttons-grid button {
   font-size: 11px;
   padding: 4px 8px;
   border: none;
@@ -2547,7 +2547,7 @@ input:checked + .slider:before {
 .filter-buttons-grid button.active {
   outline: 2px solid white;
   opacity: 1;
-}
+}*/
 
 .active-filters {
   display: flex;
