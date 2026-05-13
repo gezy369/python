@@ -169,15 +169,7 @@
       <!-- STRATEGY -->
       <div class="bulk-section">
         <label>Strategy</label>
-
-        <select id="bulkStrategy" class="dark-select">
-          <option value="">No change</option>
-          <option value="REMOVE">Remove strategy</option>
-
-          ${STRATEGIES.map(s =>
-            `<option value="${s.id}">${s.strategy_name}</option>`
-          ).join("")}
-        </select>
+        <select id="bulkStrategy" class="dark-select"></select>
       </div>
 
       <!-- SETUPS -->
@@ -1009,6 +1001,19 @@ async function removeEmotion(e, trade, emotionId, container) {
 // ══════════════════════════════════════════════════════════════════════════
 // BULK OPERATIONS
 // ══════════════════════════════════════════════════════════════════════════
+function buildBulkStrategyDropdown() {
+  const select = document.getElementById("bulkStrategy");
+  if (!select) return;
+
+  select.innerHTML = `
+    <option value="">No change</option>
+    <option value="REMOVE">Remove strategy</option>
+    ${STRATEGIES.map(s =>
+      `<option value="${s.id}">${s.strategy_name}</option>`
+    ).join("")}
+  `;
+}
+
 function buildBulkTagEditor() {
   const setupAdd = document.getElementById("bulkSetupAdd");
   const setupRemove = document.getElementById("bulkSetupRemove");
@@ -1072,6 +1077,8 @@ function openBulkTagEditor() {
   }
 
   document.getElementById("bulkTagModal").style.display = "flex";
+
+  buildBulkStrategyDropdown(); // ✅ ADD THIS LINE
 
   bulkEditState.addSetups.clear();
   bulkEditState.removeSetups.clear();
