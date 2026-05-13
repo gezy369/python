@@ -154,6 +154,103 @@
   <div id="chartGrid" class="chart-grid"></div>
 </div>
 
+<!-- BULK TAG MODAL -->
+<div id="bulkTagModal" class="bulk-modal" style="display:none;">
+  <div class="bulk-modal-content">
+
+    <div class="bulk-modal-header">
+      <h3>Bulk Edit Tags</h3>
+      <button onclick="closeBulkTagEditor()">✕</button>
+    </div>
+
+    <div class="bulk-modal-body">
+
+      <!-- STRATEGY -->
+      <div class="bulk-section">
+        <label>Strategy</label>
+
+        <select id="bulkStrategy" class="dark-select">
+          <option value="">No change</option>
+          <option value="REMOVE">Remove strategy</option>
+
+          ${STRATEGIES.map(s =>
+            `<option value="${s.id}">${s.strategy_name}</option>`
+          ).join("")}
+        </select>
+      </div>
+
+      <!-- SETUPS -->
+      <div class="bulk-section">
+        <label>Add setups</label>
+
+        <div class="bulk-tag-grid">
+          ${SETUPS.map(s => `
+            <button
+              class="bulk-tag-btn"
+              data-type="setup-add"
+              data-id="${s.id}"
+              style="background:${s.color}">
+              ${s.setup_name}
+            </button>
+          `).join("")}
+        </div>
+
+        <label style="margin-top:12px;">Remove setups</label>
+
+        <div class="bulk-tag-grid">
+          ${SETUPS.map(s => `
+            <button
+              class="bulk-tag-btn remove"
+              data-type="setup-remove"
+              data-id="${s.id}"
+              style="background:${s.color}">
+              ${s.setup_name}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- EMOTIONS -->
+      <div class="bulk-section">
+        <label>Add emotions</label>
+
+        <div class="bulk-tag-grid">
+          ${EMOTIONS.map(e => `
+            <button
+              class="bulk-tag-btn"
+              data-type="emotion-add"
+              data-id="${e.id}"
+              style="background:${e.color || '#3a4050'}">
+              ${e.emotion}
+            </button>
+          `).join("")}
+        </div>
+
+        <label style="margin-top:12px;">Remove emotions</label>
+
+        <div class="bulk-tag-grid">
+          ${EMOTIONS.map(e => `
+            <button
+              class="bulk-tag-btn remove"
+              data-type="emotion-remove"
+              data-id="${e.id}"
+              style="background:${e.color || '#3a4050'}">
+              ${e.emotion}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bulk-modal-footer">
+      <button onclick="closeBulkTagEditor()">Cancel</button>
+      <button onclick="applyBulkTagEdit()">Apply changes</button>
+    </div>
+
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
@@ -862,6 +959,146 @@ async function removeEmotion(e, trade, emotionId, container) {
 // ══════════════════════════════════════════════════════════════════════════
 // BULK OPERATIONS
 // ══════════════════════════════════════════════════════════════════════════
+const bulkEditState = {
+  addSetups: new Set(),
+  removeSetups: new Set(),
+  addEmotions: new Set(),
+  removeEmotions: new Set()
+};
+
+function getSelectedTradeIds() {
+  return [...document.querySelectorAll(".row-select:checked")]
+    .map(cb => Number(cb.dataset.id));
+}
+
+function openBulkTagEditor() {
+  const ids = getSelectedTradeIds();
+
+  if (!ids.length) {
+    alert("No trades selected.");
+    return;
+  }
+
+  document.getElementById("bulkTagModal").style.display = "flex";
+
+  // reset
+  bulkEditState.addSetups.clear();
+  bulkEditState.removeSetups.clear();
+  bulkEditState.addEmotions.clear();
+  bulkEditState.removeEmotions.clear();
+
+  document.querySelectorAll(".bulk-tag-btn")
+    .forEach(btn => btn.classList.remove("active"));
+}
+
+function closeBulkTagEditor() {
+  document.getElementById("bulkTagModal").style.display = "none";
+}
+
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".bulk-tag-btn");
+  if (!btn) return;
+
+  btn.classList.toggle("active");
+
+  const type = btn.dataset.type;
+  const id = Number(btn.dataset.id);
+
+  const map = {
+    "setup-add": bulkEditState.addSetups,
+    "setup-remove": bulkEditState.removeSetups,
+    "emotion-add": bulkEditState.addEmotions,
+    "emotion-remove": bulkEditState.removeEmotions
+  };
+
+  const set = map[type];
+
+  if (btn.classList.contains("active")) {
+    set.add(id);
+  } else {
+    set.delete(id);
+  }
+});
+
+async function applyBulkTagEdit() {
+  const ids = getSelectedTradeIds();
+
+  if (!ids.length) return;
+
+  const strategyValue =
+    document.getElementById("bulkStrategy").value;
+
+  // STRATEGY
+  if (strategyValue) {
+    await fetch("/api/trades/bulk-strategy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ids,
+        strategy_id:
+          strategyValue === "REMOVE"
+            ? null
+            : Number(strategyValue)
+      })
+    });
+
+    originalData.forEach(t => {
+      if (!ids.includes(t.id)) return;
+
+      t.key_strategies_id =
+        strategyValue === "REMOVE"
+          ? null
+          : Number(strategyValue);
+    });
+  }
+
+  // SETUPS
+  await fetch("/api/trades/bulk-setups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ids,
+      add: [...bulkEditState.addSetups],
+      remove: [...bulkEditState.removeSetups]
+    })
+  });
+
+  // EMOTIONS
+  await fetch("/api/trades/bulk-emotions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ids,
+      add: [...bulkEditState.addEmotions],
+      remove: [...bulkEditState.removeEmotions]
+    })
+  });
+
+  // update local state
+  originalData.forEach(t => {
+    if (!ids.includes(t.id)) return;
+
+    bulkEditState.addSetups.forEach(id => {
+      if (!t.setups.includes(id)) t.setups.push(id);
+    });
+
+    t.setups = t.setups.filter(
+      id => !bulkEditState.removeSetups.has(id)
+    );
+
+    bulkEditState.addEmotions.forEach(id => {
+      if (!t.emotions.includes(id)) t.emotions.push(id);
+    });
+
+    t.emotions = t.emotions.filter(
+      id => !bulkEditState.removeEmotions.has(id)
+    );
+  });
+
+  closeBulkTagEditor();
+  applyFiltersAndRender();
+}
+
 async function applyFeesToSelected() {
   const checked = [...document.querySelectorAll(".row-select:checked")];
   if (!checked.length) {

@@ -636,6 +636,21 @@ def delete_strategy(id):
     supabase_admin.table("strategies").delete().eq("id", id).execute()
     return {"ok": True}
 
+@app.post("/api/trades/bulk-strategy")
+@login_required
+def bulk_strategy():
+    data = request.json
+
+    ids = data.get("ids", [])
+    strategy_id = data.get("strategy_id")
+
+    supabase_admin.table("trades") \
+        .update({"key_strategies_id": strategy_id}) \
+        .in_("id", ids) \
+        .execute()
+
+    return {"ok": True}
+
 # ===== SETUPS =====
 
 @app.get("/api/setups")
@@ -677,6 +692,38 @@ def delete_setup(id):
         .eq("id", id) \
         .eq("user_id", session["user"]["id"]) \
         .execute()
+    return {"ok": True}
+
+@app.post("/api/trades/bulk-setups")
+@login_required
+def bulk_setups():
+    data = request.json
+
+    ids = data.get("ids", [])
+    add = data.get("add", [])
+    remove = data.get("remove", [])
+
+    inserts = []
+
+    for trade_id in ids:
+        for setup_id in add:
+            inserts.append({
+                "key_trade_id": trade_id,
+                "key_setup_id": setup_id
+            })
+
+    if inserts:
+        supabase_admin.table("trade_setup") \
+            .upsert(inserts) \
+            .execute()
+
+    for setup_id in remove:
+        supabase_admin.table("trade_setup") \
+            .delete() \
+            .in_("key_trade_id", ids) \
+            .eq("key_setup_id", setup_id) \
+            .execute()
+
     return {"ok": True}
 
 # ===== TRADE SETUPS (junction) =====
@@ -785,7 +832,40 @@ def delete_emotion(id):
         print(f"Supabase DELETE /api/emotions/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.post("/api/trades/bulk-emotions")
+@login_required
+def bulk_emotions():
+    data = request.json
+
+    ids = data.get("ids", [])
+    add = data.get("add", [])
+    remove = data.get("remove", [])
+
+    inserts = []
+
+    for trade_id in ids:
+        for emotion_id in add:
+            inserts.append({
+                "trade_id": trade_id,
+                "emotions_id": emotion_id
+            })
+
+    if inserts:
+        supabase_admin.table("emotions_trades") \
+            .upsert(inserts) \
+            .execute()
+
+    for emotion_id in remove:
+        supabase_admin.table("emotions_trades") \
+            .delete() \
+            .in_("trade_id", ids) \
+            .eq("emotions_id", emotion_id) \
+            .execute()
+
+    return {"ok": True}
+
 # ===== EMOTIONS TRADES (junction) =====
+
 @app.post("/api/emotions_trades")
 @login_required
 def add_emotion_trade():
