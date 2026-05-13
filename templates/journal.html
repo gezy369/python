@@ -971,7 +971,7 @@ function buildBulkTagEditor() {
   const emotionRemove = document.getElementById("bulkEmotionRemove");
 
   setupAdd.innerHTML = SETUPS.map(s => `
-    <button class="bulk-tag-btn"
+    <button class="tag-btn bulk-tag-btn"
       data-type="setup-add"
       data-id="${s.id}"
       style="background:${s.color}">
@@ -980,7 +980,7 @@ function buildBulkTagEditor() {
   `).join("");
 
   setupRemove.innerHTML = SETUPS.map(s => `
-    <button class="bulk-tag-btn remove"
+    <button class="tag-btn bulk-tag-btn remove"
       data-type="setup-remove"
       data-id="${s.id}"
       style="background:${s.color}">
@@ -989,7 +989,7 @@ function buildBulkTagEditor() {
   `).join("");
 
   emotionAdd.innerHTML = EMOTIONS.map(e => `
-    <button class="bulk-tag-btn"
+    <button class="tag-btn bulk-tag-btn"
       data-type="emotion-add"
       data-id="${e.id}"
       style="background:${e.color || '#3a4050'}">

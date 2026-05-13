@@ -2529,15 +2529,15 @@ input:checked + .slider:before {
   gap: 6px;
 }
 
-.filter-buttons-grid button {
+/*.filter-buttons-grid button {
   font-size: 11px;
   padding: 4px 8px;
-  /*border: none;*/
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  /*opacity: 0.7;*/
+  opacity: 0.7;
   transition: all 0.15s ease;
-}
+}*/
 
 .filter-buttons-grid button:hover {
   /*opacity: 1;*/
@@ -2626,4 +2626,23 @@ input:checked + .slider:before {
   flex-wrap:wrap;
   gap:8px;
   margin-top:10px;
+}
+
+.tag-btn {
+  border: 1.5px solid transparent;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.75;
+  color: #fff;
+  margin-top: 0;
+  transition: opacity 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.tag-btn.active {
+  opacity: 1;
+  border-color: #fff;
+  transform: scale(1.02);
 }
