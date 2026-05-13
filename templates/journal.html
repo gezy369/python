@@ -755,55 +755,104 @@ function toggleTradeDetails(tr, trade) {
   const durM = Math.floor((durSec % 3600) / 60);
   const durS = durSec % 60;
 
-  td.innerHTML = `
-    <div class="trade-details">
-      <div class="td-grid">
-        <div class="td-col">
-          <div class="td-section-label">Trade details</div>
-          <div class="td-info-grid">
-            <span class="td-label">Entry</span>    <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
-            <span class="td-label">Exit</span>     <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
-            <span class="td-label">Duration</span> <span class="td-val">${pad(durH)}:${pad(durM)}:${pad(durS)}</span>
-            <span class="td-label">Fees</span>     <span class="td-val">${formatPnL(trade.fees ?? 0)}</span>
-            <span class="td-label">PnL</span>      <span class="td-val ${Number(trade.pnl)>=0?"pnl-positive":"pnl-negative"}">${formatPnL(trade.pnl)}</span>
-          </div>
-          <div style="margin-top:10px;">
-            <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
-            <textarea class="trade-notes dark-textarea" rows="4" placeholder="Add trade notes...">${trade.notes ?? ""}</textarea>
-          </div>
-          <div style="margin-top:10px;">
-            <div class="td-section-label" style="margin-bottom:5px;">Emotions</div>
-            <select class="emotion-add dark-select">
-              <option value="">+ Add emotion</option>
-              ${EMOTIONS.map(e => `<option value="${e.id}">${e.emotion}</option>`).join("")}
-            </select>
-            <div class="emotion-tag-container"></div>
-          </div>
+td.innerHTML = `
+  <div class="trade-details">
+    <div class="td-grid">
+
+      <!-- LEFT COLUMN -->
+      <div class="td-col">
+        <div class="td-section-label">Trade details</div>
+
+        <div class="td-info-grid">
+          <span class="td-label">Entry</span>
+          <span class="td-val">${formatTime(trade.entryTimestamp)}</span>
+
+          <span class="td-label">Exit</span>
+          <span class="td-val">${formatTime(trade.exitTimestamp)}</span>
+
+          <span class="td-label">Duration</span>
+          <span class="td-val">${pad(durH)}:${pad(durM)}:${pad(durS)}</span>
+
+          <span class="td-label">Fees</span>
+          <span class="td-val">${formatPnL(trade.fees ?? 0)}</span>
+
+          <span class="td-label">PnL</span>
+          <span class="td-val ${Number(trade.pnl) >= 0 ? "pnl-positive" : "pnl-negative"}">
+            ${formatPnL(trade.pnl)}
+          </span>
         </div>
 
-        <div class="td-col">
-          <div class="td-section-label">Strategy</div>
-          <select class="trade-strategy dark-select">
-            <option value="">No strategy</option>
-            ${STRATEGIES.map(s => `<option value="${s.id}" ${toNum(s.id) === toNum(trade.key_strategies_id) ? "selected" : ""}>${s.strategy_name}</option>`).join("")}
-          </select>
-          <div class="strategy-tag-container"></div>
-
-          <div class="td-section-label" style="margin-top:10px;">Setups</div>
-          <select class="setup-add dark-select">
-            <option value="">+ Add setup</option>
-            ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join("")}
-          </select>
-          <div class="setup-tag-container"></div>
+        <div style="margin-top:10px;">
+          <div class="td-section-label" style="margin-bottom:5px;">Notes</div>
+          <textarea class="trade-notes dark-textarea" rows="4"
+            placeholder="Add trade notes...">${trade.notes ?? ""}</textarea>
         </div>
 
-        <div class="td-col td-col-chart">
-          <div class="td-section-label">Chart <span style="font-size:9px;color:var(--text-faint);font-weight:400;letter-spacing:0;text-transform:none;margin-left:4px;">click to expand</span></div>
-          <div id="tradeChart-${trade.id}" class="chart-clickable" style="height:340px;"
-               onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})"></div>
+        <div style="margin-top:10px;">
+          <div class="td-section-label" style="margin-bottom:5px;">Emotions</div>
+
+          <select class="emotion-add dark-select">
+            <option value="">+ Add emotion</option>
+            ${EMOTIONS.map(e => `
+              <option value="${e.id}">${e.emotion}</option>
+            `).join("")}
+          </select>
+
+          <div class="emotion-tag-container"></div>
         </div>
       </div>
-    </div>`;
+
+      <!-- MIDDLE COLUMN -->
+      <div class="td-col">
+
+        <div class="td-section-label">Strategy</div>
+
+        <select class="trade-strategy dark-select">
+          <option value="">No strategy</option>
+          ${STRATEGIES.map(s => `
+            <option value="${s.id}"
+              ${toNum(s.id) === toNum(trade.key_strategies_id) ? "selected" : ""}>
+              ${s.strategy_name}
+            </option>
+          `).join("")}
+        </select>
+
+        <div class="strategy-tag-container"></div>
+
+        <div class="td-section-label" style="margin-top:10px;">Setups</div>
+
+        <select class="setup-add dark-select">
+          <option value="">+ Add setup</option>
+          ${SETUPS.map(s => `
+            <option value="${s.id}">${s.setup_name}</option>
+          `).join("")}
+        </select>
+
+        <div class="setup-tag-container"></div>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="td-col td-col-chart">
+
+        <div class="td-section-label">
+          Chart
+          <span style="font-size:9px;color:var(--text-faint);font-weight:400;letter-spacing:0;text-transform:none;margin-left:4px;">
+            click to expand
+          </span>
+        </div>
+
+        <div id="tradeChart-${trade.id}"
+             class="chart-clickable"
+             style="height:340px;"
+             onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})">
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+`;
 
   detailsTr.appendChild(td);
   tr.after(detailsTr);
@@ -960,6 +1009,49 @@ async function removeEmotion(e, trade, emotionId, container) {
 // ══════════════════════════════════════════════════════════════════════════
 // BULK OPERATIONS
 // ══════════════════════════════════════════════════════════════════════════
+function buildBulkTagEditor() {
+  const setupAdd = document.getElementById("bulkSetupAdd");
+  const setupRemove = document.getElementById("bulkSetupRemove");
+  const emotionAdd = document.getElementById("bulkEmotionAdd");
+  const emotionRemove = document.getElementById("bulkEmotionRemove");
+
+  setupAdd.innerHTML = SETUPS.map(s => `
+    <button class="bulk-tag-btn"
+      data-type="setup-add"
+      data-id="${s.id}"
+      style="background:${s.color}">
+      ${s.setup_name}
+    </button>
+  `).join("");
+
+  setupRemove.innerHTML = SETUPS.map(s => `
+    <button class="bulk-tag-btn remove"
+      data-type="setup-remove"
+      data-id="${s.id}"
+      style="background:${s.color}">
+      ${s.setup_name}
+    </button>
+  `).join("");
+
+  emotionAdd.innerHTML = EMOTIONS.map(e => `
+    <button class="bulk-tag-btn"
+      data-type="emotion-add"
+      data-id="${e.id}"
+      style="background:${e.color || '#3a4050'}">
+      ${e.emotion}
+    </button>
+  `).join("");
+
+  emotionRemove.innerHTML = EMOTIONS.map(e => `
+    <button class="bulk-tag-btn remove"
+      data-type="emotion-remove"
+      data-id="${e.id}"
+      style="background:${e.color || '#3a4050'}">
+      ${e.emotion}
+    </button>
+  `).join("");
+}
+
 const bulkEditState = {
   addSetups: new Set(),
   removeSetups: new Set(),
@@ -974,7 +1066,6 @@ function getSelectedTradeIds() {
 
 function openBulkTagEditor() {
   const ids = getSelectedTradeIds();
-
   if (!ids.length) {
     alert("No trades selected.");
     return;
@@ -982,7 +1073,6 @@ function openBulkTagEditor() {
 
   document.getElementById("bulkTagModal").style.display = "flex";
 
-  // reset
   bulkEditState.addSetups.clear();
   bulkEditState.removeSetups.clear();
   bulkEditState.addEmotions.clear();
@@ -990,6 +1080,8 @@ function openBulkTagEditor() {
 
   document.querySelectorAll(".bulk-tag-btn")
     .forEach(btn => btn.classList.remove("active"));
+
+  buildBulkTagEditor();
 }
 
 function closeBulkTagEditor() {
