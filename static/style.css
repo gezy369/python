@@ -2529,25 +2529,24 @@ input:checked + .slider:before {
   gap: 6px;
 }
 
-/*.filter-buttons-grid button {
+.filter-buttons-grid button {
   font-size: 11px;
   padding: 4px 8px;
-  border: none;
+  /*border: none;*/
   border-radius: 4px;
   cursor: pointer;
-
-  opacity: 0.7;
+  /*opacity: 0.7;*/
   transition: all 0.15s ease;
 }
 
 .filter-buttons-grid button:hover {
-  opacity: 1;
+  /*opacity: 1;*/
 }
 
 .filter-buttons-grid button.active {
-  outline: 2px solid white;
-  opacity: 1;
-}*/
+ /* outline: 2px solid white;
+  opacity: 1;*/
+}
 
 .active-filters {
   display: flex;
