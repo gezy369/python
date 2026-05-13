@@ -175,63 +175,13 @@
       <!-- SETUPS -->
       <div class="bulk-section">
         <label>Add setups</label>
-
-        <div class="bulk-tag-grid">
-          ${SETUPS.map(s => `
-            <button
-              class="bulk-tag-btn"
-              data-type="setup-add"
-              data-id="${s.id}"
-              style="background:${s.color}">
-              ${s.setup_name}
-            </button>
-          `).join("")}
-        </div>
-
-        <label style="margin-top:12px;">Remove setups</label>
-
-        <div class="bulk-tag-grid">
-          ${SETUPS.map(s => `
-            <button
-              class="bulk-tag-btn remove"
-              data-type="setup-remove"
-              data-id="${s.id}"
-              style="background:${s.color}">
-              ${s.setup_name}
-            </button>
-          `).join("")}
-        </div>
+        <div id="bulkSetupAdd" class="bulk-tag-grid"></div>
       </div>
 
       <!-- EMOTIONS -->
       <div class="bulk-section">
         <label>Add emotions</label>
-
-        <div class="bulk-tag-grid">
-          ${EMOTIONS.map(e => `
-            <button
-              class="bulk-tag-btn"
-              data-type="emotion-add"
-              data-id="${e.id}"
-              style="background:${e.color || '#3a4050'}">
-              ${e.emotion}
-            </button>
-          `).join("")}
-        </div>
-
-        <label style="margin-top:12px;">Remove emotions</label>
-
-        <div class="bulk-tag-grid">
-          ${EMOTIONS.map(e => `
-            <button
-              class="bulk-tag-btn remove"
-              data-type="emotion-remove"
-              data-id="${e.id}"
-              style="background:${e.color || '#3a4050'}">
-              ${e.emotion}
-            </button>
-          `).join("")}
-        </div>
+        <div id="bulkEmotionAdd" class="bulk-tag-grid"></div>
       </div>
 
     </div>
@@ -1078,7 +1028,7 @@ function openBulkTagEditor() {
 
   document.getElementById("bulkTagModal").style.display = "flex";
 
-  buildBulkStrategyDropdown(); // ✅ ADD THIS LINE
+  
 
   bulkEditState.addSetups.clear();
   bulkEditState.removeSetups.clear();
@@ -1089,6 +1039,7 @@ function openBulkTagEditor() {
     .forEach(btn => btn.classList.remove("active"));
 
   buildBulkTagEditor();
+  buildBulkStrategyDropdown();
 }
 
 function closeBulkTagEditor() {
