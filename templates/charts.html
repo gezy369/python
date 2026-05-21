@@ -1,3 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Charts{% endblock %}
+
+{% block content %}
+
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+
+<h2>Charts</h2>
+
+<div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+  <label>Symbol:
+    <input type="text" id="symbolInput" value="MNQ" style="width: 80px; text-transform: uppercase;">
+  </label>
+  <button onclick="loadChart()">Load</button>
+  <span id="chartStatus" style="color:#888;font-size:0.85rem;"></span>
+</div>
+
+<!-- Chart wrapper -->
+<div style="position: relative;">
+
+  <!-- Legend -->
+  <div id="chartLegend"
+       style="
+         position:absolute;
+         top:10px;
+         left:10px;
+         z-index:10;
+         background:rgba(255,255,255,0.85);
+         padding:6px 10px;
+         border-radius:6px;
+         font-size:12px;
+         font-family:sans-serif;
+         color:#333;
+         border:1px solid #eee;
+         line-height:1.6;
+       ">
+    <div><span style="color:magenta;font-weight:bold;">●</span> VWAP</div>
+    <div><span style="color:#2962FF;font-weight:bold;">●</span> EMA 21</div>
+  </div>
+
+  <div id="mainChart" style="height:500px;border:1px solid #ddd;border-radius:6px;"></div>
+</div>
+
 <script>
 let chartInstance = null;
 
@@ -7,30 +51,28 @@ function calculateVWAP(candles) {
   let cumulativeVolume = 0;
   let currentSession = null;
 
-  return candles
-    .map(c => {
-      const session = new Date(c.time * 1000).toISOString().slice(0, 10);
+  return candles.map(c => {
+    const session = new Date(c.time * 1000).toISOString().slice(0, 10);
 
-      if (session !== currentSession) {
-        currentSession = session;
-        cumulativeTPV = 0;
-        cumulativeVolume = 0;
-      }
+    if (session !== currentSession) {
+      currentSession = session;
+      cumulativeTPV = 0;
+      cumulativeVolume = 0;
+    }
 
-      const volume = Number(c.volume ?? 0);
-      if (volume <= 0) return null;
+    const volume = Number(c.volume ?? 0);
+    if (!volume || volume <= 0) return null;
 
-      const tp = (c.high + c.low + c.close) / 3;
+    const tp = (c.high + c.low + c.close) / 3;
 
-      cumulativeTPV += tp * volume;
-      cumulativeVolume += volume;
+    cumulativeTPV += tp * volume;
+    cumulativeVolume += volume;
 
-      return {
-        time: c.time,
-        value: cumulativeTPV / cumulativeVolume
-      };
-    })
-    .filter(Boolean);
+    return {
+      time: c.time,
+      value: cumulativeTPV / cumulativeVolume
+    };
+  }).filter(Boolean);
 }
 
 /* ---------------- EMA 21 ---------------- */
@@ -60,9 +102,15 @@ function calculateEMA(candles, period = 21) {
 
 /* ---------------- MAIN ---------------- */
 async function loadChart() {
-  const symbol = document.getElementById("symbolInput").value.trim().toUpperCase() || "MNQ";
-  const status = document.getElementById("chartStatus");
   const chartEl = document.getElementById("mainChart");
+  const status = document.getElementById("chartStatus");
+
+  if (!chartEl) return;
+
+  if (typeof LightweightCharts === "undefined") {
+    chartEl.innerHTML = "Chart library failed to load.";
+    return;
+  }
 
   status.textContent = "Loading...";
   chartEl.innerHTML = "";
@@ -72,51 +120,59 @@ async function loadChart() {
     chartInstance = null;
   }
 
-  chartInstance = LightweightCharts.createChart(chartEl, {
-    height: 500,
-    layout: { background: { color: "#ffffff" }, textColor: "#333" },
-    timeScale: {
-      timeVisible: true,
-      secondsVisible: false,
-    },
-  });
-
-  const candleSeries = chartInstance.addCandlestickSeries();
-
   try {
+    const symbol = document.getElementById("symbolInput").value.trim().toUpperCase() || "MNQ";
+
     const res = await fetch(`/api/yahoo/${symbol}?interval=5m&range=1d`);
     const json = await res.json();
 
-    if (json.error) throw new Error(json.error);
+    if (!json?.chart?.result?.length) {
+      throw new Error("Invalid API response");
+    }
 
     const result = json.chart.result[0];
-    const timestamps = result.timestamp;
+    const timestamps = result.timestamp || [];
+    const quote = result.indicators?.quote?.[0];
 
-    const quote = result.indicators.quote[0];
+    if (!quote) throw new Error("Missing quote data");
+
     const volume = quote.volume || [];
 
     const candles = timestamps
       .map((t, i) => ({
         time: t,
-        open: quote.open[i],
-        high: quote.high[i],
-        low: quote.low[i],
-        close: quote.close[i],
+        open: quote.open?.[i],
+        high: quote.high?.[i],
+        low: quote.low?.[i],
+        close: quote.close?.[i],
         volume: volume[i] ?? 0,
       }))
       .filter(c =>
-        c.open != null &&
-        c.high != null &&
-        c.low != null &&
-        c.close != null
+        Number.isFinite(c.open) &&
+        Number.isFinite(c.high) &&
+        Number.isFinite(c.low) &&
+        Number.isFinite(c.close)
       );
 
-    if (!candles.length) throw new Error("No data returned");
+    if (candles.length < 5) {
+      throw new Error("Not enough data");
+    }
 
-    /* Candles */
+    chartInstance = LightweightCharts.createChart(chartEl, {
+      height: 500,
+      layout: {
+        background: { color: "#ffffff" },
+        textColor: "#333"
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    });
+
+    const candleSeries = chartInstance.addCandlestickSeries();
     candleSeries.setData(candles);
 
-    /* VWAP (magenta) */
     const vwapSeries = chartInstance.addLineSeries({
       color: "magenta",
       lineWidth: 2,
@@ -126,7 +182,6 @@ async function loadChart() {
 
     vwapSeries.setData(calculateVWAP(candles));
 
-    /* EMA 21 (blue) */
     const emaSeries = chartInstance.addLineSeries({
       color: "#2962FF",
       lineWidth: 2,
@@ -137,12 +192,13 @@ async function loadChart() {
     emaSeries.setData(calculateEMA(candles, 21));
 
     chartInstance.timeScale().fitContent();
-    status.textContent = `${symbol}=F · 5m · last 24h`;
+
+    status.textContent = `${symbol} · 5m · 1D`;
 
   } catch (err) {
     console.error(err);
     status.textContent = `⚠ ${err.message}`;
-    chartEl.innerHTML = `<p style="color:red; padding:16px;">Chart unavailable for ${symbol}</p>`;
+    chartEl.innerHTML = `<div style="color:red;padding:10px;">Chart error: ${err.message}</div>`;
   }
 }
 
@@ -154,3 +210,5 @@ document.getElementById("symbolInput").addEventListener("input", e => {
 /* ---------------- INIT ---------------- */
 loadChart();
 </script>
+
+{% endblock %}
