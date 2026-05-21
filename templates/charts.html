@@ -51,16 +51,34 @@ function calculateVWAP(candles) {
   let cumulativeTPV = 0;
   let cumulativeVolume = 0;
 
+  let currentDate = null;
+
   return candles.map(c => {
-    const typicalPrice = (c.high + c.low + c.close) / 3;
-    const volume = c.volume || 1;
+
+    const candleDate = new Date(c.time * 1000)
+      .toISOString()
+      .split("T")[0];
+
+    // Reset every session/day
+    if (candleDate !== currentDate) {
+      currentDate = candleDate;
+      cumulativeTPV = 0;
+      cumulativeVolume = 0;
+    }
+
+    const typicalPrice =
+      (c.open + c.high + c.low + c.close) / 4;
+
+    const volume = c.volume ?? 0;
 
     cumulativeTPV += typicalPrice * volume;
     cumulativeVolume += volume;
 
     return {
       time: c.time,
-      value: cumulativeTPV / cumulativeVolume
+      value: cumulativeVolume
+        ? cumulativeTPV / cumulativeVolume
+        : typicalPrice
     };
   });
 }
@@ -97,7 +115,8 @@ async function loadChart() {
 
     const result     = json.chart.result[0];
     const timestamps = result.timestamp;
-    const quote      = result.indicators.quote[0];
+    const quote = result.indicators.quote[0];
+    const volume = result.indicators.quote[0].volume;
 
     const candles = timestamps
       .map((t, i) => ({
@@ -106,7 +125,7 @@ async function loadChart() {
         high:  quote.high[i],
         low:   quote.low[i],
         close: quote.close[i],
-        volume: quote.volume ? quote.volume[i] : 1,
+        volume: volume[i] ?? 0,
       }))
       .filter(c => c.open && c.high && c.low && c.close);
 
