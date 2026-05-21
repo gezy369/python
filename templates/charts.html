@@ -16,11 +16,36 @@
   <span id="chartStatus" style="color: #888; font-size: 0.85rem;"></span>
 </div>
 
-<div id="mainChart" style="height: 500px; border: 1px solid #ddd; border-radius: 6px;"></div>
+<!-- Chart wrapper (needed for legend positioning) -->
+<div style="position: relative;">
+  
+  <!-- Legend (top-left) -->
+  <div id="chartLegend"
+       style="
+         position: absolute;
+         top: 10px;
+         left: 10px;
+         z-index: 10;
+         background: rgba(255,255,255,0.85);
+         padding: 6px 10px;
+         border-radius: 6px;
+         font-size: 12px;
+         font-family: sans-serif;
+         color: #333;
+         border: 1px solid #eee;
+       ">
+    <span style="color: magenta; font-weight: bold;">●</span>
+    VWAP
+  </div>
+
+  <div id="mainChart"
+       style="height: 500px; border: 1px solid #ddd; border-radius: 6px;">
+  </div>
+
+</div>
 
 <script>
 let chartInstance = null;
-let tradeCharts = {};
 
 function calculateVWAP(candles) {
   let cumulativeTPV = 0;
@@ -28,7 +53,7 @@ function calculateVWAP(candles) {
 
   return candles.map(c => {
     const typicalPrice = (c.high + c.low + c.close) / 3;
-    const volume = c.volume || 1; // fallback if volume missing
+    const volume = c.volume || 1;
 
     cumulativeTPV += typicalPrice * volume;
     cumulativeVolume += volume;
@@ -48,7 +73,6 @@ async function loadChart() {
   status.textContent = "Loading...";
   chartEl.innerHTML = "";
 
-  // Destroy previous instance
   if (chartInstance) {
     chartInstance.remove();
     chartInstance = null;
@@ -88,19 +112,17 @@ async function loadChart() {
 
     if (!candles.length) throw new Error("No data returned");
 
-    // Set candles
     candleSeries.setData(candles);
 
-    // VWAP (pink line)
+    // VWAP (magenta)
     const vwapSeries = chartInstance.addLineSeries({
-      color: "pink",
+      color: "magenta",
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
     });
 
-    const vwapData = calculateVWAP(candles);
-    vwapSeries.setData(vwapData);
+    vwapSeries.setData(calculateVWAP(candles));
 
     chartInstance.timeScale().fitContent();
     status.textContent = `${symbol}=F · 5m · last 24h`;
@@ -112,12 +134,10 @@ async function loadChart() {
   }
 }
 
-// Uppercase input as you type
 document.getElementById("symbolInput").addEventListener("input", e => {
   e.target.value = e.target.value.toUpperCase();
 });
 
-// Load MNQ on page open
 loadChart();
 </script>
 
