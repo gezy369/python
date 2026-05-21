@@ -47,40 +47,52 @@
 <script>
 let chartInstance = null;
 
-function calculateVWAP(candles) {
+function calculateVWAP(candles) {function calculateVWAP(candles) {
   let cumulativeTPV = 0;
   let cumulativeVolume = 0;
 
-  let currentDate = null;
-
   return candles.map(c => {
 
-    const candleDate = new Date(c.time * 1000)
-      .toISOString()
-      .split("T")[0];
+    // CME futures session reset (6 PM ET)
+    const d = new Date(c.time * 1000);
 
-    // Reset every session/day
-    if (candleDate !== currentDate) {
-      currentDate = candleDate;
+    // Session key
+    const session =
+      d.getUTCHours() >= 23
+        ? d.toISOString().slice(0, 10)
+        : new Date(d.getTime() - 86400000)
+            .toISOString()
+            .slice(0, 10);
+
+    // Reset session
+    if (session !== calculateVWAP.lastSession) {
+      calculateVWAP.lastSession = session;
       cumulativeTPV = 0;
       cumulativeVolume = 0;
     }
 
-    const typicalPrice =
-      (c.open + c.high + c.low + c.close) / 4;
+    const volume = Number(c.volume);
 
-    const volume = c.volume ?? 0;
+    // Ignore invalid volume
+    if (!volume || volume <= 0) {
+      return {
+        time: c.time,
+        value: null
+      };
+    }
 
-    cumulativeTPV += typicalPrice * volume;
+    // Typical price
+    const tp =
+      (c.high + c.low + c.close) / 3;
+
+    cumulativeTPV += tp * volume;
     cumulativeVolume += volume;
 
     return {
       time: c.time,
-      value: cumulativeVolume
-        ? cumulativeTPV / cumulativeVolume
-        : typicalPrice
+      value: cumulativeTPV / cumulativeVolume
     };
-  });
+  }).filter(v => v.value !== null);
 }
 
 async function loadChart() {
@@ -127,7 +139,12 @@ async function loadChart() {
         close: quote.close[i],
         volume: volume[i] ?? 0,
       }))
-      .filter(c => c.open && c.high && c.low && c.close);
+      .filter(c =>
+      c.open != null &&
+      c.high != null &&
+      c.low != null &&
+      c.close != null
+    );
 
     if (!candles.length) throw new Error("No data returned");
 
