@@ -47,52 +47,43 @@
 <script>
 let chartInstance = null;
 
-function calculateVWAP(candles) {function calculateVWAP(candles) {
+function calculateVWAP(candles) {
   let cumulativeTPV = 0;
   let cumulativeVolume = 0;
+  let currentSession = null;
 
-  return candles.map(c => {
+  return candles
+    .map(c => {
 
-    // CME futures session reset (6 PM ET)
-    const d = new Date(c.time * 1000);
+      // Session reset (daily)
+      const d = new Date(c.time * 1000);
+      const session = d.toISOString().slice(0, 10);
 
-    // Session key
-    const session =
-      d.getUTCHours() >= 23
-        ? d.toISOString().slice(0, 10)
-        : new Date(d.getTime() - 86400000)
-            .toISOString()
-            .slice(0, 10);
+      if (session !== currentSession) {
+        currentSession = session;
+        cumulativeTPV = 0;
+        cumulativeVolume = 0;
+      }
 
-    // Reset session
-    if (session !== calculateVWAP.lastSession) {
-      calculateVWAP.lastSession = session;
-      cumulativeTPV = 0;
-      cumulativeVolume = 0;
-    }
+      const volume = Number(c.volume ?? 0);
 
-    const volume = Number(c.volume);
+      // Skip invalid volume candles
+      if (volume <= 0) {
+        return null;
+      }
 
-    // Ignore invalid volume
-    if (!volume || volume <= 0) {
+      // Typical price
+      const tp = (c.high + c.low + c.close) / 3;
+
+      cumulativeTPV += tp * volume;
+      cumulativeVolume += volume;
+
       return {
         time: c.time,
-        value: null
+        value: cumulativeTPV / cumulativeVolume
       };
-    }
-
-    // Typical price
-    const tp =
-      (c.high + c.low + c.close) / 3;
-
-    cumulativeTPV += tp * volume;
-    cumulativeVolume += volume;
-
-    return {
-      time: c.time,
-      value: cumulativeTPV / cumulativeVolume
-    };
-  }).filter(v => v.value !== null);
+    })
+    .filter(Boolean);
 }
 
 async function loadChart() {
@@ -128,7 +119,7 @@ async function loadChart() {
     const result     = json.chart.result[0];
     const timestamps = result.timestamp;
     const quote = result.indicators.quote[0];
-    const volume = result.indicators.quote[0].volume;
+    const volume = quote.volume || [];
 
     const candles = timestamps
       .map((t, i) => ({
