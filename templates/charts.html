@@ -22,6 +22,24 @@
 let chartInstance = null;
 let tradeCharts = {};
 
+function calculateVWAP(candles) {
+  let cumulativeTPV = 0;
+  let cumulativeVolume = 0;
+
+  return candles.map(c => {
+    const typicalPrice = (c.high + c.low + c.close) / 3;
+    const volume = c.volume || 1; // fallback if volume missing
+
+    cumulativeTPV += typicalPrice * volume;
+    cumulativeVolume += volume;
+
+    return {
+      time: c.time,
+      value: cumulativeTPV / cumulativeVolume
+    };
+  });
+}
+
 async function loadChart() {
   const symbol = document.getElementById("symbolInput").value.trim().toUpperCase() || "MNQ";
   const status = document.getElementById("chartStatus");
@@ -39,6 +57,10 @@ async function loadChart() {
   chartInstance = LightweightCharts.createChart(chartEl, {
     height: 500,
     layout: { background: { color: "#ffffff" }, textColor: "#333" },
+    timeScale: {
+      timeVisible: true,
+      secondsVisible: false,
+    },
   });
 
   const candleSeries = chartInstance.addCandlestickSeries();
@@ -60,12 +82,26 @@ async function loadChart() {
         high:  quote.high[i],
         low:   quote.low[i],
         close: quote.close[i],
+        volume: quote.volume ? quote.volume[i] : 1,
       }))
       .filter(c => c.open && c.high && c.low && c.close);
 
     if (!candles.length) throw new Error("No data returned");
 
+    // Set candles
     candleSeries.setData(candles);
+
+    // VWAP (pink line)
+    const vwapSeries = chartInstance.addLineSeries({
+      color: "pink",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    });
+
+    const vwapData = calculateVWAP(candles);
+    vwapSeries.setData(vwapData);
+
     chartInstance.timeScale().fitContent();
     status.textContent = `${symbol}=F · 5m · last 24h`;
 
