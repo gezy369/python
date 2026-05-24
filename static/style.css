@@ -2647,3 +2647,18 @@ input:checked + .slider:before {
   border-color: #ffffff;
   transform: scale(1.04);
 }
+
+.filters-row,
+.filter-panel,
+.filter-column {
+  overflow: visible;
+}
+
+.filter-section {
+  position: absolute;
+  z-index: 5000;
+}
+
+.filter-column {
+  position: relative;
+}
