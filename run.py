@@ -349,7 +349,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         return base64.b64encode(buf.read()).decode("utf-8")
 
     except Exception as e:
-    import traceback
+        import traceback
     print(f"Chart generation failed for {symbol}")
     print(traceback.format_exc())
     return None
