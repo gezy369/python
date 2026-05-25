@@ -244,6 +244,54 @@ def dashboard():
 def settings_page():
     return render_template("settings.html")
 
+@app.post("/api/trades/generate-charts")
+@login_required
+def generate_charts():
+    try:
+        data = request.json
+        ids = data.get("ids", [])
+
+        if not ids:
+            return jsonify({"error": "No trade IDs"}), 400
+
+        trades_res = (
+            supabase_admin.table("trades")
+            .select("*")
+            .in_("id", ids)
+            .execute()
+        )
+
+        trades = trades_res.data or []
+        failed = []
+
+        for trade in trades:
+            try:
+                chart_b64 = generate_chart_base64(
+                    symbol=trade["symbol"],
+                    entry_time=datetime.fromisoformat(trade["entryTimestamp"]),
+                    exit_time=datetime.fromisoformat(trade["exitTimestamp"]),
+                    entry_price=float(trade["entryPrice"]),
+                    exit_price=float(trade["exitPrice"]),
+                    side=trade["side"]
+                )
+
+                if chart_b64:
+                    supabase_admin.table("trades") \
+                        .update({"chart_image": chart_b64}) \
+                        .eq("id", trade["id"]) \
+                        .execute()
+
+            except Exception as e:
+                print(f"Chart error {trade['id']}: {e}")
+                failed.append(trade["id"])
+
+        return jsonify({
+            "ok": True,
+            "failed": failed
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # =========================================================
 # NOTE:
