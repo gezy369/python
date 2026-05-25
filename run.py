@@ -207,8 +207,22 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Yahoo returned {r.status_code} for {yahoo_symbol}")
             return None
 
-        data       = r.json()
-        result     = data["chart"]["result"][0]
+        data = r.json()
+
+        if not data or "chart" not in data:
+            print("Invalid Yahoo response structure")
+            return None
+
+        if data["chart"].get("error"):
+            print(f"Yahoo error: {data['chart']['error']}")
+            return None
+
+        result = data["chart"].get("result")
+        if not result:
+            print("No result in Yahoo response")
+            return None
+
+        result = result[0]
         timestamps = result["timestamp"]
         quote      = result["indicators"]["quote"][0]
 
@@ -221,8 +235,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
 
         df = df.dropna()
-        if df.empty:
-            print(f"Empty DataFrame for {yahoo_symbol}")
+        if len(df) < 20:
+            print(f"Insufficient candle history for {yahoo_symbol}")
             return None
 
         entry_ts = pd.Timestamp(entry_time)
@@ -285,8 +299,10 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         return base64.b64encode(buf.read()).decode("utf-8")
 
     except Exception as e:
-        print(f"Chart generation failed for {symbol}: {e}")
-        return None
+    import traceback
+    print(f"Chart generation failed for {symbol}")
+    print(traceback.format_exc())
+    return None
 
 # ===== PAGE ROUTES =====
 
@@ -378,6 +394,7 @@ def confirm_upload():
         print(f"Inserted {len(inserted_trades)} trades, generating charts...")
 
         # Generate charts
+        failed = []
         for trade in inserted_trades:
             try:
                 chart_b64 = generate_chart_base64(
@@ -396,10 +413,14 @@ def confirm_upload():
                         .execute()
 
             except Exception as e:
-                print(f"Chart error: {e}")
+                print(f"Chart error for trade {trade['id']}: {e}")
+                failed.append(trade["id"])
                 continue
         session.pop("preview_trades", None)
-        return jsonify({"ok": True})
+        return jsonify({
+            "ok": True,
+            "failed": failed
+})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
