@@ -350,9 +350,9 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
 
     except Exception as e:
         import traceback
-    print(f"Chart generation failed for {symbol}")
-    print(traceback.format_exc())
-    return None
+        print(f"Chart generation failed for {symbol}")
+        print(traceback.format_exc())
+        return None
 
 # ===== PAGE ROUTES =====
 
@@ -1263,6 +1263,7 @@ def generate_charts():
 
         return jsonify({
             "ok": True,
+            "updated": updated_trades,
             "failed": failed
         })
 
