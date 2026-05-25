@@ -2662,3 +2662,49 @@ input:checked + .slider:before {
 .filter-column {
   position: relative;
 }
+
+.chart-settings-group{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.chart-indicator-row{
+  padding:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:10px;
+  background:var(--bg-elevated);
+}
+
+.indicator-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.indicator-header span{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-main);
+}
+
+.indicator-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.radio-group{
+  display:flex;
+  gap:14px;
+}
+
+.radio-group label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  color:var(--text-muted);
+}

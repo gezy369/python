@@ -50,9 +50,14 @@
     </div>
   </div>
   <div class="journal-controls-right">
-    <button onclick="openBulkTagEditor()">Bulk edit tags</button>
+    <button onclick="openBulkTagEditor()">Edit tags</button>
+    <button onclick="bulkGenerateCharts()">
+      Generate charts
+    </button>
     <button onclick="applyFeesToSelected()">Apply fees</button>
-    <button class="btn-danger" onclick="deleteSelected()">Delete selected</button>
+    <button class="btn-danger" onclick="deleteSelected()">
+      Delete
+    </button>
   </div>
 </div>
 
@@ -1024,6 +1029,60 @@ function getSelectedTradeIds() {
   return [...document.querySelectorAll(".row-select:checked")]
     .map(cb => Number(cb.dataset.id));
 }
+async function bulkGenerateCharts() {
+  const checked = [...document.querySelectorAll(".row-select:checked")];
+
+  if (!checked.length) {
+    alert("No trades selected.");
+    return;
+  }
+
+  const button = event.target;
+  const originalText = button.textContent;
+
+  button.disabled = true;
+  button.textContent = "Generating...";
+
+  try {
+    const ids = checked.map(cb => Number(cb.dataset.id));
+
+    const res = await fetch("/api/trades/generate-charts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        ids,
+        chartSettings
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to generate charts");
+    }
+
+    const updatedTrades = await res.json();
+
+    updatedTrades.forEach(updated => {
+      const trade = originalData.find(t => t.id === updated.id);
+
+      if (trade) {
+        trade.chart_image = updated.chart_image;
+      }
+    });
+
+    applyFiltersAndRender();
+
+    alert(`Generated ${updatedTrades.length} chart(s).`);
+
+  } catch (err) {
+    console.error(err);
+    alert("Chart generation failed.");
+  }
+
+  button.disabled = false;
+  button.textContent = originalText;
+}
 
 function openBulkTagEditor() {
   const ids = getSelectedTradeIds();
@@ -1214,6 +1273,20 @@ async function deleteSelected() {
 // ══════════════════════════════════════════════════════════════════════════
 // STATS & CHARTS
 // ══════════════════════════════════════════════════════════════════════════
+let chartSettings = null;
+
+async function loadGlobalChartSettings() {
+  const data = await fetch("/api/settings")
+    .then(r => r.json());
+
+  chartSettings = data.chartSettings || {
+    ma1: { enabled:true, type:"EMA", value:9 },
+    ma2: { enabled:true, type:"EMA", value:20 },
+    ma3: { enabled:false, type:"SMA", value:50 },
+    vwap:true
+  };
+}
+
 function renderJournalStats(data) {
   const statsEl = document.getElementById("journalStats");
   if (!statsEl) return;
@@ -1320,15 +1393,60 @@ function renderChartGrid(data) {
 async function showTradeChart(trade, containerId) {
   const chartEl = document.getElementById(containerId);
   if (!chartEl) return;
-  
+
   chartEl.innerHTML = "";
-  
+
+  // EXISTING IMAGE
   if (trade.chart_image) {
-    chartEl.innerHTML = `<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>`;
+
+    // ================= INDICATOR SETTINGS =================
+    const indicators = [];
+
+    ["ma1", "ma2", "ma3"].forEach(key => {
+      const ma = chartSettings[key];
+
+      if (!ma.enabled) return;
+
+      indicators.push({
+        type: ma.type,
+        length: ma.value
+      });
+    });
+
+    if (chartSettings.vwap) {
+      indicators.push({
+        type: "VWAP"
+      });
+    }
+
+    console.log("Chart indicators:", indicators);
+
+    // ======================================================
+
+    chartEl.innerHTML = `
+      <img 
+        src="data:image/png;base64,${trade.chart_image}" 
+        style="width:100%;height:100%;object-fit:contain;border-radius:6px;"
+      />
+    `;
+
     return;
   }
-  
-  chartEl.innerHTML = `<div style="height:340px;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
+
+  chartEl.innerHTML = `
+    <div style="
+      height:340px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--bg-elevated);
+      border-radius:6px;
+      color:var(--text-faint);
+      font-size:12px;
+    ">
+      No chart available
+    </div>
+  `;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1426,6 +1544,7 @@ Promise.all([
   fetch("/api/trade_setups").then(r => r.json()),
   fetch("/api/emotions").then(r => r.json()).catch(() => []),
   fetch("/api/emotions_trades").then(r => r.json()).catch(() => []),
+  loadGlobalChartSettings()
 ]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
   await waitForAccount();
 

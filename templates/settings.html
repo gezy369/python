@@ -48,6 +48,115 @@
     </div>
   </div>
 
+  <div class="tile">
+  <h3>Charts</h3>
+
+  <div class="chart-settings-group">
+
+      <!-- MA 1 -->
+      <div class="chart-indicator-row">
+        <div class="indicator-header">
+          <span>Moving Average 1</span>
+
+          <label class="switch">
+            <input type="checkbox" id="ma1Enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="indicator-controls">
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="ma1Type" value="EMA" checked>
+              EMA
+            </label>
+
+            <label>
+              <input type="radio" name="ma1Type" value="SMA">
+              SMA
+            </label>
+          </div>
+
+          <input type="number" id="ma1Value" class="dark-input"
+                placeholder="Length"
+                value="9" min="1">
+        </div>
+      </div>
+
+      <!-- MA 2 -->
+      <div class="chart-indicator-row">
+        <div class="indicator-header">
+          <span>Moving Average 2</span>
+
+          <label class="switch">
+            <input type="checkbox" id="ma2Enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="indicator-controls">
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="ma2Type" value="EMA" checked>
+              EMA
+            </label>
+
+            <label>
+              <input type="radio" name="ma2Type" value="SMA">
+              SMA
+            </label>
+          </div>
+
+          <input type="number" id="ma2Value" class="dark-input"
+                placeholder="Length"
+                value="20" min="1">
+        </div>
+      </div>
+
+      <!-- MA 3 -->
+      <div class="chart-indicator-row">
+        <div class="indicator-header">
+          <span>Moving Average 3</span>
+
+          <label class="switch">
+            <input type="checkbox" id="ma3Enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="indicator-controls">
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="ma3Type" value="EMA" checked>
+              EMA
+            </label>
+
+            <label>
+              <input type="radio" name="ma3Type" value="SMA">
+              SMA
+            </label>
+          </div>
+
+          <input type="number" id="ma3Value" class="dark-input"
+                placeholder="Length"
+                value="50" min="1">
+        </div>
+      </div>
+
+      <!-- VWAP -->
+      <div class="chart-indicator-row">
+        <div class="indicator-header">
+          <span>VWAP</span>
+
+          <label class="switch">
+            <input type="checkbox" id="vwapEnabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+  </div>
   <div class="settings-empty-area">
     <!-- reserved for future use -->
   </div>
@@ -433,6 +542,97 @@ function loadTimezone() {
   });
 }
 
+/* ================= CHART SETTINGS ================= */
+
+const DEFAULT_CHART_SETTINGS = {
+  ma1: { enabled: true, type: "EMA", value: 9 },
+  ma2: { enabled: true, type: "EMA", value: 20 },
+  ma3: { enabled: false, type: "SMA", value: 50 },
+  vwap: true
+};
+
+function getChartSettingsFromUI() {
+  return {
+    ma1: {
+      enabled: document.getElementById("ma1Enabled").checked,
+      type: document.querySelector('input[name="ma1Type"]:checked').value,
+      value: Number(document.getElementById("ma1Value").value)
+    },
+
+    ma2: {
+      enabled: document.getElementById("ma2Enabled").checked,
+      type: document.querySelector('input[name="ma2Type"]:checked').value,
+      value: Number(document.getElementById("ma2Value").value)
+    },
+
+    ma3: {
+      enabled: document.getElementById("ma3Enabled").checked,
+      type: document.querySelector('input[name="ma3Type"]:checked').value,
+      value: Number(document.getElementById("ma3Value").value)
+    },
+
+    vwap: document.getElementById("vwapEnabled").checked
+  };
+}
+
+function applyChartSettingsToUI(settings) {
+  document.getElementById("ma1Enabled").checked = settings.ma1.enabled;
+  document.getElementById("ma1Value").value = settings.ma1.value;
+  document.querySelector(`input[name="ma1Type"][value="${settings.ma1.type}"]`).checked = true;
+
+  document.getElementById("ma2Enabled").checked = settings.ma2.enabled;
+  document.getElementById("ma2Value").value = settings.ma2.value;
+  document.querySelector(`input[name="ma2Type"][value="${settings.ma2.type}"]`).checked = true;
+
+  document.getElementById("ma3Enabled").checked = settings.ma3.enabled;
+  document.getElementById("ma3Value").value = settings.ma3.value;
+  document.querySelector(`input[name="ma3Type"][value="${settings.ma3.type}"]`).checked = true;
+
+  document.getElementById("vwapEnabled").checked = settings.vwap;
+}
+
+function saveChartSettings() {
+  const settings = getChartSettingsFromUI();
+
+  fetch("/api/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chartSettings: settings
+    })
+  });
+}
+
+function loadChartSettings() {
+  fetch("/api/settings")
+    .then(r => r.json())
+    .then(data => {
+      const settings =
+        data.chartSettings || DEFAULT_CHART_SETTINGS;
+
+      applyChartSettingsToUI(settings);
+    });
+
+  [
+    "ma1Enabled","ma1Value",
+    "ma2Enabled","ma2Value",
+    "ma3Enabled","ma3Value",
+    "vwapEnabled"
+  ].forEach(id => {
+    document.getElementById(id)
+      .addEventListener("change", saveChartSettings);
+  });
+
+  document
+    .querySelectorAll(
+      'input[name="ma1Type"], input[name="ma2Type"], input[name="ma3Type"]'
+    )
+    .forEach(el => {
+      el.addEventListener("change", saveChartSettings);
+    });
+}
+
+loadChartSettings();
 loadAccounts();
 loadStrategies();
 loadSetups();
