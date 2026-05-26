@@ -328,6 +328,16 @@ def generate_chart_base64(
         apds = []
 
         # ===== MOVING AVERAGES =====
+
+        def to_bool(v):
+            return v in [True, "true", "True", 1, "1"]
+
+        def to_int(v):
+            try:
+                return int(v)
+            except:
+                return None
+
         MA_TYPE_MAP = {
             1: "SMA",
             2: "EMA"
@@ -351,42 +361,18 @@ def generate_chart_base64(
             }
         ]
 
-        def to_bool(v):
-            return v in [True, "true", "True", 1, "1"]
-
-        def to_int(v):
-            try:
-                return int(v)
-            except:
-                return None
-
-
         for ma in ma_configs:
-            # 1. normalize enabled
-            if not to_bool(ma.get("enabled")):
+
+            if not ma["enabled"]:
                 continue
 
-            # 2. normalize length
-            length = to_int(ma.get("value"))
+            length = ma["value"]
+
             if not length or length <= 0:
                 continue
 
-            # 3. normalize type
-            ma_type_raw = to_int(ma.get("type"))
-            ma_type = MA_TYPE_MAP.get(ma_type_raw, "EMA")
+            ma_type = MA_TYPE_MAP.get(ma["type"], "EMA")
 
-            column_name = f"{ma_type}_{length}"
-
-            if ma_type == "SMA":
-                df[column_name] = df["Close"].rolling(length).mean()
-            else:
-                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
-
-            apds.append(
-                mpf.make_addplot(df[column_name], width=1.2)
-            )
-
-            ma_type = MA_TYPE_MAP.get(int(ma["type"]), "EMA")
             column_name = f"{ma_type}_{length}"
 
             if ma_type == "SMA":
