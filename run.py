@@ -35,7 +35,6 @@ def allowed_file(filename):
 
 
 def load_user_settings_into_session(user_id):
-    print("SETTINGS FROM DB:", settings)
     res = (
         supabase_admin.table("settings")
         .select("*")
@@ -336,33 +335,56 @@ def generate_chart_base64(
 
         ma_configs = [
             {
-                "enabled": settings.get("MA1_activ"),
-                "type": settings.get("MA1_type"),
-                "value": settings.get("MA1_value")
+                "enabled": to_bool(settings.get("MA1_activ")),
+                "type": to_int(settings.get("MA1_type")),
+                "value": to_int(settings.get("MA1_value"))
             },
             {
-                "enabled": settings.get("MA2_activ"),
-                "type": settings.get("MA2_type"),
-                "value": settings.get("MA2_value")
+                "enabled": to_bool(settings.get("MA2_activ")),
+                "type": to_int(settings.get("MA2_type")),
+                "value": to_int(settings.get("MA2_value"))
             },
             {
-                "enabled": settings.get("MA3_activ"),
-                "type": settings.get("MA3_type"),
-                "value": settings.get("MA3_value")
+                "enabled": to_bool(settings.get("MA3_activ")),
+                "type": to_int(settings.get("MA3_type")),
+                "value": to_int(settings.get("MA3_value"))
             }
         ]
 
-        for ma in ma_configs:
-            if ma["enabled"] is not True:
-                continue
+        def to_bool(v):
+            return v in [True, "true", "True", 1, "1"]
 
+        def to_int(v):
             try:
-                length = int(ma["value"])
+                return int(v)
             except:
+                return None
+
+
+        for ma in ma_configs:
+            # 1. normalize enabled
+            if not to_bool(ma.get("enabled")):
                 continue
 
-            if length <= 0:
+            # 2. normalize length
+            length = to_int(ma.get("value"))
+            if not length or length <= 0:
                 continue
+
+            # 3. normalize type
+            ma_type_raw = to_int(ma.get("type"))
+            ma_type = MA_TYPE_MAP.get(ma_type_raw, "EMA")
+
+            column_name = f"{ma_type}_{length}"
+
+            if ma_type == "SMA":
+                df[column_name] = df["Close"].rolling(length).mean()
+            else:
+                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
+
+            apds.append(
+                mpf.make_addplot(df[column_name], width=1.2)
+            )
 
             ma_type = MA_TYPE_MAP.get(int(ma["type"]), "EMA")
             column_name = f"{ma_type}_{length}"
