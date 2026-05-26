@@ -234,7 +234,15 @@ def logout():
     return redirect(url_for("login"))
 
 # ===== CHART GENERATION =====
-def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side):
+def generate_chart_base64(
+    symbol,
+    entry_time,
+    exit_time,
+    entry_price,
+    exit_price,
+    side,
+    user_id
+):
     try:
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
         trade_date   = entry_time.date()
@@ -285,6 +293,17 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
 
         df = df.dropna()
+        # ===== LOAD USER SETTINGS =====
+        settings_res = (
+            supabase_admin.table("settings")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        settings = settings_res.data[0] if settings_res.data else {}
+
+        apds = []
         if len(df) < 20:
             print(f"Insufficient candle history for {yahoo_symbol}")
             return None
@@ -313,18 +332,77 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
 
         apds = [
-            mpf.make_addplot(
-                [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
-                type="scatter", markersize=120,
-                marker="^" if is_long else "v",
-                color=entry_color
-            ),
-            mpf.make_addplot(
-                [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
-                type="scatter", markersize=120,
-                marker="v" if is_long else "^",
-                color=exit_color
-            ),
+                    apds = []
+
+                        # ===== MOVING AVERAGES =====
+                        ma_configs = [
+                            {
+                                "enabled": settings.get("MA1_activ"),
+                                "type": settings.get("MA1_type"),
+                                "value": settings.get("MA1_value")
+                            },
+                            {
+                                "enabled": settings.get("MA2_activ"),
+                                "type": settings.get("MA2_type"),
+                                "value": settings.get("MA2_value")
+                            },
+                            {
+                                "enabled": settings.get("MA3_activ"),
+                                "type": settings.get("MA3_type"),
+                                "value": settings.get("MA3_value")
+                            }
+                        ]
+
+                        for ma in ma_configs:
+
+                            if not ma["enabled"]:
+                                continue
+
+                            length = int(ma["value"] or 0)
+                            if length <= 0:
+                                continue
+
+                            ma_type = (ma["type"] or "EMA").upper()
+                            column_name = f"{ma_type}_{length}"
+
+                            if ma_type == "SMA":
+                                df[column_name] = df["Close"].rolling(length).mean()
+                            else:
+                                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
+
+                            apds.append(mpf.make_addplot(df[column_name]))
+
+
+                        # ===== VWAP =====
+                        if settings.get("VWAP_activ"):
+
+                            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
+                            cumulative_vp = (typical_price * df["Volume"]).cumsum()
+                            cumulative_volume = df["Volume"].cumsum()
+
+                            df["VWAP"] = cumulative_vp / cumulative_volume
+
+                            apds.append(mpf.make_addplot(df["VWAP"]))
+
+
+                        # ===== ENTRY / EXIT MARKERS =====
+                        apds.extend([
+                            mpf.make_addplot(
+                                [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
+                                type="scatter",
+                                markersize=120,
+                                marker="^" if is_long else "v",
+                                color=entry_color
+                            ),
+
+                            mpf.make_addplot(
+                                [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
+                                type="scatter",
+                                markersize=120,
+                                marker="v" if is_long else "^",
+                                color=exit_color
+                            ),
+                        ]),
         ]
 
         hlines = dict(
@@ -444,6 +522,7 @@ def confirm_upload():
         print(f"Inserted {len(inserted_trades)} trades, generating charts...")
 
         # Generate charts
+        user_id = session["user"]["id"]
         failed = []
         for trade in inserted_trades:
             try:
@@ -453,7 +532,8 @@ def confirm_upload():
                     exit_time   = datetime.fromisoformat(trade["exitTimestamp"]),
                     entry_price = float(trade["entryPrice"]),
                     exit_price  = float(trade["exitPrice"]),
-                    side        = trade["side"]
+                    side        = trade["side"],
+                    user_id     = user_id
                 )
 
                 if chart_b64:
@@ -1239,7 +1319,7 @@ def generate_charts():
 
         trades = trades_res.data or []
         failed = []
-
+        user_id = session["user"]["id"]
         for trade in trades:
             try:
                 chart_b64 = generate_chart_base64(
@@ -1248,7 +1328,8 @@ def generate_charts():
                     exit_time=datetime.fromisoformat(trade["exitTimestamp"]),
                     entry_price=float(trade["entryPrice"]),
                     exit_price=float(trade["exitPrice"]),
-                    side=trade["side"]
+                    side=trade["side"],
+                    user_id     = user_id
                 )
 
                 if chart_b64:
