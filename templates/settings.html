@@ -545,16 +545,17 @@ function loadTimezone() {
 /* ================= CHART SETTINGS ================= */
 
 const DEFAULT_CHART_SETTINGS = {
+
   MA1_activ: true,
-  MA1_type: "EMA",
+  MA1_type: 2,
   MA1_value: 9,
 
   MA2_activ: true,
-  MA2_type: "EMA",
+  MA2_type: 2,
   MA2_value: 20,
 
   MA3_activ: false,
-  MA3_type: "SMA",
+  MA3_type: 1,
   MA3_value: 50,
 
   VWAP_activ: true
@@ -562,60 +563,76 @@ const DEFAULT_CHART_SETTINGS = {
 
 function applyChartSettingsToUI(settings) {
 
-  // MA1
-  document.getElementById("ma1Enabled").checked = settings.MA1_activ;
-  document.getElementById("ma1Value").value = settings.MA1_value;
+  const dbTypeToUi = (type) => {
+    return Number(type) === 2 ? "EMA" : "SMA";
+  };
+
+  // ===== MA1 =====
+  document.getElementById("ma1Enabled").checked =
+    Boolean(settings.MA1_activ);
+
+  document.getElementById("ma1Value").value =
+    Number(settings.MA1_value || 9);
 
   document.querySelector(
-    `input[name="ma1Type"][value="${settings.MA1_type}"]`
+    `input[name="ma1Type"][value="${dbTypeToUi(settings.MA1_type)}"]`
   ).checked = true;
 
-  // MA2
-  document.getElementById("ma2Enabled").checked = settings.MA2_activ;
-  document.getElementById("ma2Value").value = settings.MA2_value;
+
+  // ===== MA2 =====
+  document.getElementById("ma2Enabled").checked =
+    Boolean(settings.MA2_activ);
+
+  document.getElementById("ma2Value").value =
+    Number(settings.MA2_value || 20);
 
   document.querySelector(
-    `input[name="ma2Type"][value="${settings.MA2_type}"]`
+    `input[name="ma2Type"][value="${dbTypeToUi(settings.MA2_type)}"]`
   ).checked = true;
 
-  // MA3
-  document.getElementById("ma3Enabled").checked = settings.MA3_activ;
-  document.getElementById("ma3Value").value = settings.MA3_value;
+
+  // ===== MA3 =====
+  document.getElementById("ma3Enabled").checked =
+    Boolean(settings.MA3_activ);
+
+  document.getElementById("ma3Value").value =
+    Number(settings.MA3_value || 50);
 
   document.querySelector(
-    `input[name="ma3Type"][value="${settings.MA3_type}"]`
+    `input[name="ma3Type"][value="${dbTypeToUi(settings.MA3_type)}"]`
   ).checked = true;
 
-  // VWAP
-  document.getElementById("vwapEnabled").checked = settings.VWAP_activ;
+
+  // ===== VWAP =====
+  document.getElementById("vwapEnabled").checked =
+    Boolean(settings.VWAP_activ);
 }
 
 function getChartSettingsFromUI() {
+
+  const maTypeToDb = (type) => {
+    return type === "EMA" ? 2 : 1;
+  };
+
   return {
 
     MA1_activ: document.getElementById("ma1Enabled").checked,
-    MA1_type: document.querySelector(
-      'input[name="ma1Type"]:checked'
-    ).value,
-    MA1_value: Number(
-      document.getElementById("ma1Value").value
+    MA1_type: maTypeToDb(
+      document.querySelector('input[name="ma1Type"]:checked').value
     ),
+    MA1_value: Number(document.getElementById("ma1Value").value),
 
     MA2_activ: document.getElementById("ma2Enabled").checked,
-    MA2_type: document.querySelector(
-      'input[name="ma2Type"]:checked'
-    ).value,
-    MA2_value: Number(
-      document.getElementById("ma2Value").value
+    MA2_type: maTypeToDb(
+      document.querySelector('input[name="ma2Type"]:checked').value
     ),
+    MA2_value: Number(document.getElementById("ma2Value").value),
 
     MA3_activ: document.getElementById("ma3Enabled").checked,
-    MA3_type: document.querySelector(
-      'input[name="ma3Type"]:checked'
-    ).value,
-    MA3_value: Number(
-      document.getElementById("ma3Value").value
+    MA3_type: maTypeToDb(
+      document.querySelector('input[name="ma3Type"]:checked').value
     ),
+    MA3_value: Number(document.getElementById("ma3Value").value),
 
     VWAP_activ: document.getElementById("vwapEnabled").checked
   };
