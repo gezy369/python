@@ -293,15 +293,8 @@ def generate_chart_base64(
         }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
 
         df = df.dropna()
-        # ===== LOAD USER SETTINGS =====
-        settings_res = (
-            supabase_admin.table("settings")
-            .select("*")
-            .eq("user_id", user_id)
-            .execute()
-        )
-
-        settings = settings_res.data[0] if settings_res.data else {}
+        # ===== LOAD USER SETTINGS FROM SESSION =====
+        settings = session.get("settings", {})
 
         apds = []
         if len(df) < 20:
@@ -331,79 +324,77 @@ def generate_chart_base64(
         entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
         exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
 
-        apds = [
-                    apds = []
+        
+        apds = []
 
-                        # ===== MOVING AVERAGES =====
-                        ma_configs = [
-                            {
-                                "enabled": settings.get("MA1_activ"),
-                                "type": settings.get("MA1_type"),
-                                "value": settings.get("MA1_value")
-                            },
-                            {
-                                "enabled": settings.get("MA2_activ"),
-                                "type": settings.get("MA2_type"),
-                                "value": settings.get("MA2_value")
-                            },
-                            {
-                                "enabled": settings.get("MA3_activ"),
-                                "type": settings.get("MA3_type"),
-                                "value": settings.get("MA3_value")
-                            }
-                        ]
-
-                        for ma in ma_configs:
-
-                            if not ma["enabled"]:
-                                continue
-
-                            length = int(ma["value"] or 0)
-                            if length <= 0:
-                                continue
-
-                            ma_type = (ma["type"] or "EMA").upper()
-                            column_name = f"{ma_type}_{length}"
-
-                            if ma_type == "SMA":
-                                df[column_name] = df["Close"].rolling(length).mean()
-                            else:
-                                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
-
-                            apds.append(mpf.make_addplot(df[column_name]))
-
-
-                        # ===== VWAP =====
-                        if settings.get("VWAP_activ"):
-
-                            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
-                            cumulative_vp = (typical_price * df["Volume"]).cumsum()
-                            cumulative_volume = df["Volume"].cumsum()
-
-                            df["VWAP"] = cumulative_vp / cumulative_volume
-
-                            apds.append(mpf.make_addplot(df["VWAP"]))
-
-
-                        # ===== ENTRY / EXIT MARKERS =====
-                        apds.extend([
-                            mpf.make_addplot(
-                                [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
-                                type="scatter",
-                                markersize=120,
-                                marker="^" if is_long else "v",
-                                color=entry_color
-                            ),
-
-                            mpf.make_addplot(
-                                [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
-                                type="scatter",
-                                markersize=120,
-                                marker="v" if is_long else "^",
-                                color=exit_color
-                            ),
-                        ]),
+        # ===== MOVING AVERAGES =====
+        ma_configs = [
+            {
+                "enabled": settings.get("MA1_activ"),
+                "type": settings.get("MA1_type"),
+                "value": settings.get("MA1_value")
+            },
+            {
+                "enabled": settings.get("MA2_activ"),
+                "type": settings.get("MA2_type"),
+                "value": settings.get("MA2_value")
+            },
+            {
+                "enabled": settings.get("MA3_activ"),
+                "type": settings.get("MA3_type"),
+                "value": settings.get("MA3_value")
+            }
         ]
+
+        for ma in ma_configs:
+            if not ma["enabled"]:
+                continue
+
+            length = int(ma["value"] or 0)
+            if length <= 0:
+                continue
+
+            ma_type = (ma["type"] or "EMA").upper()
+            column_name = f"{ma_type}_{length}"
+
+            if ma_type == "SMA":
+                df[column_name] = df["Close"].rolling(length).mean()
+            else:
+                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
+
+            apds.append(mpf.make_addplot(df[column_name]))
+
+
+        # ===== VWAP =====
+        if settings.get("VWAP_activ"):
+
+            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
+            cumulative_vp = (typical_price * df["Volume"]).cumsum()
+            cumulative_volume = df["Volume"].cumsum()
+
+            df["VWAP"] = cumulative_vp / cumulative_volume
+
+            apds.append(mpf.make_addplot(df["VWAP"]))
+
+
+        # ===== ENTRY / EXIT MARKERS =====
+        apds.extend([
+            mpf.make_addplot(
+                [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
+                type="scatter",
+                markersize=120,
+                marker="^" if is_long else "v",
+                color=entry_color
+            ),
+
+            mpf.make_addplot(
+                [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
+                type="scatter",
+                markersize=120,
+                marker="v" if is_long else "^",
+                color=exit_color
+            ),
+        ])
 
         hlines = dict(
             hlines=[entry_price, exit_price],
