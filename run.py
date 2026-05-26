@@ -364,7 +364,7 @@ def generate_chart_base64(
             if length <= 0:
                 continue
 
-            ma_type = MA_TYPE_MAP.get(ma["type"], "EMA")
+            ma_type = MA_TYPE_MAP.get(int(ma["type"]), "EMA")
             column_name = f"{ma_type}_{length}"
 
             if ma_type == "SMA":
