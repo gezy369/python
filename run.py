@@ -35,6 +35,7 @@ def allowed_file(filename):
 
 
 def load_user_settings_into_session(user_id):
+    print("SETTINGS FROM DB:", settings)
     res = (
         supabase_admin.table("settings")
         .select("*")
@@ -318,8 +319,8 @@ def generate_chart_base64(
             return None
 
         is_long     = str(side).lower() == "long"
-        entry_color = "green" if is_long else "red"
-        exit_color  = "red"   if is_long else "green"
+        entry_color = "blue" if is_long else "magenta"
+        exit_color  = "magenta"   if is_long else "blue"
 
         entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
         exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
@@ -330,17 +331,17 @@ def generate_chart_base64(
         # ===== MOVING AVERAGES =====
         ma_configs = [
             {
-                "enabled": settings.get("MA1_activ"),
+                "enabled": bool(settings.get("MA1_activ")),
                 "type": settings.get("MA1_type"),
                 "value": settings.get("MA1_value")
             },
             {
-                "enabled": settings.get("MA2_activ"),
+                "enabled": bool(settings.get("MA2_activ")),
                 "type": settings.get("MA2_type"),
                 "value": settings.get("MA2_value")
             },
             {
-                "enabled": settings.get("MA3_activ"),
+                "enabled": bool(settings.get("MA3_activ")),
                 "type": settings.get("MA3_type"),
                 "value": settings.get("MA3_value")
             }
