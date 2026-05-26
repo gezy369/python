@@ -329,33 +329,42 @@ def generate_chart_base64(
         apds = []
 
         # ===== MOVING AVERAGES =====
+        MA_TYPE_MAP = {
+            1: "SMA",
+            2: "EMA"
+        }
+
         ma_configs = [
             {
-                "enabled": bool(settings.get("MA1_activ")),
+                "enabled": settings.get("MA1_activ"),
                 "type": settings.get("MA1_type"),
                 "value": settings.get("MA1_value")
             },
             {
-                "enabled": bool(settings.get("MA2_activ")),
+                "enabled": settings.get("MA2_activ"),
                 "type": settings.get("MA2_type"),
                 "value": settings.get("MA2_value")
             },
             {
-                "enabled": bool(settings.get("MA3_activ")),
+                "enabled": settings.get("MA3_activ"),
                 "type": settings.get("MA3_type"),
                 "value": settings.get("MA3_value")
             }
         ]
 
         for ma in ma_configs:
-            if not ma["enabled"]:
+            if ma["enabled"] is not True:
                 continue
 
-            length = int(ma["value"] or 0)
+            try:
+                length = int(ma["value"])
+            except:
+                continue
+
             if length <= 0:
                 continue
 
-            ma_type = (ma["type"] or "EMA").upper()
+            ma_type = MA_TYPE_MAP.get(ma["type"], "EMA")
             column_name = f"{ma_type}_{length}"
 
             if ma_type == "SMA":
@@ -363,7 +372,9 @@ def generate_chart_base64(
             else:
                 df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
 
-            apds.append(mpf.make_addplot(df[column_name]))
+            apds.append(
+                mpf.make_addplot(df[column_name], width=1.2)
+            )
 
 
         # ===== VWAP =====
