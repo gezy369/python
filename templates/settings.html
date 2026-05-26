@@ -545,82 +545,126 @@ function loadTimezone() {
 /* ================= CHART SETTINGS ================= */
 
 const DEFAULT_CHART_SETTINGS = {
-  ma1: { enabled: true, type: "EMA", value: 9 },
-  ma2: { enabled: true, type: "EMA", value: 20 },
-  ma3: { enabled: false, type: "SMA", value: 50 },
-  vwap: true
+  MA1_activ: true,
+  MA1_type: "EMA",
+  MA1_value: 9,
+
+  MA2_activ: true,
+  MA2_type: "EMA",
+  MA2_value: 20,
+
+  MA3_activ: false,
+  MA3_type: "SMA",
+  MA3_value: 50,
+
+  VWAP_activ: true
 };
+
+function applyChartSettingsToUI(settings) {
+
+  // MA1
+  document.getElementById("ma1Enabled").checked = settings.MA1_activ;
+  document.getElementById("ma1Value").value = settings.MA1_value;
+
+  document.querySelector(
+    `input[name="ma1Type"][value="${settings.MA1_type}"]`
+  ).checked = true;
+
+  // MA2
+  document.getElementById("ma2Enabled").checked = settings.MA2_activ;
+  document.getElementById("ma2Value").value = settings.MA2_value;
+
+  document.querySelector(
+    `input[name="ma2Type"][value="${settings.MA2_type}"]`
+  ).checked = true;
+
+  // MA3
+  document.getElementById("ma3Enabled").checked = settings.MA3_activ;
+  document.getElementById("ma3Value").value = settings.MA3_value;
+
+  document.querySelector(
+    `input[name="ma3Type"][value="${settings.MA3_type}"]`
+  ).checked = true;
+
+  // VWAP
+  document.getElementById("vwapEnabled").checked = settings.VWAP_activ;
+}
 
 function getChartSettingsFromUI() {
   return {
-    ma1: {
-      enabled: document.getElementById("ma1Enabled").checked,
-      type: document.querySelector('input[name="ma1Type"]:checked').value,
-      value: Number(document.getElementById("ma1Value").value)
-    },
 
-    ma2: {
-      enabled: document.getElementById("ma2Enabled").checked,
-      type: document.querySelector('input[name="ma2Type"]:checked').value,
-      value: Number(document.getElementById("ma2Value").value)
-    },
+    MA1_activ: document.getElementById("ma1Enabled").checked,
+    MA1_type: document.querySelector(
+      'input[name="ma1Type"]:checked'
+    ).value,
+    MA1_value: Number(
+      document.getElementById("ma1Value").value
+    ),
 
-    ma3: {
-      enabled: document.getElementById("ma3Enabled").checked,
-      type: document.querySelector('input[name="ma3Type"]:checked').value,
-      value: Number(document.getElementById("ma3Value").value)
-    },
+    MA2_activ: document.getElementById("ma2Enabled").checked,
+    MA2_type: document.querySelector(
+      'input[name="ma2Type"]:checked'
+    ).value,
+    MA2_value: Number(
+      document.getElementById("ma2Value").value
+    ),
 
-    vwap: document.getElementById("vwapEnabled").checked
+    MA3_activ: document.getElementById("ma3Enabled").checked,
+    MA3_type: document.querySelector(
+      'input[name="ma3Type"]:checked'
+    ).value,
+    MA3_value: Number(
+      document.getElementById("ma3Value").value
+    ),
+
+    VWAP_activ: document.getElementById("vwapEnabled").checked
   };
 }
 
-function applyChartSettingsToUI(settings) {
-  document.getElementById("ma1Enabled").checked = settings.ma1.enabled;
-  document.getElementById("ma1Value").value = settings.ma1.value;
-  document.querySelector(`input[name="ma1Type"][value="${settings.ma1.type}"]`).checked = true;
-
-  document.getElementById("ma2Enabled").checked = settings.ma2.enabled;
-  document.getElementById("ma2Value").value = settings.ma2.value;
-  document.querySelector(`input[name="ma2Type"][value="${settings.ma2.type}"]`).checked = true;
-
-  document.getElementById("ma3Enabled").checked = settings.ma3.enabled;
-  document.getElementById("ma3Value").value = settings.ma3.value;
-  document.querySelector(`input[name="ma3Type"][value="${settings.ma3.type}"]`).checked = true;
-
-  document.getElementById("vwapEnabled").checked = settings.vwap;
-}
-
 function saveChartSettings() {
+
   const settings = getChartSettingsFromUI();
 
   fetch("/api/settings", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chartSettings: settings
-    })
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(settings)
   });
 }
 
 function loadChartSettings() {
+
   fetch("/api/settings")
     .then(r => r.json())
     .then(data => {
-      const settings =
-        data.chartSettings || DEFAULT_CHART_SETTINGS;
+
+      const settings = {
+        ...DEFAULT_CHART_SETTINGS,
+        ...data
+      };
 
       applyChartSettingsToUI(settings);
     });
 
   [
-    "ma1Enabled","ma1Value",
-    "ma2Enabled","ma2Value",
-    "ma3Enabled","ma3Value",
+    "ma1Enabled",
+    "ma1Value",
+
+    "ma2Enabled",
+    "ma2Value",
+
+    "ma3Enabled",
+    "ma3Value",
+
     "vwapEnabled"
   ].forEach(id => {
-    document.getElementById(id)
+
+    document
+      .getElementById(id)
       .addEventListener("change", saveChartSettings);
+
   });
 
   document
