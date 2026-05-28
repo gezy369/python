@@ -1339,7 +1339,10 @@ def generate_charts():
 
         trades = trades_res.data or []
         failed = []
+        updated_trades = []
+
         user_id = session["user"]["id"]
+
         for trade in trades:
             try:
                 chart_b64 = generate_chart_base64(
@@ -1349,7 +1352,7 @@ def generate_charts():
                     entry_price=float(trade["entryPrice"]),
                     exit_price=float(trade["exitPrice"]),
                     side=trade["side"],
-                    user_id     = user_id
+                    user_id=user_id
                 )
 
                 if chart_b64:
@@ -1357,6 +1360,11 @@ def generate_charts():
                         .update({"chart_image": chart_b64}) \
                         .eq("id", trade["id"]) \
                         .execute()
+
+                    updated_trades.append(trade["id"])
+
+                else:
+                    failed.append(trade["id"])
 
             except Exception as e:
                 print(f"Chart error {trade['id']}: {e}")
