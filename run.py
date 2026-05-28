@@ -383,6 +383,10 @@ def generate_chart_base64(
             else:
                 df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
 
+            apds.append(
+                mpf.make_addplot(df[column_name], width=1.2)
+            )
+
         # ===== VWAP =====
         if settings.get("VWAP_activ"):
 
@@ -391,6 +395,10 @@ def generate_chart_base64(
             cumulative_volume = df["Volume"].cumsum()
 
             df["VWAP"] = cumulative_vp / cumulative_volume
+
+            apds.append(
+                mpf.make_addplot(df["VWAP"], width=1.2)
+            )
 
         # ===== NOW TRIM WINDOW =====
         df = df[
