@@ -320,11 +320,7 @@ def generate_chart_base64(
         is_long     = str(side).lower() == "long"
         entry_color = "blue" if is_long else "magenta"
         exit_color  = "magenta"   if is_long else "blue"
-
-        entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
-        exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
-
-        
+     
         apds = []
 
         # ===== MOVING AVERAGES =====
@@ -388,7 +384,7 @@ def generate_chart_base64(
             )
 
         # ===== VWAP =====
-        if settings.get("VWAP_activ"):
+        if to_bool(settings.get("VWAP_activ")):
 
             typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
             cumulative_vp = (typical_price * df["Volume"]).cumsum()
@@ -405,6 +401,9 @@ def generate_chart_base64(
             (df.index >= entry_ts - timedelta(hours=3)) &
             (df.index <= exit_ts  + timedelta(hours=4))
         ]
+
+        entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
+        exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
 
         # ===== ENTRY / EXIT MARKERS =====
         apds.extend([
@@ -432,17 +431,25 @@ def generate_chart_base64(
             linewidths=1
         )
 
-        buf = io.BytesIO()
-        mpf.plot(
+        if df.empty or len(df) < 5:
+            print("Dataframe empty after trimming")
+            return None
+        
+        fig = mpf.plot(
             df,
             type="candle",
             style="charles",
             addplot=apds,
             hlines=hlines,
             tight_layout=True,
-            savefig=dict(fname=buf, format="png", dpi=100),
-            figsize=(10, 5)
+            figsize=(10, 5),
+            returnfig=True
         )
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=100)
+        plt.close(fig)
+
         buf.seek(0)
         return base64.b64encode(buf.read()).decode("utf-8")
 
