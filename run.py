@@ -361,6 +361,9 @@ def generate_chart_base64(
             }
         ]
 
+        df = df.dropna(subset=["Open", "High", "Low", "Close"])
+
+        # ===== MOVING AVERAGES =====
         for ma in ma_configs:
 
             if not ma["enabled"]:
@@ -380,11 +383,6 @@ def generate_chart_base64(
             else:
                 df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
 
-            apds.append(
-                mpf.make_addplot(df[column_name], width=1.2)
-            )
-
-
         # ===== VWAP =====
         if settings.get("VWAP_activ"):
 
@@ -394,8 +392,11 @@ def generate_chart_base64(
 
             df["VWAP"] = cumulative_vp / cumulative_volume
 
-            apds.append(mpf.make_addplot(df["VWAP"]))
-
+        # ===== NOW TRIM WINDOW =====
+        df = df[
+            (df.index >= entry_ts - timedelta(hours=3)) &
+            (df.index <= exit_ts  + timedelta(hours=4))
+        ]
 
         # ===== ENTRY / EXIT MARKERS =====
         apds.extend([
