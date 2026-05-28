@@ -330,7 +330,9 @@ def generate_chart_base64(
 
         def to_int(v):
             try:
-                return int(v)
+                if v is None:
+                    return None
+                return int(float(v))
             except:
                 return None
 
@@ -390,6 +392,7 @@ def generate_chart_base64(
             cumulative_vp = (typical_price * df["Volume"]).cumsum()
             cumulative_volume = df["Volume"].cumsum()
 
+            cumulative_volume = cumulative_volume.replace(0, float("nan"))
             df["VWAP"] = cumulative_vp / cumulative_volume
 
             apds.append(
