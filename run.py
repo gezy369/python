@@ -352,14 +352,22 @@ def generate_chart_base64(
                 "type": to_int(settings.get("MA2_type")),
                 "value": to_int(settings.get("MA2_value"))
             },
-            {
-                "enabled": to_bool(settings.get("MA3_activ")),
-                "type": to_int(settings.get("MA3_type")),
-                "value": to_int(settings.get("MA3_value"))
-            }
         ]
 
         df = df.dropna(subset=["Open", "High", "Low", "Close"])
+
+
+
+
+
+        print("SETTINGS:", settings)
+        print("APDS COUNT:", len(apds))
+        print(df.tail())
+
+
+
+
+
 
         # ===== MOVING AVERAGES =====
         for ma in ma_configs:
@@ -438,7 +446,7 @@ def generate_chart_base64(
             print("Dataframe empty after trimming")
             return None
         
-        fig = mpf.plot(
+        fig, axlist = mpf.plot(
             df,
             type="candle",
             style="charles",
