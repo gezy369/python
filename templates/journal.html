@@ -1061,19 +1061,21 @@ async function bulkGenerateCharts() {
       throw new Error("Failed to generate charts");
     }
 
-    const updatedTrades = await res.json();
+      const result = await res.json();
+      const updatedIds = result.updated || [];
+      const failedIds  = result.failed  || [];
 
-    updatedTrades.forEach(updated => {
-      const trade = originalData.find(t => t.id === updated.id);
-
-      if (trade) {
-        trade.chart_image = updated.chart_image;
+      if (updatedIds.length) {
+        const freshRes = await fetch(`/api/trades?account=${accountSelect?.value || ""}`);
+        const freshRaw = await freshRes.json();
+        freshRaw.forEach(fresh => {
+          const local = originalData.find(t => t.id === fresh.id);
+          if (local && fresh.chart_image) local.chart_image = fresh.chart_image;
+        });
       }
-    });
 
-    applyFiltersAndRender();
-
-    alert(`Generated ${updatedTrades.length} chart(s).`);
+      applyFiltersAndRender();
+      alert(`Generated ${updatedIds.length} chart(s).${failedIds.length ? ` ${failedIds.length} failed.` : ""}`);
 
   } catch (err) {
     console.error(err);
