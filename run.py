@@ -234,15 +234,7 @@ def logout():
     return redirect(url_for("login"))
 
 # ===== CHART GENERATION =====
-def generate_chart_base64(
-    symbol,
-    entry_time,
-    exit_time,
-    entry_price,
-    exit_price,
-    side,
-    user_id
-):
+def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side, user_id):
     try:
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
         trade_date   = entry_time.date()
@@ -262,25 +254,16 @@ def generate_chart_base64(
 
         r = requests.get(url, headers=headers, timeout=10)
         if not r.ok:
-            print(f"Yahoo returned {r.status_code} for {yahoo_symbol}")
+            print(f"Yahoo returned {r.status_code} for {yahoo_symbol}: {r.text[:300]}")
             return None
 
         data = r.json()
-
-        if not data or "chart" not in data:
-            print("Invalid Yahoo response structure")
-            return None
-
-        if data["chart"].get("error"):
-            print(f"Yahoo error: {data['chart']['error']}")
-            return None
-
-        result = data["chart"].get("result")
+        result = data.get("chart", {}).get("result")
         if not result:
-            print("No result in Yahoo response")
+            print(f"No result in Yahoo response for {yahoo_symbol}: {data.get('chart', {}).get('error')}")
             return None
 
-        result = result[0]
+        result     = result[0]
         timestamps = result["timestamp"]
         quote      = result["indicators"]["quote"][0]
 
@@ -292,162 +275,106 @@ def generate_chart_base64(
             "Volume": quote.get("volume", [0] * len(timestamps))
         }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
 
-        df = df.dropna()
-        # ===== LOAD USER SETTINGS FROM SESSION =====
-        settings = session.get("settings", {})
+        df = df.dropna(subset=["Open", "High", "Low", "Close"])
 
-        apds = []
-        if len(df) < 20:
-            print(f"Insufficient candle history for {yahoo_symbol}")
+        if len(df) < 5:
+            print(f"Insufficient candles for {yahoo_symbol}: {len(df)}")
             return None
 
+        # ── Localize entry/exit ──────────────────────────────────────────
         entry_ts = pd.Timestamp(entry_time)
         exit_ts  = pd.Timestamp(exit_time)
-
         if entry_ts.tzinfo is None:
             entry_ts = entry_ts.tz_localize("Europe/Paris")
         if exit_ts.tzinfo is None:
             exit_ts = exit_ts.tz_localize("Europe/Paris")
 
-        df = df[
-            (df.index >= entry_ts - timedelta(hours=3)) &
-            (df.index <= exit_ts  + timedelta(hours=4))
-        ]
-        if df.empty:
-            print(f"No candles in trade window for {yahoo_symbol}")
-            return None
-
-        is_long     = str(side).lower() == "long"
-        entry_color = "blue" if is_long else "magenta"
-        exit_color  = "magenta"   if is_long else "blue"
-     
-        apds = []
-
-        # ===== MOVING AVERAGES =====
+        settings = session.get("settings", {})
 
         def to_bool(v):
             return v in [True, "true", "True", 1, "1"]
 
         def to_int(v):
             try:
-                if v is None:
-                    return None
-                return int(float(v))
+                return int(float(v)) if v is not None else None
             except:
                 return None
 
-        MA_TYPE_MAP = {
-            1: "SMA",
-            2: "EMA"
-        }
+        MA_TYPE_MAP = {1: "SMA", 2: "EMA"}
 
+        # ── 1. Compute MAs on FULL df (needs max history) ───────────────
         ma_configs = [
-            {
-                "enabled": to_bool(settings.get("MA1_activ")),
-                "type": to_int(settings.get("MA1_type")),
-                "value": to_int(settings.get("MA1_value"))
-            },
-            {
-                "enabled": to_bool(settings.get("MA2_activ")),
-                "type": to_int(settings.get("MA2_type")),
-                "value": to_int(settings.get("MA2_value"))
-            },
+            {"enabled": to_bool(settings.get("MA1_activ")), "type": to_int(settings.get("MA1_type")), "value": to_int(settings.get("MA1_value"))},
+            {"enabled": to_bool(settings.get("MA2_activ")), "type": to_int(settings.get("MA2_type")), "value": to_int(settings.get("MA2_value"))},
         ]
 
-        df = df.dropna(subset=["Open", "High", "Low", "Close"])
-
-
-
-
-
-        print("SETTINGS:", settings)
-        print("APDS COUNT:", len(apds))
-        print(df.tail())
-
-
-
-
-
-
-        # ===== MOVING AVERAGES =====
         for ma in ma_configs:
-
-            if not ma["enabled"]:
+            if not ma["enabled"] or not ma["value"] or ma["value"] <= 0:
                 continue
-
-            length = ma["value"]
-
-            if not length or length <= 0:
-                continue
-
-            ma_type = MA_TYPE_MAP.get(ma["type"], "EMA")
-
-            column_name = f"{ma_type}_{length}"
-
+            ma_type     = MA_TYPE_MAP.get(ma["type"], "EMA")
+            column_name = f"{ma_type}_{ma['value']}"
             if ma_type == "SMA":
-                df[column_name] = df["Close"].rolling(length).mean()
+                df[column_name] = df["Close"].rolling(ma["value"]).mean()
             else:
-                df[column_name] = df["Close"].ewm(span=length, adjust=False).mean()
+                df[column_name] = df["Close"].ewm(span=ma["value"], adjust=False).mean()
 
-            apds.append(
-                mpf.make_addplot(df[column_name], width=1.2)
-            )
-
-        # ===== VWAP =====
+        # ── 2. Compute VWAP on FULL df ───────────────────────────────────
         if to_bool(settings.get("VWAP_activ")):
+            typical_price     = (df["High"] + df["Low"] + df["Close"]) / 3
+            cumvp             = (typical_price * df["Volume"]).cumsum()
+            cumvol            = df["Volume"].cumsum().replace(0, float("nan"))
+            df["VWAP"]        = (cumvp / cumvol).ffill()   # ✅ fixed deprecation
 
-            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
-            cumulative_vp = (typical_price * df["Volume"]).cumsum()
-            cumulative_volume = df["Volume"].cumsum()
-
-            cumulative_volume = df["Volume"].cumsum().replace(0, float("nan"))
-            df["VWAP"] = cumulative_vp / cumulative_volume
-            df["VWAP"] = df["VWAP"].fillna(method="ffill")
-
-            apds.append(
-                mpf.make_addplot(df["VWAP"], width=1.2)
-            )
-
-        # ===== NOW TRIM WINDOW =====
+        # ── 3. NOW trim to trade window ──────────────────────────────────
         df = df[
             (df.index >= entry_ts - timedelta(hours=3)) &
             (df.index <= exit_ts  + timedelta(hours=4))
         ]
 
+        if df.empty or len(df) < 5:
+            print(f"No candles in trade window for {yahoo_symbol}")
+            return None
+
         entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
         exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
+        is_long   = str(side).lower() == "long"
 
-        # ===== ENTRY / EXIT MARKERS =====
+        # ── 4. Build addplots AFTER trim ─────────────────────────────────
+        apds = []
+
+        for ma in ma_configs:
+            if not ma["enabled"] or not ma["value"] or ma["value"] <= 0:
+                continue
+            col = f"{MA_TYPE_MAP.get(ma['type'], 'EMA')}_{ma['value']}"
+            if col in df.columns:
+                apds.append(mpf.make_addplot(df[col], width=1.2))
+
+        if "VWAP" in df.columns:
+            apds.append(mpf.make_addplot(df["VWAP"], width=1.2))
+
+        entry_color = "blue"    if is_long else "magenta"
+        exit_color  = "magenta" if is_long else "blue"
+
         apds.extend([
             mpf.make_addplot(
                 [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
-                type="scatter",
-                markersize=120,
-                marker="^" if is_long else "v",
-                color=entry_color
+                type="scatter", markersize=120,
+                marker="^" if is_long else "v", color=entry_color
             ),
-
             mpf.make_addplot(
                 [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
-                type="scatter",
-                markersize=120,
-                marker="v" if is_long else "^",
-                color=exit_color
+                type="scatter", markersize=120,
+                marker="v" if is_long else "^", color=exit_color
             ),
         ])
 
         hlines = dict(
             hlines=[entry_price, exit_price],
             colors=[entry_color, exit_color],
-            linestyle="--",
-            linewidths=1
+            linestyle="--", linewidths=1
         )
 
-        if df.empty or len(df) < 5:
-            print("Dataframe empty after trimming")
-            return None
-        
-        fig, axlist = mpf.plot(
+        fig, _ = mpf.plot(
             df,
             type="candle",
             style="charles",
@@ -461,7 +388,6 @@ def generate_chart_base64(
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=100)
         plt.close(fig)
-
         buf.seek(0)
         return base64.b64encode(buf.read()).decode("utf-8")
 
