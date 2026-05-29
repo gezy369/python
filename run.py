@@ -350,7 +350,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
                 apds.append(mpf.make_addplot(df[col], width=1.2))
 
         if "VWAP" in df.columns:
-            apds.append(mpf.make_addplot(df["VWAP"], width=1.2))
+            apds.append(mpf.make_addplot(df["VWAP"], width=1.2, color="magenta", linestyle="--"))
 
         entry_color = "blue"    if is_long else "magenta"
         exit_color  = "magenta" if is_long else "blue"
