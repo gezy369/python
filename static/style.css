@@ -505,6 +505,12 @@ body {
   color: var(--accent-blue);
 }
 
+.dropzone.dropped {
+  border-color: var(--accent-green);
+  background: var(--green-bg);
+  color: var(--accent-green);
+}
+
 button {
   margin-top: 10px;
   padding: 7px 14px;
