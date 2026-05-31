@@ -354,8 +354,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             apds.append(mpf.make_addplot(df["VWAP"], width=1.2, color="#d47bfd"))
 
         # ── Entry/exit marker colors ──────────────────────────────────────────
-        entry_color = "#26a69a" if is_long else "#ef5350"   # green long, red short
-        exit_color  = "#ef5350" if is_long else "#26a69a"
+        entry_color = "#26a666" if is_long else "#ef5350"   # green long, red short
+        exit_color  = "#ef5350" if is_long else "#26a666"
 
         # ── Custom candle style ───────────────────────────────────────────────
         custom_style = mpf.make_mpf_style(
