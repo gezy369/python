@@ -289,7 +289,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         if exit_ts.tzinfo is None:
             exit_ts = exit_ts.tz_localize("Europe/Paris")
 
-        settings = session.get("settings", {})
+        settings_res = supabase_admin.table("settings").select("*").eq("user_id", user_id).execute()
+        settings = settings_res.data[0] if settings_res.data else {}
 
         def to_bool(v):
             return v in [True, "true", "True", 1, "1"]
