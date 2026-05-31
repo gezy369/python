@@ -351,10 +351,29 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
                 apds.append(mpf.make_addplot(df[col], width=1.2))
 
         if "VWAP" in df.columns:
-            apds.append(mpf.make_addplot(df["VWAP"], width=1.2, color="magenta", linestyle="--"))
+            apds.append(mpf.make_addplot(df["VWAP"], width=1.2, color="#d47bfd"))
 
-        entry_color = "blue"    if is_long else "magenta"
-        exit_color  = "magenta" if is_long else "blue"
+        # ── Entry/exit marker colors ──────────────────────────────────────────
+        entry_color = "#26a69a" if is_long else "#ef5350"   # green long, red short
+        exit_color  = "#ef5350" if is_long else "#26a69a"
+
+        # ── Custom candle style ───────────────────────────────────────────────
+        custom_style = mpf.make_mpf_style(
+            base_mpf_style="charles",
+            marketcolors=mpf.make_marketcolors(
+                up       = "#D1D1D1",   # up body fill
+                down     = "#7E838C",   # down body fill
+                edge     = {"up": "#7E838C", "down": "#7E838C"},   # body outline
+                wick     = {"up": "#7E838C", "down": "#7E838C"},   # wicks
+                ohlc     = "inherit",
+                volume   = {"up": "#D1D1D1", "down": "#7E838C"},
+            ),
+            facecolor  = "#0d0f14",   # chart background (matches --bg-base)
+            figcolor   = "#0d0f14",
+            gridcolor  = "#1e2028",
+            gridstyle  = "--",
+            gridaxis   = "both",
+        )
 
         apds.extend([
             mpf.make_addplot(
@@ -378,7 +397,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         fig, _ = mpf.plot(
             df,
             type="candle",
-            style="charles",
+            style="custom_style",
             addplot=apds,
             hlines=hlines,
             tight_layout=True,
