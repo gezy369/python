@@ -79,8 +79,15 @@ dropzone.onclick = () => fileInput.click();
 fileInput.onchange = (e) => {
   selectedFile = e.target.files[0];
   dropzone.innerHTML = "Selected: " + selectedFile.name;
-  dropzone.classList.add("dropped");        // ← add
+  dropzone.classList.add("dropped");
 };
+
+dropzone.ondragover = (e) => {
+  e.preventDefault();
+  dropzone.classList.add("dragover");
+};
+
+dropzone.ondragleave = () => dropzone.classList.remove("dragover");
 
 dropzone.ondrop = (e) => {
   e.preventDefault();
@@ -90,12 +97,6 @@ dropzone.ondrop = (e) => {
   dropzone.innerHTML = "Dropped: " + selectedFile.name;
 };
 
-dropzone.ondragover = (e) => {
-  e.preventDefault();
-  dropzone.classList.add("dragover");
-};
-
-dropzone.ondragleave = () => dropzone.classList.remove("dragover");
 
 function renderTable(columns, rows) {
   const container = document.getElementById("table-container");
