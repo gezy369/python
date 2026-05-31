@@ -397,7 +397,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         fig, _ = mpf.plot(
             df,
             type="candle",
-            style="custom_style",
+            style=custom_style,
             addplot=apds,
             hlines=hlines,
             tight_layout=True,
