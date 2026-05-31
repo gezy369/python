@@ -368,9 +368,9 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
                 ohlc     = "inherit",
                 volume   = {"up": "#D1D1D1", "down": "#7E838C"},
             ),
-            facecolor  = "#0d0f14",   # chart background (matches --bg-base)
-            figcolor   = "#0d0f14",
-            gridcolor  = "#1e2028",
+            facecolor  = "#ffffff",   # chart background (matches --bg-base)
+            figcolor   = "#ffffff",
+            gridcolor  = "#e0e0e0",
             gridstyle  = "--",
             gridaxis   = "both",
         )
