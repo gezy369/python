@@ -283,14 +283,10 @@ function addFeeRow() {
 
   function save() {
     if (saved) return;
-
     const symbol = symbolInput.value.trim();
     const fees   = feeInput.value.trim();
-
     if (!symbol) return cleanup();
-
     saved = true;
-
     fetch("/api/fees", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -303,10 +299,16 @@ function addFeeRow() {
       if (e.key === "Enter") save();
       if (e.key === "Escape") cleanup();
     });
-    input.addEventListener("blur", save);
+  });
+
+  [symbolInput, feeInput].forEach(input => {
+    input.addEventListener("blur", e => {
+      setTimeout(() => {
+        if (!tr.contains(document.activeElement)) save();
+      }, 150);
+    });
   });
 }
-
 
 function updateFee(id, field, value) {
   fetch(`/api/fees/${id}`, {
