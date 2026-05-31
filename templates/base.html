@@ -34,6 +34,12 @@
       const res = await fetch("/api/accounts");
       const accounts = await res.json();
 
+      const newTradesLink = document.getElementById("newTradesLink");
+      if (newTradesLink) {
+        newTradesLink.style.display = accounts.length > 0 ? "" : "none";
+      }
+
+  select.innerHTML = `<option value="">All accounts</option>`;
       select.innerHTML = `<option value="">All accounts</option>`;
       accounts.forEach(acc => {
         const opt = document.createElement("option");
@@ -86,7 +92,7 @@
     </a>
 
     <!-- New Trades -->
-    <a class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}">
+    <a id="newTradesLink" class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="8" cy="8" r="7"/>
         <line x1="8" y1="5" x2="8" y2="11"/>
