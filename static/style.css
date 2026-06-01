@@ -2156,12 +2156,13 @@ tr.trade-details-row td {
   gap: 10px;
 }
 
+/* ===== VIEW TOGGLE ICONS ===== */
 .toggle-icon {
   display: flex;
   align-items: center;
-  opacity: 0.35;
-  color: var(--text-faint);
-  transition: all 0.2s ease;
+  color: var(--text-primary);
+  opacity: 0.4;
+  transition: color 0.2s, opacity 0.2s;
 }
 
 .toggle-icon svg {
@@ -2169,21 +2170,26 @@ tr.trade-details-row td {
   height: 14px;
 }
 
-/* DEFAULT → table active */
+/* Table active by default */
 .table-icon {
   opacity: 1;
+  color: var(--accent-blue);
+}
+
+.chart-icon {
+  opacity: 0.4;
   color: var(--text-primary);
 }
 
-/* WHEN SWITCH IS CHECKED → chart active */
-#viewSwitch:checked ~ .chart-icon {
+/* When switch is checked → chart active, table inactive */
+.view-toggle:has(#viewSwitch:checked) .table-icon {
+  opacity: 0.4;
+  color: var(--text-primary);
+}
+
+.view-toggle:has(#viewSwitch:checked) .chart-icon {
   opacity: 1;
-  color: var(--text-primary);
-}
-
-#viewSwitch:checked ~ .table-icon {
-  opacity: 0.3;
-  color: var(--text-faint);
+  color: var(--accent-blue);
 }
 
 .switch {
