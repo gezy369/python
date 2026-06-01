@@ -17,6 +17,15 @@
             <select id="timezoneSelect" class="dark-select" style="width:100%"></select>
           </td>
         </tr>
+        <tr>
+          <td>Trade merging</td>
+          <td>
+            <select id="tradeMergingSelect" class="dark-select" style="width:100%">
+              <option value="Entry">Group by Entry Time</option>
+              <option value="Exit">Group by Exit Time</option>
+            </select>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -513,7 +522,7 @@ function loadTimezone() {
     });
   });
 }
-
+loadTradeMerging();
 /* ================= CHART SETTINGS ================= */
 
 const DEFAULT_CHART_SETTINGS = {

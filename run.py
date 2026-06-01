@@ -462,8 +462,20 @@ def upload_file():
             .eq("user_id", user_id)
             .execute()
         )
-
         df_fees = pd.DataFrame(fees_res.data or [])
+        
+        # ===== FETCH SETTINGS =====
+        settings_res = (
+            supabase_admin.table("settings")
+            .select("trade_merging")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        trade_merging = "Entry"
+        if settings_res.data:
+            trade_merging = settings_res.data[0].get("trade_merging", "Entry")
+
+        df_imported_trades = csv_handler(df, df_fees, trade_merging=trade_merging)
 
         # ===== PROCESS =====
         df_imported_trades = csv_handler(df, df_fees)

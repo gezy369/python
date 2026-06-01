@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-def csv_handler(df_trade, df_fees=None):
+def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
     df_trade["pnl"] = (
         df_trade["pnl"]
         .str.replace("$", "", regex=False)
@@ -39,21 +39,37 @@ def csv_handler(df_trade, df_fees=None):
     )
 
     # ===== GROUP =====
-    trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
-
-    df_trades = (
-        df_trade
-        .groupby(trade_cols, as_index=False)
-        .agg(
-            qty=("qty", "sum"),
-            pnl=("pnl", "sum"),
-            duration=("duration", "last"),
-            entryTimestamp=("entryTimestamp", "first"),
-            exitPrice=("exitPrice", "last"),
-            exitTimestamp=("exitTimestamp", "last"),
-            side=("side", "first")
+    if trade_merging == "Exit":
+        trade_cols = ["symbol", "exitTimestamp", "exitPrice"]
+        df_trades = (
+            df_trade
+            .groupby(trade_cols, as_index=False)
+            .agg(
+                qty=("qty", "sum"),
+                pnl=("pnl", "sum"),
+                duration=("duration", "last"),
+                entryTimestamp=("entryTimestamp", "first"),
+                entryPrice=("entryPrice", "first"),
+                exitPrice=("exitPrice", "last"),
+                exitTimestamp=("exitTimestamp", "last"),
+                side=("side", "first")
+            )
         )
-    )
+    else:
+        trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
+        df_trades = (
+            df_trade
+            .groupby(trade_cols, as_index=False)
+            .agg(
+                qty=("qty", "sum"),
+                pnl=("pnl", "sum"),
+                duration=("duration", "last"),
+                entryTimestamp=("entryTimestamp", "first"),
+                exitPrice=("exitPrice", "last"),
+                exitTimestamp=("exitTimestamp", "last"),
+                side=("side", "first")
+            )
+        )
 
     # Normalize symbol
     df_trades["symbol"] = df_trades["symbol"].str[:-2]
