@@ -501,27 +501,24 @@ function deleteEmotion(id) {
 
 /* ================= TIMEZONE ================= */
 
-function loadTimezone() {
-  const tzSelect = document.getElementById("timezoneSelect");
-  const TIMEZONES = Intl.supportedValuesOf("timeZone");
-  tzSelect.innerHTML = TIMEZONES.map(tz =>
-    `<option value="${tz}">${tz.replace(/_/g, " ")}</option>`
-  ).join("");
+function loadTradeMerging() {
+  const select = document.getElementById("tradeMergingSelect");
 
   fetch("/api/settings")
     .then(r => r.json())
     .then(data => {
-      tzSelect.value = data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      select.value = data.trade_merging || "Entry";
     });
 
-  tzSelect.addEventListener("change", () => {
+  select.addEventListener("change", () => {
     fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ timezone: tzSelect.value })
+      body: JSON.stringify({ trade_merging: select.value })
     });
   });
 }
+
 loadTradeMerging();
 /* ================= CHART SETTINGS ================= */
 
