@@ -1114,6 +1114,15 @@ function closeBulkTagEditor() {
 }
 
 document.addEventListener("click", e => {
+  // ignore clicks inside a filter column
+  if (e.target.closest(".filter-column")) return;
+
+  // close all open filter sections
+  document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
+  document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
+});
+
+document.addEventListener("click", e => {
   const btn = e.target.closest(".bulk-tag-btn");
   if (!btn) return;
 
