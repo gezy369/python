@@ -2161,8 +2161,7 @@ tr.trade-details-row td {
   display: flex;
   align-items: center;
   color: var(--text-primary);
-  opacity: 0.4;
-  transition: color 0.2s, opacity 0.2s;
+  transition: color 0.2s;
 }
 
 .toggle-icon svg {
@@ -2171,26 +2170,12 @@ tr.trade-details-row td {
 }
 
 /* Table active by default */
-.table-icon {
-  opacity: 1;
-  color: var(--accent-blue);
-}
-
-.chart-icon {
-  opacity: 0.4;
-  color: var(--text-primary);
-}
+.table-icon { color: var(--accent-blue); }
+.chart-icon { color: var(--text-primary); }
 
 /* When switch is checked → chart active, table inactive */
-.view-toggle:has(#viewSwitch:checked) .table-icon {
-  opacity: 0.4;
-  color: var(--text-primary);
-}
-
-.view-toggle:has(#viewSwitch:checked) .chart-icon {
-  opacity: 1;
-  color: var(--accent-blue);
-}
+.view-toggle:has(#viewSwitch:checked) .table-icon { color: var(--text-primary); }
+.view-toggle:has(#viewSwitch:checked) .chart-icon { color: var(--accent-blue); }
 
 .switch {
   position: relative;
