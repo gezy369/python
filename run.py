@@ -475,10 +475,11 @@ def upload_file():
         if settings_res.data:
             trade_merging = settings_res.data[0].get("trade_merging", "Entry")
 
-        df_imported_trades = csv_handler(df, df_fees, trade_merging=trade_merging)
-
-        # ===== PROCESS =====
-        df_imported_trades = csv_handler(df, df_fees)
+        df_imported_trades = csv_handler(
+            df,
+            df_fees,
+            trade_merging=trade_merging
+        )
 
         # keep full version for backend
         df_imported_trades["key_trading_accounts"] = account_id
