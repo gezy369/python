@@ -50,7 +50,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
                 pnl=("pnl", "sum"),
                 duration=("duration", "last"),
                 entryTimestamp=("entryTimestamp", "first"),
-                entryPrice=("entryPrice", "first"),
+                entryPrice=("entryPrice", "mean"),
                 exitPrice=("exitPrice", "last"),
                 exitTimestamp=("exitTimestamp", "last"),
                 side=("side", "first")
@@ -66,6 +66,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
                 pnl=("pnl", "sum"),
                 duration=("duration", "last"),
                 entryTimestamp=("entryTimestamp", "first"),
+                entryPrice=("entryPrice", "first"),
                 exitPrice=("exitPrice", "last"),
                 exitTimestamp=("exitTimestamp", "last"),
                 side=("side", "first")
