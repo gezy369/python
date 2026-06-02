@@ -44,7 +44,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
         trade_cols = ["symbol", "exitTimestamp", "exitPrice"]
     else:
         # Entry mode: group by entry AND exit to avoid merging different exits
-        trade_cols = ["symbol", "entryTimestamp", "entryPrice", "exitTimestamp"]
+        trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
 
     df_trades = (
         df_trade
@@ -54,7 +54,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
             pnl=("pnl", "sum"),
             duration=("duration", "last"),
             entryTimestamp=("entryTimestamp", "first"),
-            entryPrice=("entryPrice", "first"),
+            entryPrice=("entryPrice", "mean"),
             exitPrice=("exitPrice", "last"),
             exitTimestamp=("exitTimestamp", "last"),
             side=("side", "first")
