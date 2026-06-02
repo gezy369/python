@@ -5,6 +5,7 @@ from datetime import datetime
 def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
     df_trade["pnl"] = (
         df_trade["pnl"]
+        .astype(str)
         .str.replace("$", "", regex=False)
         .str.replace("(", "-", regex=False)
         .str.replace(")", "", regex=False)
