@@ -41,7 +41,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
 
     # ===== GROUP =====
     if trade_merging == "Exit":
-        trade_cols = ["symbol", "exitTimestamp", "exitPrice"]
+        trade_cols = ["symbol", "exitTimestamp"]
         df_trades = (
             df_trade
             .groupby(trade_cols, as_index=False)
@@ -57,7 +57,7 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
             )
         )
     else:
-        trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
+        trade_cols = ["symbol", "entryTimestamp"]
         df_trades = (
             df_trade
             .groupby(trade_cols, as_index=False)
