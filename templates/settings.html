@@ -500,6 +500,42 @@ function deleteEmotion(id) {
 }
 
 /* ================= TIMEZONE ================= */
+function loadTimezone() {
+  const select = document.getElementById("timezoneSelect");
+
+  const timezones = Intl.supportedValuesOf("timeZone");
+
+  select.innerHTML = "";
+
+  timezones.forEach(tz => {
+    const option = document.createElement("option");
+    option.value = tz;
+    option.textContent = tz;
+    select.appendChild(option);
+  });
+
+  fetch("/api/settings")
+    .then(r => r.json())
+    .then(data => {
+      if (data.timezone) {
+        select.value = data.timezone;
+      }
+    });
+
+  select.addEventListener("change", () => {
+    fetch("/api/settings", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        timezone: select.value
+      })
+    });
+  });
+}
+
+/* ================= TRADE MERGING ================= */
 
 function loadTradeMerging() {
   const select = document.getElementById("tradeMergingSelect");
