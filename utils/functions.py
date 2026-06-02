@@ -41,37 +41,25 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
 
     # ===== GROUP =====
     if trade_merging == "Exit":
-        trade_cols = ["symbol", "exitTimestamp"]
-        df_trades = (
-            df_trade
-            .groupby(trade_cols, as_index=False)
-            .agg(
-                qty=("qty", "sum"),
-                pnl=("pnl", "sum"),
-                duration=("duration", "last"),
-                entryTimestamp=("entryTimestamp", "first"),
-                entryPrice=("entryPrice", "mean"),
-                exitPrice=("exitPrice", "last"),
-                exitTimestamp=("exitTimestamp", "last"),
-                side=("side", "first")
-            )
-        )
+        trade_cols = ["symbol", "exitTimestamp", "exitPrice"]
     else:
-        trade_cols = ["symbol", "entryTimestamp"]
-        df_trades = (
-            df_trade
-            .groupby(trade_cols, as_index=False)
-            .agg(
-                qty=("qty", "sum"),
-                pnl=("pnl", "sum"),
-                duration=("duration", "last"),
-                entryTimestamp=("entryTimestamp", "first"),
-                entryPrice=("entryPrice", "first"),
-                exitPrice=("exitPrice", "last"),
-                exitTimestamp=("exitTimestamp", "last"),
-                side=("side", "first")
-            )
+        # Entry mode: group by entry AND exit to avoid merging different exits
+        trade_cols = ["symbol", "entryTimestamp", "entryPrice", "exitTimestamp"]
+
+    df_trades = (
+        df_trade
+        .groupby(trade_cols, as_index=False)
+        .agg(
+            qty=("qty", "sum"),
+            pnl=("pnl", "sum"),
+            duration=("duration", "last"),
+            entryTimestamp=("entryTimestamp", "first"),
+            entryPrice=("entryPrice", "first"),
+            exitPrice=("exitPrice", "last"),
+            exitTimestamp=("exitTimestamp", "last"),
+            side=("side", "first")
         )
+    )
 
     # Normalize symbol
     df_trades["symbol"] = df_trades["symbol"].str[:-2]
