@@ -1077,6 +1077,37 @@ def delete_emotion_trade():
         .execute()
     return {"ok": True}
 
+# ============== check if timezone and account created =================== #
+@app.get("/api/onboarding-status")
+@login_required
+def onboarding_status():
+    user_id = session["user"]["id"]
+
+    accounts_res = (
+        supabase_admin.table("trading_accounts")
+        .select("id")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    settings_res = (
+        supabase_admin.table("settings")
+        .select("timezone")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    has_account = len(accounts_res.data or []) > 0
+
+    timezone = None
+    if settings_res.data:
+        timezone = settings_res.data[0].get("timezone")
+
+    return jsonify({
+        "has_account": has_account,
+        "has_timezone": bool(timezone),
+        "timezone": timezone
+    })
 
 # ===== FEES =====
 

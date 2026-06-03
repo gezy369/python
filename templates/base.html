@@ -34,11 +34,6 @@
       const res = await fetch("/api/accounts");
       const accounts = await res.json();
 
-      const newTradesLink = document.getElementById("newTradesLink");
-      if (newTradesLink) {
-        newTradesLink.style.display = accounts.length > 0 ? "" : "none";
-      }
-
   select.innerHTML = `<option value="">All accounts</option>`;
       select.innerHTML = `<option value="">All accounts</option>`;
       accounts.forEach(acc => {
@@ -92,7 +87,7 @@
     </a>
 
     <!-- New Trades -->
-    <a id="newTradesLink" class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}" style="display:none;">
+    <a id="newTradesLink" class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="8" cy="8" r="7"/>
         <line x1="8" y1="5" x2="8" y2="11"/>
@@ -143,6 +138,21 @@
 
 </div>
 
+<!-- ONBOARDING MODAL -->
+<div id="onboardingModal" class="onboarding-modal" style="display:none;">
+  <div class="onboarding-card">
+    <h2>Complete your setup</h2>
+
+    <p>
+      Before using the journal, please create an account and select a timezone.
+    </p>
+
+    <button id="goToSettingsBtn">
+      Open Settings
+    </button>
+  </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -178,6 +188,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       `<span style="color:#3a4050;">Could not load holidays.</span>`;
   }
 });
+
+async function checkOnboarding() {
+  const res = await fetch("/api/onboarding-status");
+  const data = await res.json();
+
+  const completed =
+    data.has_account &&
+    data.has_timezone;
+
+  if (!completed) {
+    document.getElementById("onboardingModal").style.display = "flex";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  checkOnboarding();
+
+  document
+    .getElementById("goToSettingsBtn")
+    ?.addEventListener("click", () => {
+      window.location.href = "/accounts";
+    });
+});
+
 </script>
 
 </body>
