@@ -332,12 +332,15 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             else:
                 df[column_name] = df["Close"].ewm(span=ma["value"], adjust=False).mean()
 
-        # ── 2. Compute VWAP on FULL df ───────────────────────────────────
+        # ── 2. Compute VWAP on FULL df ───────────────────────────────────────
         if to_bool(settings.get("VWAP_activ")):
-            typical_price     = (df["High"] + df["Low"] + df["Close"]) / 3
-            cumvp             = (typical_price * df["Volume"]).cumsum()
-            cumvol            = df["Volume"].cumsum().replace(0, float("nan"))
-            df["VWAP"]        = (cumvp / cumvol).ffill()   # ✅ fixed deprecation
+            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
+            df["_tp_vol"]     = typical_price * df["Volume"]
+            df["_date"]       = df.index.date
+            df["_cum_tp_vol"] = df.groupby("_date")["_tp_vol"].cumsum()
+            df["_cum_vol"]    = df.groupby("_date")["Volume"].cumsum().replace(0, float("nan"))
+            df["VWAP"]        = (df["_cum_tp_vol"] / df["_cum_vol"]).ffill()
+            df.drop(columns=["_tp_vol", "_date", "_cum_tp_vol", "_cum_vol"], inplace=True)
 
         # ── 3. NOW trim to trade window ──────────────────────────────────
         df = df[
