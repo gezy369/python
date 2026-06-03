@@ -267,13 +267,23 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         timestamps = result["timestamp"]
         quote      = result["indicators"]["quote"][0]
 
+        settings_res = (
+            supabase_admin.table("settings")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        settings = settings_res.data[0] if settings_res.data else {}
+
+        user_timezone = settings.get("timezone", "Europe/Paris")
+
         df = pd.DataFrame({
             "Open":   quote["open"],
             "High":   quote["high"],
             "Low":    quote["low"],
             "Close":  quote["close"],
             "Volume": quote.get("volume", [0] * len(timestamps))
-        }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert("Europe/Paris"))
+        }, index=pd.to_datetime(timestamps, unit="s", utc=True).tz_convert(user_timezone))
 
         df = df.dropna(subset=["Open", "High", "Low", "Close"])
 
@@ -284,13 +294,16 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         # ── Localize entry/exit ──────────────────────────────────────────
         entry_ts = pd.Timestamp(entry_time)
         exit_ts  = pd.Timestamp(exit_time)
-        if entry_ts.tzinfo is None:
-            entry_ts = entry_ts.tz_localize("Europe/Paris")
-        if exit_ts.tzinfo is None:
-            exit_ts = exit_ts.tz_localize("Europe/Paris")
 
-        settings_res = supabase_admin.table("settings").select("*").eq("user_id", user_id).execute()
-        settings = settings_res.data[0] if settings_res.data else {}
+        if entry_ts.tzinfo is None:
+            entry_ts = entry_ts.tz_localize(user_timezone)
+        else:
+            entry_ts = entry_ts.tz_convert(user_timezone)
+
+        if exit_ts.tzinfo is None:
+            exit_ts = exit_ts.tz_localize(user_timezone)
+        else:
+            exit_ts = exit_ts.tz_convert(user_timezone)
 
         def to_bool(v):
             return v in [True, "true", "True", 1, "1"]
