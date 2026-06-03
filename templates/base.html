@@ -11,6 +11,28 @@
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script src="{{ url_for('static', filename='js/trade.js') }}"></script>
 
+<!-- if no acount or timezone -->
+<div id="onboardingModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.65);
+  z-index:99999;
+  align-items:center;
+  justify-content:center;
+">
+
+  <div style="
+    background:white;
+    width:360px;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  ">
+
+  </div>
+</div>
+
 <body>
 <div class="app">
 
@@ -139,24 +161,58 @@
 </div>
 
 <!-- ONBOARDING MODAL -->
-<div id="onboardingModal" class="onboarding-modal" style="display:none;">
-  <div class="onboarding-card">
-    <h2>Complete your setup</h2>
+<div class="main">
+  {% block content %}{% endblock %}
+</div>
 
-    <p>
-      Before using the journal, please create an account and select a timezone.
-    </p>
+<div id="onboardingModal"
+     style="
+       display:none;
+       position:fixed;
+       inset:0;
+       background:rgba(0,0,0,.45);
+       z-index:9999;
+       align-items:center;
+       justify-content:center;
+     ">
+  <div style="
+      width:420px;
+      max-width:90vw;
+      background:white;
+      border-radius:12px;
+      padding:24px;
+    ">
 
-    <button id="goToSettingsBtn">
-      Open Settings
+    <h3 style="margin-bottom:12px;">Setup required</h3>
+
+    <label>Timezone</label>
+    <input
+      id="tzInput"
+      placeholder="Europe/Paris"
+      style="width:100%; margin-bottom:10px;"
+    />
+
+    <label>Account name</label>
+    <input
+      id="accInput"
+      placeholder="My account"
+      style="width:100%; margin-bottom:14px;"
+    />
+
+    <button id="saveOnboardingBtn" style="width:100%;">
+      Save & Continue
     </button>
+
   </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    const res = await fetch("https://api.polygon.io/v1/marketstatus/upcoming?apiKey=6rdLRUwlnX57vXQBzS2p1nz4x0Ce_7ZS");
+    const res = await fetch(
+      "https://api.polygon.io/v1/marketstatus/upcoming?apiKey=6rdLRUwlnX57vXQBzS2p1nz4x0Ce_7ZS"
+    );
+
     const data = await res.json();
 
     const holidays = data
@@ -165,53 +221,135 @@ document.addEventListener("DOMContentLoaded", async () => {
       .slice(0, 4);
 
     const container = document.getElementById("holidayItems");
+
     if (!holidays.length) {
-      container.innerHTML = `<span style="color:#3a4050;">No upcoming holidays found.</span>`;
+      container.innerHTML =
+        `<span style="color:#3a4050;">No upcoming holidays found.</span>`;
       return;
     }
 
     const today = new Date();
+
     container.innerHTML = holidays.map((h, i) => {
       const date = new Date(h.date);
-      const diffDays = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
-      const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const sep = i < holidays.length - 1 ? `<span class="holiday-separator">·</span>` : "";
+      const diffDays = Math.ceil(
+        (date - today) / (1000 * 60 * 60 * 24)
+      );
+
+      const label = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+      });
+
+      const sep =
+        i < holidays.length - 1
+          ? `<span class="holiday-separator">·</span>`
+          : "";
+
       return `
         <span class="holiday-item">
           <span>${h.name}</span>
           <span style="color:#3a4050;">${label}</span>
           <span class="holiday-days">${diffDays}d</span>
-        </span>${sep}`;
+        </span>
+        ${sep}
+      `;
     }).join("");
+
   } catch (e) {
     document.getElementById("holidayItems").innerHTML =
       `<span style="color:#3a4050;">Could not load holidays.</span>`;
   }
 });
 
-async function checkOnboarding() {
-  const res = await fetch("/api/onboarding-status");
-  const data = await res.json();
 
-  const completed =
-    data.has_account &&
-    data.has_timezone;
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const res = await fetch("/api/onboarding-status");
+    const data = await res.json();
 
-  if (!completed) {
-    document.getElementById("onboardingModal").style.display = "flex";
-  }
-}
+    const modal = document.getElementById("onboardingModal");
+    const app = document.querySelector(".main");
 
-document.addEventListener("DOMContentLoaded", () => {
-  checkOnboarding();
+    const needsAccount = !data.has_account;
+    const needsTimezone = !data.has_timezone;
 
-  document
-    .getElementById("goToSettingsBtn")
-    ?.addEventListener("click", () => {
-      window.location.href = "/accounts";
+    if (!needsAccount && !needsTimezone) {
+      return;
+    }
+
+    modal.style.display = "flex";
+
+    // Hard block application usage
+    if (app) {
+      app.style.pointerEvents = "none";
+      app.style.filter = "blur(2px)";
+    }
+
+    const tzInput = document.getElementById("tzInput");
+    const accInput = document.getElementById("accInput");
+    const saveBtn = document.getElementById("saveOnboardingBtn");
+
+    // Auto-fill browser timezone
+    if (tzInput && !tzInput.value) {
+      tzInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    saveBtn.addEventListener("click", async () => {
+      const timezone = tzInput.value.trim();
+      const account = accInput.value.trim();
+
+      if (!timezone) {
+        alert("Please enter a timezone.");
+        return;
+      }
+
+      if (!account) {
+        alert("Please enter an account name.");
+        return;
+      }
+
+      try {
+        const settingsRes = await fetch("/api/settings", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            timezone
+          })
+        });
+
+        if (!settingsRes.ok) {
+          throw new Error("Failed to save timezone");
+        }
+
+        const accountRes = await fetch("/api/accounts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: account
+          })
+        });
+
+        if (!accountRes.ok) {
+          throw new Error("Failed to create account");
+        }
+
+        location.reload();
+
+      } catch (err) {
+        console.error(err);
+        alert("Setup could not be completed. Please try again.");
+      }
     });
-});
 
+  } catch (err) {
+    console.error("Onboarding check failed:", err);
+  }
+});
 </script>
 
 </body>
