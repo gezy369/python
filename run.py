@@ -749,6 +749,23 @@ def update_account(id):
 @login_required
 def delete_account(id):
     user_id = session["user"]["id"]
+
+    # 1. Get all trades linked to this account
+    trades_res = (
+        supabase_admin.table("trades")
+        .select("id")
+        .eq("key_trading_accounts", id)
+        .execute()
+    )
+    trade_ids = [t["id"] for t in (trades_res.data or [])]
+
+    # 2. Cascade delete junction tables first
+    if trade_ids:
+        supabase_admin.table("emotions_trades").delete().in_("trade_id", trade_ids).execute()
+        supabase_admin.table("trade_setup").delete().in_("key_trade_id", trade_ids).execute()
+        supabase_admin.table("trades").delete().in_("id", trade_ids).execute()
+
+    # 3. Now safe to delete the account
     supabase_admin.table("trading_accounts").delete().eq("id", id).eq("user_id", user_id).execute()
     return {"ok": True}
 
