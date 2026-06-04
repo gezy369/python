@@ -140,41 +140,24 @@
 
 <!-- ONBOARDING MODAL -->
 
-<div id="onboardingModal"
-     style="
-       display:none;
-       position:fixed;
-       inset:0;
-       background:rgba(0,0,0,.45);
-       z-index:9999;
-       align-items:center;
-       justify-content:center;
-     ">
-  <div style="
-      width:420px;
-      max-width:90vw;
-      background:white;
-      border-radius:12px;
-      padding:24px;
-    ">
+<!-- ONBOARDING MODAL -->
+<div id="onboardingModal" class="onboarding-overlay">
+  <div class="onboarding-card">
 
-    <h3 style="margin-bottom:12px;">Setup required</h3>
+    <h3 class="onboarding-title">Setup required</h3>
+    <p class="onboarding-subtitle">Configure your workspace to get started</p>
 
-    <label>Timezone</label>
-    <input
-      id="tzInput"
-      placeholder="Europe/Paris"
-      style="width:100%; margin-bottom:10px;"
-    />
+    <div class="onboarding-field">
+      <label>Timezone</label>
+      <input id="tzInput" class="dark-input" style="width:100%" placeholder="Europe/Paris" />
+    </div>
 
-    <label>Account name</label>
-    <input
-      id="accInput"
-      placeholder="My account"
-      style="width:100%; margin-bottom:14px;"
-    />
+    <div class="onboarding-field">
+      <label>Account name</label>
+      <input id="accInput" class="dark-input" style="width:100%" placeholder="My account" />
+    </div>
 
-    <button id="saveOnboardingBtn" style="width:100%;">
+    <button id="saveOnboardingBtn" class="btn-signin" style="margin-top:0">
       Save & Continue
     </button>
 

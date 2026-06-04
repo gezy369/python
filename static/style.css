@@ -2741,20 +2741,53 @@ input:checked + .slider:before {
   color: var(--text-secondary);
 }
 
-.onboarding-modal {
+/* ===== ONBOARDING MODAL ===== */
+.onboarding-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.55);
-  display: flex;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
   align-items: center;
   justify-content: center;
-  z-index: 999999;
 }
 
 .onboarding-card {
-  width: 420px;
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
+  width: 400px;
+  max-width: 90vw;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-xl);
+  padding: 28px 28px 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.onboarding-subtitle {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.onboarding-field label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
