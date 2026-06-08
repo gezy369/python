@@ -2685,7 +2685,7 @@ input:checked + .slider:before {
 .chart-note-icon {
   position: absolute;
   top: 7px;
-  left: 7px;
+  right: 8px;
   z-index: 10;
   color: var(--accent-amber);
   background: var(--amber-bg);
@@ -2800,7 +2800,7 @@ input:checked + .slider:before {
 
 .chart-card-select {
   position: absolute;
-  bottom: 8px;
+  top: 8px;
   left: 8px;
   z-index: 10;
   cursor: pointer;
