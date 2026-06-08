@@ -77,15 +77,6 @@
       Journal
     </a>
 
-    <!-- Charts -->
-    <a class="menu-item {{ 'active' if request.endpoint == 'charts' }}" href="{{ url_for('charts') }}">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="1,12 5,7 9,9 15,3"/>
-        <polyline points="11,3 15,3 15,7"/>
-      </svg>
-      Charts
-    </a>
-
     <!-- New Trades -->
     <a id="newTradesLink" class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -96,7 +87,6 @@
       New Trades
     </a>
 
-    
     <!-- Settings (pushed to bottom) -->
     <a class="menu-item {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="margin-top: auto;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
