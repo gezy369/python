@@ -2823,5 +2823,5 @@ input:checked + .slider:before {
   width: 13px;
   height: 13px;
   cursor: pointer;
-  accent-color: #34c38f; /* matches your green */
+  accent-color: #acb7ff; /* matches your green */
 }
