@@ -1380,6 +1380,9 @@ function renderChartGrid(data) {
     card.className = "chart-card";
 
     card.innerHTML = `
+      <label class="chart-card-select" onclick="event.stopPropagation()">
+        <input type="checkbox" class="row-select" data-id="${trade.id}">
+      </label>
       <div class="chart-card-image"
           onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})"
           style="position:relative;">
@@ -1536,7 +1539,6 @@ function toggleView() {
 
   document.getElementById("tableView").style.display = checked ? "none" : "flex";
   document.getElementById("chartView").style.display = checked ? "block" : "none";
-  document.querySelector(".journal-controls-right").style.display = checked ? "none" : "flex";
 
   applyFiltersAndRender();
 }

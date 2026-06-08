@@ -2792,3 +2792,36 @@ input:checked + .slider:before {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+
+/* Chart card select checkbox */
+.chart-card {
+  position: relative; /* ensure this is set */
+}
+
+.chart-card-select {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: background 0.15s;
+}
+
+.chart-card-select:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.chart-card-select input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  cursor: pointer;
+  accent-color: #34c38f; /* matches your green */
+}
