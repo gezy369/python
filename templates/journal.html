@@ -209,6 +209,35 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════
+// SHARED FILTER STATE (persisted to localStorage)
+// ══════════════════════════════════════════════════════════════════════════
+const SHARED_FILTER_KEY = "tradeFilterState";
+
+function saveSharedFilters() {
+  const state = {
+    strategy: { ids: [...activeFilters.strategy], logic: filterLogic.strategy },
+    setup:    { ids: [...activeFilters.setup],    logic: filterLogic.setup    },
+    emotion:  { ids: [...activeFilters.emotion],  logic: filterLogic.emotion  },
+  };
+  localStorage.setItem(SHARED_FILTER_KEY, JSON.stringify(state));
+}
+
+function loadSharedFilters() {
+  try {
+    const raw = localStorage.getItem(SHARED_FILTER_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    ["strategy", "setup", "emotion"].forEach(type => {
+      if (!state[type]) return;
+      activeFilters[type] = new Set(state[type].ids.map(Number));
+      filterLogic[type]   = state[type].logic || "or";
+    });
+  } catch (e) {
+    // ignore corrupt state
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════
 let originalData = [];
@@ -278,7 +307,6 @@ const waitForAccount = () =>
 // TRADE ENRICHMENT
 // ══════════════════════════════════════════════════════════════════════════
 function enrichTrades(rawTrades, tradeSetups, emotionTrades) {
-  // Build lookup maps
   const setupsByTrade = {};
   tradeSetups.forEach(ts => {
     const tid = toNum(ts.key_trade_id);
@@ -291,7 +319,6 @@ function enrichTrades(rawTrades, tradeSetups, emotionTrades) {
     (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(toNum(et.emotions_id));
   });
 
-  // Enrich trades
   return rawTrades.map(t => ({
     ...t,
     id: toNum(t.id),
@@ -306,7 +333,6 @@ function enrichTrades(rawTrades, tradeSetups, emotionTrades) {
 // FILTER UI
 // ══════════════════════════════════════════════════════════════════════════
 function buildFilterButtons() {
-  // Strategy filters
   const strategyContainer = document.getElementById("strategyFilter");
   strategyContainer.innerHTML = "";
   STRATEGIES.forEach(s => {
@@ -314,11 +340,11 @@ function buildFilterButtons() {
     btn.textContent = s.strategy_name;
     btn.dataset.id = s.id;
     btn.style.background = s.color;
+    if (activeFilters.strategy.has(toNum(s.id))) btn.classList.add("active");
     btn.onclick = () => toggleFilter('strategy', s.id, btn);
     strategyContainer.appendChild(btn);
   });
 
-  // Setup filters
   const setupContainer = document.getElementById("setupFilter");
   setupContainer.innerHTML = "";
   SETUPS.forEach(s => {
@@ -326,11 +352,11 @@ function buildFilterButtons() {
     btn.textContent = s.setup_name;
     btn.dataset.id = s.id;
     btn.style.background = s.color;
+    if (activeFilters.setup.has(toNum(s.id))) btn.classList.add("active");
     btn.onclick = () => toggleFilter('setup', s.id, btn);
     setupContainer.appendChild(btn);
   });
 
-  // Emotion filters
   const emotionContainer = document.getElementById("emotionFilter");
   emotionContainer.innerHTML = "";
   EMOTIONS.forEach(e => {
@@ -338,13 +364,24 @@ function buildFilterButtons() {
     btn.textContent = e.emotion;
     btn.dataset.id = e.id;
     btn.style.background = e.color || "#3a4050";
+    if (activeFilters.emotion.has(toNum(e.id))) btn.classList.add("active");
     btn.onclick = () => toggleFilter('emotion', e.id, btn);
     emotionContainer.appendChild(btn);
   });
+
+  // Restore logic button states
+  ["strategy", "setup", "emotion"].forEach(type => {
+    const container = document.querySelector(`#${type}Section .logic-toggle-inline`);
+    if (!container) return;
+    container.querySelectorAll('.logic-btn-inline').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.logic === filterLogic[type]);
+    });
+  });
+
+  updateActiveFiltersDisplay();
 }
 
 function toggleFilterSection(type) {
-  // Close all other sections
   document.querySelectorAll('.filter-section').forEach(s => {
     if (s.id !== `${type}Section`) s.style.display = 'none';
   });
@@ -353,7 +390,6 @@ function toggleFilterSection(type) {
     if (h !== event.currentTarget) h.classList.remove('open');
   });
 
-  // Toggle this section
   const section = document.getElementById(`${type}Section`);
   const isOpen = section.style.display !== 'none';
 
@@ -368,7 +404,8 @@ function setFilterLogic(type, logic) {
   container.querySelectorAll('.logic-btn-inline').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.logic === logic);
   });
-  
+
+  saveSharedFilters();
   applyFiltersAndRender();
 }
 
@@ -383,6 +420,7 @@ function toggleFilter(type, id, btn) {
     btn.classList.add('active');
   }
   
+  saveSharedFilters();
   updateActiveFiltersDisplay();
   applyFiltersAndRender();
 }
@@ -391,10 +429,10 @@ function removeActiveFilter(type, id) {
   const numId = toNum(id);
   activeFilters[type].delete(numId);
   
-  // Update button state
   const btn = document.querySelector(`#${type}Filter button[data-id="${id}"]`);
   if (btn) btn.classList.remove('active');
   
+  saveSharedFilters();
   updateActiveFiltersDisplay();
   applyFiltersAndRender();
 }
@@ -460,6 +498,7 @@ function resetFilters() {
   document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
   document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
   
+  saveSharedFilters();
   updateActiveFiltersDisplay();
   window.history.replaceState({}, "", "/journal");
   applyFiltersAndRender();
@@ -513,21 +552,17 @@ function applyFiltersAndRender() {
 
   let data = originalData.slice();
 
-  // Apply all filters
   data = filterByDateRange(data);
   data = filterByColumnText(data);
   data = filterByCategory(data, 'setup', t => t.setups);
   data = filterByCategory(data, 'strategy', t => toNum(t.key_strategies_id));
   data = filterByCategory(data, 'emotion', t => t.emotions);
 
-  // Account filter
   const acct = accountSelect?.value;
   if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
 
-  // Sort by entry time
   data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
 
-  // Render appropriate view
   if (currentView === "table") {
     buildRows(data);
     updatePnLChart(data);
@@ -816,7 +851,6 @@ td.innerHTML = `
   
   openRow = { tr, detailsTr, panel };
 
-  // Render tags
   const strategyContainer = td.querySelector(".strategy-tag-container");
   const setupContainer = td.querySelector(".setup-tag-container");
   const emotionContainer = td.querySelector(".emotion-tag-container");
@@ -825,7 +859,6 @@ td.innerHTML = `
   renderSetupTags(trade, setupContainer);
   renderEmotionTags(trade, emotionContainer);
 
-  // Setup event handlers
   setupNotesHandler(td, trade);
   setupStrategyHandler(td, trade, strategyContainer);
   setupSetupHandler(td, trade, setupContainer);
@@ -1029,6 +1062,7 @@ function getSelectedTradeIds() {
   return [...document.querySelectorAll(".row-select:checked")]
     .map(cb => Number(cb.dataset.id));
 }
+
 async function bulkGenerateCharts() {
   const checked = [...document.querySelectorAll(".row-select:checked")];
 
@@ -1095,8 +1129,6 @@ function openBulkTagEditor() {
 
   document.getElementById("bulkTagModal").style.display = "flex";
 
-  
-
   bulkEditState.addSetups.clear();
   bulkEditState.removeSetups.clear();
   bulkEditState.addEmotions.clear();
@@ -1114,10 +1146,8 @@ function closeBulkTagEditor() {
 }
 
 document.addEventListener("click", e => {
-  // ignore clicks inside a filter column
   if (e.target.closest(".filter-column")) return;
 
-  // close all open filter sections
   document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
   document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
 });
@@ -1155,7 +1185,6 @@ async function applyBulkTagEdit() {
   const strategyValue =
     document.getElementById("bulkStrategy").value;
 
-  // STRATEGY
   if (strategyValue) {
     await fetch("/api/trades/bulk-strategy", {
       method: "POST",
@@ -1179,7 +1208,6 @@ async function applyBulkTagEdit() {
     });
   }
 
-  // SETUPS
   await fetch("/api/trades/bulk-setups", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1190,7 +1218,6 @@ async function applyBulkTagEdit() {
     })
   });
 
-  // EMOTIONS
   await fetch("/api/trades/bulk-emotions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1201,7 +1228,6 @@ async function applyBulkTagEdit() {
     })
   });
 
-  // update local state
   originalData.forEach(t => {
     if (!ids.includes(t.id)) return;
 
@@ -1426,32 +1452,18 @@ async function showTradeChart(trade, containerId) {
 
   chartEl.innerHTML = "";
 
-  // EXISTING IMAGE
   if (trade.chart_image) {
-
-    // ================= INDICATOR SETTINGS =================
     const indicators = [];
 
     ["ma1", "ma2", "ma3"].forEach(key => {
       const ma = chartSettings[key];
-
       if (!ma.enabled) return;
-
-      indicators.push({
-        type: ma.type,
-        length: ma.value
-      });
+      indicators.push({ type: ma.type, length: ma.value });
     });
 
     if (chartSettings.vwap) {
-      indicators.push({
-        type: "VWAP"
-      });
+      indicators.push({ type: "VWAP" });
     }
-
-    console.log("Chart indicators:", indicators);
-
-    // ======================================================
 
     chartEl.innerHTML = `
       <img 
@@ -1582,6 +1594,9 @@ function loadFiltersFromURL() {
 
 loadFiltersFromURL();
 
+// Load shared tag filter state before building the UI
+loadSharedFilters();
+
 Promise.all([
   fetch("/api/strategies").then(r => r.json()),
   fetch("/api/setups").then(r => r.json()),
@@ -1596,6 +1611,7 @@ Promise.all([
   SETUPS = setups;
   EMOTIONS = emotions;
 
+  // buildFilterButtons now restores active state from the loaded shared filters
   buildFilterButtons();
 
   const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });

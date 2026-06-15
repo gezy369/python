@@ -12,6 +12,83 @@
   <span id="lastUpdated" style="font-family:var(--font-mono); font-size:10px; color:var(--text-faint);"></span>
 </div>
 
+<!-- ── TAG FILTERS ── -->
+<div class="filters-row" style="margin-bottom:16px; max-width:1100px;">
+  <div class="filter-panel">
+    <!-- STRATEGY -->
+    <div class="filter-column">
+      <div class="filter-header-item" onclick="toggleDashFilterSection('strategy')">
+        <span class="filter-title">Strategies</span>
+        <div id="activeFilters-strategy" class="filter-chips"></div>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
+      </div>
+      <div id="strategySection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" data-logic="or" onclick="setDashFilterLogic('strategy','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setDashFilterLogic('strategy','and')">All</button>
+            </div>
+          </div>
+          <div id="strategyFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="filter-column">
+      <div class="filter-header-item" onclick="toggleDashFilterSection('setup')">
+        <span class="filter-title">Setups</span>
+        <div id="activeFilters-setup" class="filter-chips"></div>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
+      </div>
+      <div id="setupSection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" data-logic="or" onclick="setDashFilterLogic('setup','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setDashFilterLogic('setup','and')">All</button>
+            </div>
+          </div>
+          <div id="setupFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMOTION -->
+    <div class="filter-column">
+      <div class="filter-header-item" onclick="toggleDashFilterSection('emotion')">
+        <span class="filter-title">Emotions</span>
+        <div id="activeFilters-emotion" class="filter-chips"></div>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 12 12">
+          <path d="M3 4.5L6 7.5L9 4.5"/>
+        </svg>
+      </div>
+      <div id="emotionSection" class="filter-section" style="display:none;">
+        <div class="filter-section-inner">
+          <div class="filter-logic-row">
+            <span>Match:</span>
+            <div class="logic-toggle-inline">
+              <button class="logic-btn-inline active" data-logic="or" onclick="setDashFilterLogic('emotion','or')">Any</button>
+              <button class="logic-btn-inline" data-logic="and" onclick="setDashFilterLogic('emotion','and')">All</button>
+            </div>
+          </div>
+          <div id="emotionFilter" class="filter-buttons-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-side-placeholder">
+    <button onclick="resetDashFilters()" style="font-size:11px;">Reset filters</button>
+  </div>
+</div>
+
 <!-- ── STAT PILLS ── -->
 <div class="stat-pills" id="statPills"></div>
 
@@ -96,6 +173,229 @@
 
 
 <script>
+// ══════════════════════════════════════════════════════════════════════════
+// SHARED FILTER STATE
+// ══════════════════════════════════════════════════════════════════════════
+const SHARED_FILTER_KEY = "tradeFilterState";
+
+const filterLogic = { strategy: 'or', setup: 'or', emotion: 'or' };
+const activeFilters = { strategy: new Set(), setup: new Set(), emotion: new Set() };
+
+let STRATEGIES = [];
+let SETUPS = [];
+let EMOTIONS = [];
+
+function saveSharedFilters() {
+  const state = {
+    strategy: { ids: [...activeFilters.strategy], logic: filterLogic.strategy },
+    setup:    { ids: [...activeFilters.setup],    logic: filterLogic.setup    },
+    emotion:  { ids: [...activeFilters.emotion],  logic: filterLogic.emotion  },
+  };
+  localStorage.setItem(SHARED_FILTER_KEY, JSON.stringify(state));
+}
+
+function loadSharedFilters() {
+  try {
+    const raw = localStorage.getItem(SHARED_FILTER_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    ["strategy", "setup", "emotion"].forEach(type => {
+      if (!state[type]) return;
+      activeFilters[type] = new Set(state[type].ids.map(Number));
+      filterLogic[type]   = state[type].logic || "or";
+    });
+  } catch (e) {
+    // ignore corrupt state
+  }
+}
+
+function applyTagFilters(trades) {
+  let data = trades.slice();
+
+  ["setup", "strategy", "emotion"].forEach(type => {
+    if (!activeFilters[type].size) return;
+    const activeIds = [...activeFilters[type]];
+    const logic = filterLogic[type];
+
+    data = data.filter(t => {
+      let value;
+      if (type === "strategy") value = Number(t.key_strategies_id);
+      else if (type === "setup") value = t.setups || [];
+      else value = t.emotions || [];
+
+      if (logic === "and") {
+        return activeIds.every(id =>
+          Array.isArray(value) ? value.includes(id) : value === id
+        );
+      } else {
+        return activeIds.some(id =>
+          Array.isArray(value) ? value.includes(id) : value === id
+        );
+      }
+    });
+  });
+
+  return data;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FILTER UI
+// ══════════════════════════════════════════════════════════════════════════
+function buildDashFilterButtons() {
+  const findById = (arr, id) => arr.find(x => Number(x.id) === Number(id));
+
+  const strategyContainer = document.getElementById("strategyFilter");
+  strategyContainer.innerHTML = "";
+  STRATEGIES.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.strategy_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    if (activeFilters.strategy.has(Number(s.id))) btn.classList.add("active");
+    btn.onclick = () => toggleDashFilter('strategy', s.id, btn);
+    strategyContainer.appendChild(btn);
+  });
+
+  const setupContainer = document.getElementById("setupFilter");
+  setupContainer.innerHTML = "";
+  SETUPS.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.setup_name;
+    btn.dataset.id = s.id;
+    btn.style.background = s.color;
+    if (activeFilters.setup.has(Number(s.id))) btn.classList.add("active");
+    btn.onclick = () => toggleDashFilter('setup', s.id, btn);
+    setupContainer.appendChild(btn);
+  });
+
+  const emotionContainer = document.getElementById("emotionFilter");
+  emotionContainer.innerHTML = "";
+  EMOTIONS.forEach(e => {
+    const btn = document.createElement("button");
+    btn.textContent = e.emotion;
+    btn.dataset.id = e.id;
+    btn.style.background = e.color || "#3a4050";
+    if (activeFilters.emotion.has(Number(e.id))) btn.classList.add("active");
+    btn.onclick = () => toggleDashFilter('emotion', e.id, btn);
+    emotionContainer.appendChild(btn);
+  });
+
+  // Restore logic button states
+  ["strategy", "setup", "emotion"].forEach(type => {
+    const container = document.querySelector(`#${type}Section .logic-toggle-inline`);
+    if (!container) return;
+    container.querySelectorAll('.logic-btn-inline').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.logic === filterLogic[type]);
+    });
+  });
+
+  updateDashActiveFiltersDisplay();
+}
+
+function toggleDashFilterSection(type) {
+  document.querySelectorAll('.filter-section').forEach(s => {
+    if (s.id !== `${type}Section`) s.style.display = 'none';
+  });
+  document.querySelectorAll('.filter-header-item').forEach(h => {
+    if (h !== event.currentTarget) h.classList.remove('open');
+  });
+
+  const section = document.getElementById(`${type}Section`);
+  const isOpen = section.style.display !== 'none';
+  section.style.display = isOpen ? 'none' : 'block';
+  event.currentTarget.classList.toggle('open', !isOpen);
+}
+
+function setDashFilterLogic(type, logic) {
+  filterLogic[type] = logic;
+  const container = document.querySelector(`#${type}Section .logic-toggle-inline`);
+  container.querySelectorAll('.logic-btn-inline').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.logic === logic);
+  });
+  saveSharedFilters();
+  renderCalendar();
+}
+
+function toggleDashFilter(type, id, btn) {
+  const numId = Number(id);
+  if (activeFilters[type].has(numId)) {
+    activeFilters[type].delete(numId);
+    btn.classList.remove('active');
+  } else {
+    activeFilters[type].add(numId);
+    btn.classList.add('active');
+  }
+  saveSharedFilters();
+  updateDashActiveFiltersDisplay();
+  renderCalendar();
+}
+
+function removeDashActiveFilter(type, id) {
+  activeFilters[type].delete(Number(id));
+  const btn = document.querySelector(`#${type}Filter button[data-id="${id}"]`);
+  if (btn) btn.classList.remove('active');
+  saveSharedFilters();
+  updateDashActiveFiltersDisplay();
+  renderCalendar();
+}
+
+function updateDashActiveFiltersDisplay() {
+  const findById = (arr, id) => arr.find(x => Number(x.id) === Number(id));
+
+  ['strategy', 'setup', 'emotion'].forEach(type => {
+    const container = document.getElementById(`activeFilters-${type}`);
+    const filters = activeFilters[type];
+
+    if (!filters.size) { container.innerHTML = ""; return; }
+
+    let html = "";
+    filters.forEach(id => {
+      const item = findById(
+        type === 'strategy' ? STRATEGIES : type === 'setup' ? SETUPS : EMOTIONS,
+        id
+      );
+      if (!item) return;
+      const label = item.strategy_name || item.setup_name || item.emotion;
+      const color = item.color || "#3a4050";
+      html += `
+        <span class="filter-chip" style="background:${color}"
+              onclick="removeDashActiveFilter('${type}', ${id}); event.stopPropagation();">
+          ${label} ×
+        </span>`;
+    });
+    container.innerHTML = html;
+  });
+}
+
+function resetDashFilters() {
+  activeFilters.strategy.clear();
+  activeFilters.setup.clear();
+  activeFilters.emotion.clear();
+  filterLogic.strategy = 'or';
+  filterLogic.setup = 'or';
+  filterLogic.emotion = 'or';
+  document.querySelectorAll(".filter-buttons-grid button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".logic-toggle-inline").forEach(group => {
+    group.querySelectorAll(".logic-btn-inline").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.logic === "or");
+    });
+  });
+  document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
+  document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
+  saveSharedFilters();
+  updateDashActiveFiltersDisplay();
+  renderCalendar();
+}
+
+document.addEventListener("click", e => {
+  if (e.target.closest(".filter-column")) return;
+  document.querySelectorAll(".filter-section").forEach(s => s.style.display = "none");
+  document.querySelectorAll(".filter-header-item").forEach(h => h.classList.remove("open"));
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// DASHBOARD LOGIC
+// ══════════════════════════════════════════════════════════════════════════
 let isRendering = false;
 let pendingRender = false;
 
@@ -110,18 +410,15 @@ const MONTHS = [
 ];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-// Initialize currentDate in user's timezone to avoid month being off
 const _tzNow = new Date().toLocaleDateString("en-CA", { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).split("-");
 let currentDate = new Date(parseInt(_tzNow[0]), parseInt(_tzNow[1]) - 1, 1);
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const calendarLabel = document.getElementById("calendarLabel");
 
-// Timezone-safe ISO date string (YYYY-MM-DD) in user's timezone
 function toTZDate(date) {
   return new Date(date).toLocaleDateString("en-CA", { timeZone: userTimezone });
 }
 
-// Returns { year, month (0-based), day } of today in user's timezone
 function getTodayInTZ() {
   const parts = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone }).split("-");
   return {
@@ -149,7 +446,6 @@ document.getElementById("nextMonth").onclick = () => {
 
 updateCalendarLabel();
 
-/* ── last updated ── */
 document.getElementById("lastUpdated").textContent =
   `Updated ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
@@ -168,11 +464,33 @@ async function renderCalendar() {
   const from = new Date(year, month, 1).toLocaleDateString("en-CA", { timeZone: userTimezone });
   const to   = new Date(year, month + 1, 0).toLocaleDateString("en-CA", { timeZone: userTimezone });
 
-  let monthlyTrades = await fetchFilteredTrades({ account: accountSelect?.value, from, to }) || [];
-  let accountTrades = await fetchFilteredTrades({ account: accountSelect?.value }) || [];
+  let [rawMonthly, rawAccount, tradeSetups, emotionTrades] = await Promise.all([
+    fetchFilteredTrades({ account: accountSelect?.value, from, to }),
+    fetchFilteredTrades({ account: accountSelect?.value }),
+    fetch("/api/trade_setups").then(r => r.json()),
+    fetch("/api/emotions_trades").then(r => r.json()),
+  ]);
 
-  monthlyTrades = monthlyTrades.map(t => ({ ...t, entryDate: new Date(t.entryTimestamp) }));
-  accountTrades = accountTrades.map(t => ({ ...t, entryDate: new Date(t.entryTimestamp) }));
+  // Enrich with setups/emotions so tag filters can be applied
+  const setupsByTrade = {};
+  tradeSetups.forEach(ts => {
+    const tid = Number(ts.key_trade_id);
+    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(Number(ts.key_setup_id));
+  });
+  const emotionsByTrade = {};
+  emotionTrades.forEach(et => {
+    const tid = Number(et.trade_id);
+    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(Number(et.emotions_id));
+  });
+  const enrich = t => ({
+    ...t,
+    entryDate: new Date(t.entryTimestamp),
+    setups:    setupsByTrade[Number(t.id)] || [],
+    emotions:  emotionsByTrade[Number(t.id)] || [],
+  });
+
+  let monthlyTrades = applyTagFilters(rawMonthly.map(enrich));
+  let accountTrades = applyTagFilters(rawAccount.map(enrich));
 
   renderDashboardStats(monthlyTrades, accountTrades, month, year);
   renderYearHeatmap(accountTrades, year);
@@ -718,18 +1036,31 @@ function waitForAccount() {
   });
 }
 
+/* ===================== INIT ===================== */
+
+// Load shared filter state first, then fetch tag lists to build the UI
+loadSharedFilters();
+
 Promise.all([
   waitForAccount(),
+  fetch("/api/strategies").then(r => r.json()),
+  fetch("/api/setups").then(r => r.json()),
+  fetch("/api/emotions").then(r => r.json()).catch(() => []),
   fetch("/api/settings").then(r => r.json()).then(data => {
     if (data.timezone) {
       userTimezone = data.timezone;
-      // Re-anchor currentDate to the correct month in the saved timezone
       const parts = new Date().toLocaleDateString("en-CA", { timeZone: userTimezone }).split("-");
       currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
       updateCalendarLabel();
     }
   }).catch(() => {})
-]).then(() => renderCalendar());
+]).then(([_, strategies, setups, emotions]) => {
+  STRATEGIES = strategies;
+  SETUPS     = setups;
+  EMOTIONS   = emotions;
+  buildDashFilterButtons();
+  renderCalendar();
+});
 </script>
 
 {% endblock %}
