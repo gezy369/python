@@ -1096,11 +1096,10 @@ async function bulkGenerateCharts() {
       headers: {
         "Content-Type": "application/json"
       },
-      
       body: JSON.stringify({
-          ids,
-          chartSettings,
-          timeframe: document.getElementById("chartTimeframe")?.value || "5m"
+        ids,
+        chartSettings,
+        timeframe
       })
     });
 
