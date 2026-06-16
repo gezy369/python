@@ -247,8 +247,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             "15m": 10, "30m": 15, "60m": 30, "1d": 90,
         }
         CONTEXT_HOURS = {
-            "1m":  (1, 2),   "2m":  (1, 2),   "3m":  (1, 2),
-            "5m":  (3, 4),   "15m": (6, 8),   "30m": (12, 16),
+            "1m":  (2, 3),   "2m":  (2, 3),   "3m":  (3, 4),
+            "5m":  (4, 5),   "15m": (8, 10),   "30m": (16, 20),
             "1h":  (24, 48), "4h":  (72, 120), "D":   (720, 1440),
         }
         yahoo_interval             = TIMEFRAME_TO_YAHOO.get(timeframe, "5m")
