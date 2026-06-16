@@ -2826,56 +2826,93 @@ input:checked + .slider:before {
   accent-color: #acb7ff; /* matches your green */
 }
 
+/* NEW */
 .timeframe-row {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
 }
+
 .timeframe-row label {
-  font-size: 0.85rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
   white-space: nowrap;
 }
+
 .timeframe-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .timeframe-controls select {
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border, #ccc);
-  background: var(--bg-base, #fff);
-  font-size: 0.85rem;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  appearance: none;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
+
+.timeframe-controls select:focus  { border-color: var(--accent-blue); }
+.timeframe-controls select:hover  { border-color: var(--border-accent); }
+
 .tf-info-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
+
 .tf-info-icon {
-  cursor: pointer;
-  font-size: 1rem;
-  color: var(--text-muted, #888);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid var(--border-accent);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: default;
+  line-height: 1;
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
   user-select: none;
 }
+
+.tf-info-wrapper:hover .tf-info-icon {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
 .tf-tooltip {
   display: none;
   position: absolute;
-  left: 24px;
+  left: 20px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border, #ccc);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.8rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 11px;
   line-height: 1.7;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   z-index: 100;
+  pointer-events: none;
 }
-.tf-info-wrapper:hover .tf-tooltip {
-  display: block;
-}
+
+.tf-info-wrapper:hover .tf-tooltip { display: block; }
