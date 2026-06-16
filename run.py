@@ -530,6 +530,7 @@ def upload_file():
 
         # store full data temporarily (session or cache)
         session["preview_trades"] = df_imported_trades.to_dict(orient="records")
+        session["chart_timeframe"] = request.form.get("chart_timeframe", "5m")
 
         return jsonify({
             "rows": preview_df.to_dict(orient="records"),
@@ -557,6 +558,7 @@ def confirm_upload():
 
         # Generate charts
         user_id = session["user"]["id"]
+        chart_timeframe = session.get("chart_timeframe", "5m")
         failed = []
         for trade in inserted_trades:
             try:
@@ -567,7 +569,8 @@ def confirm_upload():
                     entry_price = float(trade["entryPrice"]),
                     exit_price  = float(trade["exitPrice"]),
                     side        = trade["side"],
-                    user_id     = user_id
+                    user_id     = user_id,
+                    timeframe   = chart_timeframe
                 )
 
                 if chart_b64:
