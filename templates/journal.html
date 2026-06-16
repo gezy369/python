@@ -1090,13 +1090,13 @@ async function bulkGenerateCharts() {
 
   try {
     const ids = checked.map(cb => Number(cb.dataset.id));
-
+    const timeframe = document.getElementById("chartTimeframe")?.value || "5m";
     const res = await fetch("/api/trades/generate-charts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      const timeframe = document.getElementById("chartTimeframe")?.value || "5m";
+      
       body: JSON.stringify({
           ids,
           chartSettings,
