@@ -449,8 +449,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             fontsize=11,
             color="#b0b0b0",
             alpha=0.6,
-            ha="right",
-            va="top",
+            ha="left",
+            va="bottom",
             fontweight="bold"
         )
 
