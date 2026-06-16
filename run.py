@@ -430,7 +430,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             linestyle="--", linewidths=1
         )
 
-        fig, _ = mpf.plot(
+        fig, axes = mpf.plot(
             df,
             type="candle",
             style=custom_style,
@@ -439,6 +439,19 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             tight_layout=True,
             figsize=(10, 5),
             returnfig=True
+        )
+
+        # Watermark — timeframe label, top-right corner
+        axes[0].text(
+            0.99, 0.97,
+            timeframe,
+            transform=axes[0].transAxes,
+            fontsize=11,
+            color="#b0b0b0",
+            alpha=0.6,
+            ha="right",
+            va="top",
+            fontweight="bold"
         )
 
         buf = io.BytesIO()
