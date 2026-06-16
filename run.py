@@ -446,7 +446,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             0.99, 0.97,
             timeframe,
             transform=axes[0].transAxes,
-            fontsize=11,
+            fontsize=14,
             color="#b0b0b0",
             alpha=0.6,
             ha="left",
@@ -573,6 +573,7 @@ def confirm_upload():
         user_id = session["user"]["id"]
         chart_timeframe = session.get("chart_timeframe", "5m")
         failed = []
+        timeframe = data.get("timeframe", "5m")
         for trade in inserted_trades:
             try:
                 chart_b64 = generate_chart_base64(

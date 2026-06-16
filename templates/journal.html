@@ -51,6 +51,17 @@
   </div>
   <div class="journal-controls-right">
     <button onclick="openBulkTagEditor()">Edit tags</button>
+    <select id="chartTimeframe" class="dark-select" style="width:auto;">
+      <option value="1m">1 min</option>
+      <option value="2m">2 min</option>
+      <option value="3m">3 min</option>
+      <option value="5m" selected>5 min</option>
+      <option value="15m">15 min</option>
+      <option value="30m">30 min</option>
+      <option value="1h">1 h</option>
+      <option value="4h">4 h</option>
+      <option value="D">Daily</option>
+    </select>
     <button onclick="bulkGenerateCharts()">
       Generate charts
     </button>
@@ -1085,9 +1096,11 @@ async function bulkGenerateCharts() {
       headers: {
         "Content-Type": "application/json"
       },
+      const timeframe = document.getElementById("chartTimeframe")?.value || "5m";
       body: JSON.stringify({
-        ids,
-        chartSettings
+          ids,
+          chartSettings,
+          timeframe: document.getElementById("chartTimeframe")?.value || "5m"
       })
     });
 
