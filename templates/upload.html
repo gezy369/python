@@ -10,7 +10,36 @@
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
+    <!-- TIMEFRAME SELECTOR -->
+    <div class="timeframe-row">
+      <label for="chartTimeframe">Chart timeframe</label>
+      <div class="timeframe-controls">
+        <select id="chartTimeframe">
+          <option value="1m">1 min</option>
+          <option value="2m">2 min</option>
+          <option value="3m">3 min</option>
+          <option value="5m" selected>5 min</option>
+          <option value="15m">15 min</option>
+          <option value="30m">30 min</option>
+          <option value="1h">1 h</option>
+          <option value="4h">4 h</option>
+          <option value="D">Daily</option>
+        </select>
 
+        <div class="tf-info-wrapper">
+          <span class="tf-info-icon">ⓘ</span>
+          <div class="tf-tooltip">
+            <strong>Yahoo Finance data limits:</strong><br>
+            1 min → last 7 days only<br>
+            2 / 3 min → last 60 days<br>
+            5 / 15 / 30 min → last 60 days<br>
+            1 h → last 730 days<br>
+            4 h → uses 1 h bars (no native 4 h)<br>
+            Daily → no limit
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="dropzone" class="dropzone">
       Drop CSV file here<br>or click to select
     </div>
@@ -143,6 +172,8 @@ function uploadFile() {
   const formData = new FormData();
   formData.append("file", selectedFile);
   formData.append("account_id", accountId);
+  const chartTimeframe = document.getElementById("chartTimeframe")?.value || "5m";
+  formData.append("chart_timeframe", chartTimeframe);
 
   fetch("{{ url_for('upload_file') }}", {
     method: "POST",

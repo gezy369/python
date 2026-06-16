@@ -2825,3 +2825,57 @@ input:checked + .slider:before {
   cursor: pointer;
   accent-color: #acb7ff; /* matches your green */
 }
+
+.timeframe-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.timeframe-row label {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.timeframe-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeframe-controls select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #ccc);
+  background: var(--bg-base, #fff);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.tf-info-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.tf-info-icon {
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted, #888);
+  user-select: none;
+}
+.tf-tooltip {
+  display: none;
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #ccc);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 100;
+}
+.tf-info-wrapper:hover .tf-tooltip {
+  display: block;
+}

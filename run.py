@@ -234,18 +234,38 @@ def logout():
     return redirect(url_for("login"))
 
 # ===== CHART GENERATION =====
-def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side, user_id):
+def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side, user_id, timeframe="5m"):
     try:
+        # ── Timeframe → Yahoo interval mapping ──────────────────────────
+        TIMEFRAME_TO_YAHOO = {
+            "1m": "1m", "2m": "2m", "3m": "2m",
+            "5m": "5m", "15m": "15m", "30m": "30m",
+            "1h": "60m", "4h": "60m", "D": "1d",
+        }
+        YAHOO_LOOKBACK_DAYS = {
+            "1m": 1, "2m": 5, "5m": 5,
+            "15m": 10, "30m": 15, "60m": 30, "1d": 90,
+        }
+        CONTEXT_HOURS = {
+            "1m":  (1, 2),   "2m":  (1, 2),   "3m":  (1, 2),
+            "5m":  (3, 4),   "15m": (6, 8),   "30m": (12, 16),
+            "1h":  (24, 48), "4h":  (72, 120), "D":   (720, 1440),
+        }
+        yahoo_interval             = TIMEFRAME_TO_YAHOO.get(timeframe, "5m")
+        lookback                   = YAHOO_LOOKBACK_DAYS.get(yahoo_interval, 5)
+        ctx_before, ctx_after      = CONTEXT_HOURS.get(timeframe, (3, 4))
+
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
         trade_date   = entry_time.date()
 
-        period1 = int((datetime.combine(trade_date, datetime.min.time()) - timedelta(days=1)).timestamp())
+        period1 = int((datetime.combine(trade_date, datetime.min.time()) - timedelta(days=lookback)).timestamp())
         period2 = int((datetime.combine(trade_date, datetime.min.time()) + timedelta(days=2)).timestamp())
 
         url = (
             f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
-            f"?interval=5m&period1={period1}&period2={period2}"
+            f"?interval={yahoo_interval}&period1={period1}&period2={period2}"
         )
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept":     "application/json",
@@ -344,8 +364,8 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
 
         # ── 3. NOW trim to trade window ──────────────────────────────────
         df = df[
-            (df.index >= entry_ts - timedelta(hours=3)) &
-            (df.index <= exit_ts  + timedelta(hours=4))
+            (df.index >= entry_ts - timedelta(hours=ctx_before)) &
+            (df.index <= exit_ts  + timedelta(hours=ctx_after))
         ]
 
         if df.empty or len(df) < 5:
