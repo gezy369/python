@@ -443,10 +443,10 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
 
         # Watermark — timeframe label, top-right corner
         axes[0].text(
-            0.99, 0.97,
+            0.02, 0.02,
             timeframe,
             transform=axes[0].transAxes,
-            fontsize=14,
+            fontsize=18,
             color="#b0b0b0",
             alpha=0.6,
             ha="left",
