@@ -2916,3 +2916,60 @@ input:checked + .slider:before {
 }
 
 .tf-info-wrapper:hover .tf-tooltip { display: block; }
+
+/* ===== SPLIT BUTTON ===== */
+.split-btn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.split-btn:hover {
+  border-color: var(--border-accent);
+}
+
+.split-btn-main {
+  margin: 0;
+  padding: 5px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.split-btn-main:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: transparent;
+}
+
+.split-btn-select {
+  margin: 0;
+  padding: 5px 6px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border-strong);
+  border-radius: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  transition: color 0.15s, background 0.15s;
+  min-width: 36px;
+  text-align: center;
+}
+
+.split-btn-select:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
