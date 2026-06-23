@@ -573,7 +573,6 @@ def confirm_upload():
         user_id = session["user"]["id"]
         chart_timeframe = session.get("chart_timeframe", "5m")
         failed = []
-        timeframe = data.get("timeframe", "5m")
         for trade in inserted_trades:
             try:
                 chart_b64 = generate_chart_base64(
@@ -1405,6 +1404,7 @@ def generate_charts():
     try:
         data = request.json
         ids = data.get("ids", [])
+        timeframe = data.get("timeframe", "5m")
 
         if not ids:
             return jsonify({"error": "No trade IDs"}), 400
@@ -1431,7 +1431,8 @@ def generate_charts():
                     entry_price=float(trade["entryPrice"]),
                     exit_price=float(trade["exitPrice"]),
                     side=trade["side"],
-                    user_id=user_id
+                    user_id=user_id,
+                    timeframe=timeframe
                 )
 
                 if chart_b64:
