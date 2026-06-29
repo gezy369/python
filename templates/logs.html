@@ -131,13 +131,16 @@ function renderCards(){
   document.getElementById('logCount').textContent =
     withLogs ? `· ${withLogs} entr${withLogs===1?'y':'ies'}` : '';
 
+  const todayStr = fmtDate(today.getFullYear(), today.getMonth(), today.getDate());
+
   cards.forEach(({ dateStr, d, dow }) => {
     const logEntry = logsData[dateStr];
     const trade    = tradesData[dateStr];
     const text     = logEntry?.logs || '';
+    const isToday  = dateStr === todayStr;
 
     const card = document.createElement('div');
-    card.className = 'log-card';
+    card.className = 'log-card' + (isToday ? ' log-card--today' : '');
     card.dataset.date = dateStr;
 
     const monthShort = MONTHS[currentMonth].slice(0,3).toUpperCase();
@@ -162,7 +165,10 @@ function renderCards(){
           <div class="log-card-date">${monthShort} ${pad(d)}</div>
           <div class="log-card-weekday">${dayName}</div>
         </div>
-        <span class="log-saving-dot" id="dot-${dateStr}"></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${isToday ? '<span class="log-today-badge">Today</span>' : ''}
+          <span class="log-saving-dot" id="dot-${dateStr}"></span>
+        </div>
       </div>
       <div class="log-card-body">
         <div class="log-view ${text ? '' : 'log-view--empty'}" id="view-${dateStr}">${

@@ -2964,7 +2964,7 @@ input:checked + .slider:before {
   border-radius: var(--radius-md);
   color: var(--text-muted);
   text-decoration: none;
-  border-left: none;           /* remove old border-left approach */
+  border-left: none;
   font-size: 13px;
   font-weight: 400;
   transition: color 0.15s, background 0.15s;
@@ -2978,7 +2978,7 @@ input:checked + .slider:before {
 .menu-item.active {
   background: var(--blue-bg);
   color: var(--accent-blue);
-  border-left: none;           /* override the old rule */
+  border-left: none;
   font-weight: 500;
 }
 
@@ -3190,6 +3190,29 @@ input:checked + .slider:before {
   background: var(--accent-blue);
   color: #fff;
   border-color: transparent;
+}
+
+/* ── Today highlight ── */
+.log-card--today {
+  border-color: var(--accent-blue);
+  background: linear-gradient(160deg, var(--blue-bg) 0%, var(--bg-surface) 60%);
+}
+ 
+.log-card--today .log-card-header {
+  border-bottom-color: var(--blue-border);
+}
+ 
+.log-today-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  background: var(--blue-bg);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
 }
 
 /* ── Empty state ── */
