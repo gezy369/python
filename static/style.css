@@ -3040,7 +3040,7 @@ input:checked + .slider:before {
 /* ── Cards grid ── */
 .logs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
   gap: 12px;
   align-items: start;
 }
