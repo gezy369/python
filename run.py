@@ -1458,7 +1458,131 @@ def generate_charts():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+@app.route("/logs")
+@login_required
+def logs():
+    return render_template("logs.html")
+
+@app.get("/api/logs")
+@login_required
+def get_logs():
+    try:
+        user_id = session["user"]["id"]
+        year    = request.args.get("year")
+        month   = request.args.get("month")
+
+        query = (
+            supabase_admin.table("trading_logs")
+            .select("*")
+            .eq("user_id", user_id)
+        )
+
+        if year and month:
+            # filter by month: date >= YYYY-MM-01 and date < next month
+            from datetime import date
+            y, m = int(year), int(month)
+            date_from = f"{y}-{m:02d}-01"
+            if m == 12:
+                date_to = f"{y+1}-01-01"
+            else:
+                date_to = f"{y}-{m+1:02d}-01"
+            query = query.gte("date", date_from).lt("date", date_to)
+
+        res = query.order("date").execute()
+        return jsonify(res.data or [])
+
+    except Exception as e:
+        print("GET /api/logs error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/logs")
+@login_required
+def create_log():
+    try:
+        data            = request.json
+        data["user_id"] = session["user"]["id"]
+        res = supabase_admin.table("trading_logs").insert(data).execute()
+        return jsonify(res.data[0])
+    except Exception as e:
+        print("POST /api/logs error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.patch("/api/logs/<id>")
+@login_required
+def update_log(id):
+    try:
+        user_id = session["user"]["id"]
+        res = (
+            supabase_admin.table("trading_logs")
+            .update(request.json)
+            .eq("id", id)
+            .eq("user_id", user_id)   # ensures users can only edit their own
+            .execute()
+        )
+        return jsonify({"ok": True})
+    except Exception as e:
+        print(f"PATCH /api/logs/{id} error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.get("/api/trades/summary")
+@login_required
+def trades_summary():
+    """Returns [{date, trades, pnl}] for a given month — used by the logs page footer."""
+    try:
+        user_id = session["user"]["id"]
+        year    = request.args.get("year")
+        month   = request.args.get("month")
+
+        # get all account IDs for this user
+        accounts_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        account_ids = [a["id"] for a in (accounts_res.data or [])]
+        if not account_ids:
+            return jsonify([])
+
+        query = (
+            supabase_admin.table("trades")
+            .select("entryTimestamp, pnl")
+            .in_("key_trading_accounts", account_ids)
+        )
+
+        if year and month:
+            from datetime import date
+            y, m = int(year), int(month)
+            date_from = f"{y}-{m:02d}-01"
+            date_to   = f"{y+1}-01-01" if m == 12 else f"{y}-{m+1:02d}-01"
+            query = query.gte("entryTimestamp", date_from).lt("entryTimestamp", date_to)
+
+        res    = query.execute()
+        trades = res.data or []
+
+        # group by date
+        from collections import defaultdict
+        by_date = defaultdict(lambda: {"trades": 0, "pnl": 0.0})
+        for t in trades:
+            # entryTimestamp is "YYYY-MM-DD HH:MM:SS" or ISO string
+            date_str = str(t["entryTimestamp"])[:10]
+            by_date[date_str]["trades"] += 1
+            by_date[date_str]["pnl"]    += float(t["pnl"] or 0)
+
+        result = [
+            {"date": d, "trades": v["trades"], "pnl": round(v["pnl"], 2)}
+            for d, v in sorted(by_date.items())
+        ]
+        return jsonify(result)
+
+    except Exception as e:
+        print("GET /api/trades/summary error:", e)
+        return jsonify({"error": str(e)}), 500
+
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)
