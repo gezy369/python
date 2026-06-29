@@ -128,31 +128,6 @@ body {
   border-color: var(--accent-blue);
 }
 
-/* ===== NAV ITEMS ===== */
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 16px;
-  color: var(--text-muted);
-  text-decoration: none;
-  border-left: 2px solid transparent;
-  font-size: 13px;
-  font-weight: 400;
-  transition: color 0.15s, background 0.15s;
-}
-
-.menu-item:hover {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-}
-
-.menu-item.active {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-  border-left-color: var(--accent-blue);
-}
-
 /* ===== HOLIDAY BANNER ===== */
 .holiday-banner {
   background: var(--bg-surface);
@@ -2971,5 +2946,290 @@ input:checked + .slider:before {
 
 .split-btn-select:hover {
   background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* =====================================================
+   SIDEBAR NAV — improved active state
+   Replaces the border-left approach with a pill/badge
+   that matches the accent-blue highlight on the logs page
+   ===================================================== */
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  margin: 1px 8px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  text-decoration: none;
+  border-left: none;           /* remove old border-left approach */
+  font-size: 13px;
+  font-weight: 400;
+  transition: color 0.15s, background 0.15s;
+}
+
+.menu-item:hover {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+.menu-item.active {
+  background: var(--blue-bg);
+  color: var(--accent-blue);
+  border-left: none;           /* override the old rule */
+  font-weight: 500;
+}
+
+.menu-item.active svg {
+  stroke: var(--accent-blue);
+}
+
+.menu-item-logout {
+  margin-top: auto;
+}
+
+
+/* =====================================================
+   LOGS PAGE
+   ===================================================== */
+
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.page-title span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+/* ── Month selector ── */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-label {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  padding: 5px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 130px;
+  text-align: center;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* ── Cards grid ── */
+.logs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* ── Individual log card ── */
+.log-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.log-card:hover {
+  border-color: var(--border-accent);
+}
+
+.log-card--editing {
+  border-color: var(--accent-blue) !important;
+}
+
+/* ── Card header ── */
+.log-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 13px 9px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.log-card-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  margin-bottom: 1px;
+}
+
+.log-card-weekday {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ── Saving indicator dot ── */
+.log-saving-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.log-saving-dot--active {
+  opacity: 1;
+  animation: log-pulse 1s infinite;
+}
+
+@keyframes log-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 1; }
+}
+
+/* ── Card body ── */
+.log-card-body {
+  padding: 11px 13px;
+  min-height: 76px;
+}
+
+.log-view {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+}
+
+.log-view--empty {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.log-textarea {
+  width: 100%;
+  min-height: 76px;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  display: none;
+}
+
+.log-textarea::placeholder {
+  color: var(--text-faint);
+}
+
+/* ── Card footer ── */
+.log-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 13px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+}
+
+.log-card-trades {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.log-card-pnl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ── Save button ── */
+.log-save-btn {
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: none;
+  margin-top: 0;
+  transition: opacity 0.15s;
+}
+
+.log-save-btn:hover {
+  opacity: 0.85;
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ── Empty state ── */
+.logs-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--text-faint);
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* ── Hint text ── */
+.logs-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.logs-hint svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.logs-hint a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.logs-hint a:hover {
+  text-decoration: underline;
+}
+
+.logs-hint strong {
   color: var(--text-secondary);
 }

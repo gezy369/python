@@ -65,7 +65,6 @@
       </svg>
       Dashboard
     </a>
-
     <!-- Journal -->
     <a class="menu-item {{ 'active' if request.endpoint == 'journal' }}" href="{{ url_for('journal') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -76,7 +75,13 @@
       </svg>
       Journal
     </a>
-
+    <!-- Logs -->
+    <a class="menu-item {{ 'active' if request.endpoint == 'logs' }}" href="{{ url_for('logs') }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 4h12M2 8h8M2 12h5"/>
+      </svg>
+      Logs
+    </a>
     <!-- New Trades -->
     <a id="newTradesLink" class="menu-item {{ 'active' if request.endpoint == 'upload_file' }}" href="{{ url_for('upload_file') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -86,7 +91,6 @@
       </svg>
       New Trades
     </a>
-
     <!-- Settings (pushed to bottom) -->
     <a class="menu-item {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="margin-top: auto;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -95,7 +99,6 @@
       </svg>
       Settings
     </a>
-
     <!-- Logout -->
     <a class="menu-item menu-item-logout" href="{{ url_for('logout') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
