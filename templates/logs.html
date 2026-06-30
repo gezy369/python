@@ -23,6 +23,7 @@
     <line x1="8" y1="7" x2="8" y2="11"/>
     <circle cx="8" cy="5" r=".5" fill="currentColor" stroke="none"/>
   </svg>
+  To add a log, go to the <a href="{{ url_for('dashboard') }}">Dashboard</a> and click the <strong>+</strong> on any day in the calendar.
 </div>
 
 <script>
@@ -138,8 +139,12 @@ function renderCards(){
     const text     = logEntry?.logs || '';
     const isToday  = dateStr === todayStr;
 
+    const hasEntry = !!text.trim();
+
     const card = document.createElement('div');
-    card.className = 'log-card' + (isToday ? ' log-card--today' : '');
+    card.className = 'log-card'
+      + (isToday ? ' log-card--today' : '')
+      + (hasEntry ? ' log-card--has-entry' : '');
     card.dataset.date = dateStr;
 
     const monthShort = MONTHS[currentMonth].slice(0,3).toUpperCase();
@@ -161,7 +166,10 @@ function renderCards(){
     card.innerHTML = `
       <div class="log-card-header">
         <div>
-          <div class="log-card-date">${monthShort} ${pad(d)}</div>
+          <div class="log-card-date">
+            ${monthShort} ${pad(d)}
+            ${hasEntry ? '<span class="log-entry-dot" title="Entry written"></span>' : ''}
+          </div>
           <div class="log-card-weekday">${dayName}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -219,7 +227,7 @@ function attachCardEvents(card, dateStr){
     dot.classList.add('log-saving-dot--active');
     saveTimers[dateStr] = setTimeout(async () => {
       const text = editEl.value;
-      updateView(viewEl, text);
+      updateView(viewEl, text, card);
       await saveLog(dateStr, text);
       dot.classList.remove('log-saving-dot--active');
     }, 900);
@@ -228,7 +236,7 @@ function attachCardEvents(card, dateStr){
   saveBtn.addEventListener('click', async () => {
     const text = editEl.value;
     dot.classList.add('log-saving-dot--active');
-    updateView(viewEl, text);
+    updateView(viewEl, text, card);
     await saveLog(dateStr, text);
     dot.classList.remove('log-saving-dot--active');
     exitEdit();
@@ -245,13 +253,29 @@ function attachCardEvents(card, dateStr){
   });
 }
 
-function updateView(viewEl, text){
-  if(text.trim()){
+function updateView(viewEl, text, card){
+  const hasEntry = !!text.trim();
+
+  if(hasEntry){
     viewEl.classList.remove('log-view--empty');
     viewEl.textContent = text;
   } else {
     viewEl.classList.add('log-view--empty');
     viewEl.textContent = 'Click to write your thoughts for this day\u2026';
+  }
+
+  if(card){
+    card.classList.toggle('log-card--has-entry', hasEntry);
+    const dateEl = card.querySelector('.log-card-date');
+    let dot = dateEl?.querySelector('.log-entry-dot');
+    if(hasEntry && !dot && dateEl){
+      dot = document.createElement('span');
+      dot.className = 'log-entry-dot';
+      dot.title = 'Entry written';
+      dateEl.appendChild(dot);
+    } else if(!hasEntry && dot){
+      dot.remove();
+    }
   }
 }
 
