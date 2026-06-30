@@ -3074,7 +3074,7 @@ input:checked + .slider:before {
 .log-card-date {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-faint);
+  color: var(--text-secondary);
   letter-spacing: 0.06em;
   margin-bottom: 1px;
 }
