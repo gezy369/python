@@ -3256,3 +3256,19 @@ input:checked + .slider:before {
 .logs-hint strong {
   color: var(--text-secondary);
 }
+
+.calendar-day .chart-note-icon {
+  width: 16px;
+  height: 16px;
+  z-index: 5;
+}
+ 
+.calendar-day .chart-note-icon svg {
+  width: 9px;
+  height: 9px;
+}
+ 
+.calendar-day .chart-note-tooltip {
+  width: 180px;
+  font-size: 10px;
+}

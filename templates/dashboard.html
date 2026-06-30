@@ -464,12 +464,19 @@ async function renderCalendar() {
   const from = new Date(year, month, 1).toLocaleDateString("en-CA", { timeZone: userTimezone });
   const to   = new Date(year, month + 1, 0).toLocaleDateString("en-CA", { timeZone: userTimezone });
 
-  let [rawMonthly, rawAccount, tradeSetups, emotionTrades] = await Promise.all([
+  let [rawMonthly, rawAccount, tradeSetups, emotionTrades, monthLogs] = await Promise.all([
     fetchFilteredTrades({ account: accountSelect?.value, from, to }),
     fetchFilteredTrades({ account: accountSelect?.value }),
     fetch("/api/trade_setups").then(r => r.json()),
     fetch("/api/emotions_trades").then(r => r.json()),
+    fetch(`/api/logs?year=${year}&month=${String(month + 1).padStart(2, "0")}`).then(r => r.json()).catch(() => []),
   ]);
+ 
+  // Build a quick lookup: date string ("YYYY-MM-DD") -> log text
+  const logsByDate = {};
+  (monthLogs || []).forEach(l => {
+    if (l.logs && l.logs.trim()) logsByDate[l.date] = l.logs;
+  });
 
   // Enrich with setups/emotions so tag filters can be applied
   const setupsByTrade = {};
@@ -527,10 +534,26 @@ async function renderCalendar() {
     const pnlClass = tradeCount === 0 ? "day-flat" : dayPnL > 0 ? "day-positive" : dayPnL < 0 ? "day-negative" : "day-flat";
     const isToday  = day === today.day && month === today.month && year === today.year;
 
+    const logText = logsByDate[isoDate];
+ 
     const cell = document.createElement("div");
     cell.className = `calendar-day ${pnlClass}`;
     cell.dataset.date = isoDate;
+    cell.style.position = "relative"; // anchor for the icon
     cell.innerHTML = `
+      ${logText ? `
+        <div class="chart-note-icon" style="top:5px;left:auto;right:5px;" onclick="event.stopPropagation()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"
+              stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="1" width="12" height="14" rx="2"/>
+            <line x1="5" y1="5" x2="11" y2="5"/>
+            <line x1="5" y1="8" x2="11" y2="8"/>
+            <line x1="5" y1="11" x2="9"  y2="11"/>
+          </svg>
+          <div class="chart-note-tooltip" style="left:auto;right:0;">${logText.replace(/</g, '&lt;')}</div>
+        </div>
+      ` : ""}
       <div class="calendar-date" style="${isToday ? 'color:var(--accent-blue);font-weight:600;' : ''}">${day}</div>
       <div class="calendar-trades">${tradeCount} trade${tradeCount!==1?"s":""}</div>
       <div class="calendar-pnl ${dayPnL>0?"positive":dayPnL<0?"negative":""}">
