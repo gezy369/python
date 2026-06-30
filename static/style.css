@@ -3201,6 +3201,22 @@ input:checked + .slider:before {
   border-bottom-color: var(--border-strong);
 }
 
+.log-entry-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  margin-left: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 0 3px var(--blue-bg);
+}
+ 
+.log-card-date {
+  display: flex;
+  align-items: center;
+}
+
 /* ── Today highlight ── */
 .log-card--today {
   border-color: var(--accent-blue);
