@@ -2962,7 +2962,7 @@ input:checked + .slider:before {
   padding: 8px 12px;
   margin: 1px 8px;
   border-radius: var(--radius-md);
-  color: var(--text-muted);
+  color: #c8cad2;          /* brighter than before */
   text-decoration: none;
   border-left: none;
   font-size: 13px;
@@ -2972,7 +2972,7 @@ input:checked + .slider:before {
 
 .menu-item:hover {
   background: var(--bg-elevated);
-  color: var(--text-secondary);
+  color: #e2e4ea;
 }
 
 .menu-item.active {
@@ -2986,8 +2986,30 @@ input:checked + .slider:before {
   stroke: var(--accent-blue);
 }
 
+.menu-item-settings {
+  color: #e8a94a;          /* amber/yellow */
+}
+
+.menu-item-settings svg {
+  stroke: #e8a94a;
+}
+
+.menu-item-settings:hover {
+  color: #f0bb6a;
+  background: var(--amber-bg);
+}
+
 .menu-item-logout {
-  margin-top: auto;
+  color: #e55353;          /* red */
+}
+
+.menu-item-logout svg {
+  stroke: #e55353;
+}
+
+.menu-item-logout:hover {
+  color: #ed7070;
+  background: var(--red-bg);
 }
 
 
