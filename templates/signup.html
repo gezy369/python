@@ -179,6 +179,12 @@
 </div><!-- /login-wrap -->
 
 <script>
+const now = new Date();
+const monthName = now.toLocaleString('en-US', { month: 'long' });
+const year = now.getFullYear();
+document.getElementById('chartLabel').textContent = `Equity · ${monthName} ${year}`;
+document.getElementById('calMonth').textContent = `${monthName} ${year}`;
+
 /* Render the same fake calendar as login page */
 const calData = {
   1:{pnl:-320,trades:3},2:{pnl:510,trades:5},3:{pnl:210,trades:2},4:{pnl:-80,trades:4},
