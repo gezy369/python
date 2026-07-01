@@ -59,7 +59,7 @@
 
     <div class="login-pnl-badge">
       <span class="login-pnl-dot"></span>
-      +$3.2k · April MTD
+      +$3.2k · <span id="pnlMonth"></span> MTD
     </div>
 
     <div class="login-cal-section">
@@ -176,7 +176,7 @@
 
   </div><!-- /login-right -->
 
-</div><!-- /login-wrap -->
+</div><!-- /login-wrap -->+$3.2k · April MTD
 
 <script>
 const now = new Date();
@@ -184,6 +184,7 @@ const monthName = now.toLocaleString('en-US', { month: 'long' });
 const year = now.getFullYear();
 document.getElementById('chartLabel').textContent = `Equity · ${monthName} ${year}`;
 document.getElementById('calMonth').textContent = `${monthName} ${year}`;
+document.getElementById('pnlMonth').textContent = monthName;
 
 /* Render the same fake calendar as login page */
 const calData = {
