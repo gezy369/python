@@ -7,6 +7,7 @@
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
+
     <div class="timeframe-row">
       <label for="chartTimeframe">Chart timeframe</label>
       <div class="timeframe-controls">
@@ -35,13 +36,16 @@
         </div>
       </div>
     </div>
+
     <div id="dropzone" class="dropzone">Drop CSV file here<br>or click to select</div>
     <input type="file" id="fileInput" accept=".csv" hidden>
     <button onclick="uploadFile()">Preview fills</button>
+
     <div id="loader" class="loader hidden">
       <div class="spinner"></div>
       <div id="loader-text">Processing CSV...</div>
     </div>
+
     <div id="message"></div>
   </div>
 
@@ -55,75 +59,271 @@
       <li>4. Drop your CSV file here.</li>
       <li>5. Make sure the right account is selected on the top left.</li>
       <li>6. Click "Preview fills" — each row is one partial fill.</li>
-      <li>7. Select fills and click "Group fills into trade" to build your trades.</li>
+      <li>7. Select fills and click "Group into trade" to build your trades.</li>
       <li>8. Click "Import trades" when all fills are grouped.</li>
     </ul>
     <p><br>Fees configured in settings will be applied per fill.<br>
        Ungrouped fills will not be imported.</p>
   </div>
+
 </div>
 
 <!-- GROUPING TABLE -->
 <div id="table-container"></div>
 
 <style>
-#grouping-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-#grouping-toolbar span { font-size:13px; color:var(--text-secondary,#666); }
-#fill-legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; font-size:12px; color:var(--text-secondary,#666); }
-.legend-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
-#fill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
-#fill-table thead th { font-size:11px; font-weight:500; color:var(--text-secondary,#888); text-align:left; padding:6px 8px; border-bottom:1px solid var(--border,#e5e5e5); white-space:nowrap; }
-#fill-table tbody tr { cursor:pointer; }
-#fill-table tbody tr:hover { filter:brightness(0.97); }
-#fill-table tbody td { padding:6px 8px; border-bottom:1px solid var(--border,#eee); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
-.fill-bar { width:4px !important; padding:0 !important; border:none !important; }
-.group-pill { display:inline-block; font-size:10px; font-weight:500; padding:2px 8px; border-radius:10px; }
-.ungrouped-badge { display:inline-block; font-size:10px; padding:1px 7px; border-radius:8px; background:var(--surface-1,#f5f5f5); color:var(--text-muted,#aaa); border:1px solid var(--border,#e0e0e0); }
-.pnl-pos { color:#1a7f4b; }
-.pnl-neg { color:#c0392b; }
-#grouping-summary { margin-top:14px; padding:10px 16px; background:var(--surface-1,#f7f7f7); border-radius:8px; border:1px solid var(--border,#e5e5e5); font-size:12px; }
-#import-bar { margin-top:16px; display:flex; align-items:center; gap:12px; }
+/* ── Toolbar ── */
+.grp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.grp-toolbar span {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.grp-btn {
+  padding: 5px 12px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  margin-top: 0;
+}
+
+.grp-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.grp-btn.primary {
+  background: var(--blue-bg);
+  border-color: var(--blue-border);
+  color: var(--accent-blue);
+}
+
+.grp-btn.primary:hover {
+  background: rgba(91,142,245,.14);
+  color: #7ba8f7;
+}
+
+/* ── Legend ── */
+.grp-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  min-height: 18px;
+}
+
+.grp-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.grp-leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Table ── */
+#fill-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+#fill-table thead th {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+  background: var(--bg-elevated);
+}
+
+#fill-table tbody tr {
+  cursor: pointer;
+  transition: background .1s;
+}
+
+#fill-table tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+#fill-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.fill-bar-cell {
+  width: 3px !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+/* ── Pills ── */
+.grp-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.grp-ungrouped {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: var(--bg-active);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+}
+
+/* ── P&L ── */
+.fill-pnl-pos {
+  color: var(--accent-green) !important;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.fill-pnl-neg {
+  color: var(--accent-red) !important;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.fill-pnl-zero {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Summary bar ── */
+.grp-summary {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  font-size: 11px;
+  min-height: 38px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.grp-sum-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+/* ── Import row ── */
+.grp-import-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grp-import-btn {
+  padding: 6px 18px;
+  background: var(--accent-blue);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+  margin-top: 0;
+}
+
+.grp-import-btn:hover {
+  opacity: .85;
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: transparent;
+}
+
+.grp-skip-note {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 </style>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let allFills    = [];   // raw rows from server, each gets _idx, _group, _selected
+/* ── Palette — translucent tints over dark bg ── */
+const PALETTE = [
+  { bar:'#5b8ef5', bg:'rgba(91,142,245,.12)',  text:'#7ba8f7' },
+  { bar:'#34c38f', bg:'rgba(52,195,143,.10)',   text:'#4dd4a0' },
+  { bar:'#e8a94a', bg:'rgba(232,169,74,.10)',   text:'#edbc6e' },
+  { bar:'#c97be8', bg:'rgba(180,100,220,.10)',  text:'#d49eee' },
+  { bar:'#e55353', bg:'rgba(229,83,83,.10)',    text:'#ea7777' },
+  { bar:'#38c9e0', bg:'rgba(56,201,224,.10)',   text:'#5dd6e8' },
+  { bar:'#f0758a', bg:'rgba(240,117,138,.10)',  text:'#f492a3' },
+  { bar:'#a0c878', bg:'rgba(145,195,100,.10)',  text:'#b8d896' },
+];
+
+/* ── State ── */
+let allFills    = [];
 let nextGroupId = 0;
 let usedGroups  = new Set();
 
-const PALETTE = [
-  { bar:'#378ADD', bg:'#E6F1FB', text:'#0C447C' },
-  { bar:'#1D9E75', bg:'#E1F5EE', text:'#085041' },
-  { bar:'#D85A30', bg:'#FAECE7', text:'#712B13' },
-  { bar:'#D4537E', bg:'#FBEAF0', text:'#72243E' },
-  { bar:'#7F77DD', bg:'#EEEDFE', text:'#3C3489' },
-  { bar:'#BA7517', bg:'#FAEEDA', text:'#633806' },
-  { bar:'#639922', bg:'#EAF3DE', text:'#27500A' },
-  { bar:'#888780', bg:'#F1EFE8', text:'#444441' },
-];
-
 function palLabel(gid) {
-  const sorted = [...usedGroups].sort((a,b)=>a-b);
-  return 'Trade ' + (sorted.indexOf(gid) + 1);
+  return 'Trade ' + ([...usedGroups].sort((a,b)=>a-b).indexOf(gid) + 1);
 }
 
-// ── Upload & parse ─────────────────────────────────────────────────────────
-const dropzone   = document.getElementById('dropzone');
-const fileInput  = document.getElementById('fileInput');
-const messageDiv = document.getElementById('message');
-const loader     = document.getElementById('loader');
-const loaderText = document.getElementById('loader-text');
+/* ── Dropzone ── */
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const msgDiv    = document.getElementById('message');
+const loader    = document.getElementById('loader');
+const loaderTxt = document.getElementById('loader-text');
 let selectedFile = null;
 
-function showLoader(t){ loaderText.innerText=t; loader.classList.remove('hidden'); }
-function hideLoader(){ loader.classList.add('hidden'); }
+function showLoader(t) { loaderTxt.innerText = t; loader.classList.remove('hidden'); }
+function hideLoader()  { loader.classList.add('hidden'); }
 
 dropzone.onclick = () => fileInput.click();
+
 fileInput.onchange = e => {
   selectedFile = e.target.files[0];
   dropzone.innerHTML = 'Selected: ' + selectedFile.name;
   dropzone.classList.add('dropped');
 };
+
 dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
 dropzone.ondragleave = () => dropzone.classList.remove('dragover');
 dropzone.ondrop = e => {
@@ -134,246 +334,292 @@ dropzone.ondrop = e => {
   dropzone.innerHTML = 'Dropped: ' + selectedFile.name;
 };
 
+/* ── Upload ── */
 function uploadFile() {
-  messageDiv.innerHTML = '';
-  if (!selectedFile) { messageDiv.innerHTML='No file selected'; messageDiv.className='error'; return; }
-  const accountId = document.getElementById('accountSelect')?.value;
-  if (!accountId) { messageDiv.innerHTML='Select an account first'; messageDiv.className='error'; return; }
+  msgDiv.innerHTML = '';
+  msgDiv.className = '';
 
-  showLoader('Uploading & parsing CSV...');
+  if (!selectedFile) {
+    msgDiv.innerHTML = 'No file selected';
+    msgDiv.className = 'error';
+    return;
+  }
+
+  const accountId = document.getElementById('accountSelect')?.value;
+  if (!accountId) {
+    msgDiv.innerHTML = 'Select an account first';
+    msgDiv.className = 'error';
+    return;
+  }
+
+  showLoader('Uploading and parsing CSV...');
+
   const formData = new FormData();
   formData.append('file', selectedFile);
   formData.append('account_id', accountId);
   formData.append('chart_timeframe', document.getElementById('chartTimeframe')?.value || '5m');
 
-  fetch("{{ url_for('upload_file') }}", { method:'POST', body:formData })
+  fetch("{{ url_for('upload_file') }}", { method: 'POST', body: formData })
     .then(r => r.json())
     .then(data => {
       hideLoader();
-      if (data.error) { messageDiv.innerHTML=data.error; messageDiv.className='error'; return; }
-      messageDiv.innerHTML = '✅ ' + data.rows.length + ' fills loaded — group them into trades below';
-      messageDiv.className = 'success';
+      if (data.error) {
+        msgDiv.innerHTML = data.error;
+        msgDiv.className = 'error';
+        return;
+      }
+      msgDiv.innerHTML = '✅ ' + data.rows.length + ' fills loaded — group them into trades below';
+      msgDiv.className = 'success';
       initFills(data.rows);
     })
-    .catch(() => { hideLoader(); messageDiv.innerHTML='Upload failed'; messageDiv.className='error'; });
+    .catch(() => {
+      hideLoader();
+      msgDiv.innerHTML = 'Upload failed';
+      msgDiv.className = 'error';
+    });
 }
 
-// ── Init fills from server response ───────────────────────────────────────
+/* ── Init fills ── */
 function initFills(rows) {
-  allFills    = rows.map((r,i) => ({ ...r, _idx:i, _group:null, _selected:false }));
+  allFills    = rows.map((r, i) => ({ ...r, _idx: i, _group: null, _sel: false }));
   nextGroupId = 0;
   usedGroups  = new Set();
+  buildTable();
   renderAll();
 }
 
-// ── Render everything ──────────────────────────────────────────────────────
-function renderAll() {
-  const container = document.getElementById('table-container');
-  if (!allFills.length) { container.innerHTML=''; return; }
-
-  const selCount = allFills.filter(f=>f._selected).length;
-
-  container.innerHTML = `
-    <div id="grouping-toolbar">
-      <label style="font-size:13px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"> All</label>
-      <button onclick="groupSelected()">Group fills into trade</button>
-      <button onclick="ungroupSelected()">Ungroup</button>
-      <button onclick="clearSel()">Clear selection</button>
-      <span id="sel-count">${selCount} fill${selCount!==1?'s':''} selected</span>
+/* ── Build table skeleton ── */
+function buildTable() {
+  document.getElementById('table-container').innerHTML = `
+    <div class="grp-toolbar" id="grp-toolbar">
+      <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:5px">
+        <input type="checkbox" id="chkAll" onchange="toggleAll(this)" style="accent-color:var(--accent-blue)">
+        All
+      </label>
+      <button class="grp-btn primary" onclick="groupSelected()">Group into trade</button>
+      <button class="grp-btn" onclick="ungroupSelected()">Ungroup</button>
+      <button class="grp-btn" onclick="clearSel()">Clear selection</button>
+      <span id="sel-count">0 fills selected</span>
     </div>
-    <div id="fill-legend"></div>
+
+    <div class="grp-legend" id="grp-legend"></div>
+
     <div style="overflow-x:auto">
       <table id="fill-table">
-        <thead>
-          <tr>
-            <th class="fill-bar" style="width:4px"></th>
-            <th style="width:32px"><input type="checkbox" id="checkAllInner" onchange="toggleAll(this)"></th>
-            <th style="width:72px">Trade</th>
-            <th style="width:60px">Symbol</th>
-            <th style="width:80px">Buy fill</th>
-            <th style="width:80px">Sell fill</th>
-            <th style="width:36px">Qty</th>
-            <th style="width:74px">Buy price</th>
-            <th style="width:74px">Sell price</th>
-            <th style="width:62px">P&L</th>
-            <th style="width:130px">Bought</th>
-            <th style="width:130px">Sold</th>
-            <th style="width:80px">Duration</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th style="width:3px"></th>
+          <th style="width:28px"></th>
+          <th style="width:76px">Trade</th>
+          <th style="width:56px">Symbol</th>
+          <th style="width:80px">Buy fill</th>
+          <th style="width:80px">Sell fill</th>
+          <th style="width:32px;text-align:center">Qty</th>
+          <th style="width:74px">Buy px</th>
+          <th style="width:74px">Sell px</th>
+          <th style="width:66px">P&amp;L</th>
+          <th style="width:124px">Bought</th>
+          <th style="width:124px">Sold</th>
+          <th style="width:78px">Duration</th>
+        </tr></thead>
         <tbody id="fill-tbody"></tbody>
       </table>
     </div>
-    <div id="grouping-summary"></div>
-    <div id="import-bar"></div>
-  `;
 
+    <div class="grp-summary" id="grp-summary"></div>
+    <div class="grp-import-row" id="grp-import-row"></div>
+  `;
+}
+
+/* ── Render all ── */
+function renderAll() {
   renderRows();
   renderLegend();
   renderSummary();
+  const sel = allFills.filter(f => f._sel).length;
+  const sc  = document.getElementById('sel-count');
+  if (sc) sc.textContent = sel + ' fill' + (sel !== 1 ? 's' : '') + ' selected';
 }
 
 function renderRows() {
   const tbody = document.getElementById('fill-tbody');
   if (!tbody) return;
-  let html = '';
+
+  let h = '';
   allFills.forEach(f => {
     const g   = f._group;
     const pal = g !== null ? PALETTE[g % PALETTE.length] : null;
-    const rowBg  = f._selected ? 'background:var(--bg-accent,#dbeafe)' : (pal ? `background:${pal.bg}` : '');
+    const rowBg  = f._sel
+      ? 'background:rgba(91,142,245,.10)'
+      : g !== null ? `background:${pal.bg}` : '';
     const barClr = pal ? pal.bar : 'transparent';
-    const pill   = g !== null
-      ? `<span class="group-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
-      : `<span class="ungrouped-badge">ungrouped</span>`;
-    const pnl    = parseFloat(f.pnl) || 0;
-    const pnlCls = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
-    const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
-    const bought = f.boughtTimestamp ? f.boughtTimestamp.split('.')[0] : '';
-    const sold   = f.soldTimestamp   ? f.soldTimestamp.split('.')[0]   : '';
 
-    html += `<tr data-idx="${f._idx}" onclick="toggleRow(${f._idx},event)" style="${rowBg}">
-      <td class="fill-bar" style="background:${barClr}"></td>
-      <td><input type="checkbox" ${f._selected?'checked':''} onclick="event.stopPropagation()" onchange="toggleCheck(${f._idx},this)"></td>
-      <td>${pill}</td>
-      <td>${f.symbol||''}</td>
-      <td style="font-family:monospace;font-size:11px">${String(f.buyFillId||'').slice(-6)}</td>
-      <td style="font-family:monospace;font-size:11px">${String(f.sellFillId||'').slice(-6)}</td>
-      <td style="text-align:center">${f.qty}</td>
-      <td style="font-family:monospace">${parseFloat(f.buyPrice).toFixed(2)}</td>
-      <td style="font-family:monospace">${parseFloat(f.sellPrice).toFixed(2)}</td>
-      <td class="${pnlCls}" style="font-family:monospace">${pnlStr}</td>
-      <td style="font-size:11px">${bought}</td>
-      <td style="font-size:11px">${sold}</td>
-      <td style="color:var(--text-secondary,#888)">${f.duration||''}</td>
+    const badge = g !== null
+      ? `<span class="grp-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
+      : `<span class="grp-ungrouped">ungrouped</span>`;
+
+    const pnl    = parseFloat(f.pnl) || 0;
+    const pnlCls = pnl > 0 ? 'fill-pnl-pos' : pnl < 0 ? 'fill-pnl-neg' : 'fill-pnl-zero';
+    const pnlStr = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
+
+    const bought = (f.boughtTimestamp || '').split('.')[0];
+    const sold   = (f.soldTimestamp   || '').split('.')[0];
+
+    h += `<tr data-idx="${f._idx}" onclick="rowClick(${f._idx}, event)" style="${rowBg}">
+      <td class="fill-bar-cell" style="background:${barClr}"></td>
+      <td><input type="checkbox" ${f._sel ? 'checked' : ''} onclick="event.stopPropagation()" onchange="chkRow(${f._idx}, this)" style="accent-color:var(--accent-blue)"></td>
+      <td>${badge}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-primary)">${f.symbol || ''}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">${String(f.buyFillId || '').slice(-6)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">${String(f.sellFillId || '').slice(-6)}</td>
+      <td style="text-align:center;color:var(--text-primary)">${f.qty}</td>
+      <td style="font-family:var(--font-mono)">${parseFloat(f.buyPrice).toFixed(2)}</td>
+      <td style="font-family:var(--font-mono)">${parseFloat(f.sellPrice).toFixed(2)}</td>
+      <td class="${pnlCls}">${pnlStr}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${bought}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${sold}</td>
+      <td style="color:var(--text-muted)">${f.duration || ''}</td>
     </tr>`;
   });
-  tbody.innerHTML = html;
-  const selCount = allFills.filter(f=>f._selected).length;
-  const sc = document.getElementById('sel-count');
-  if (sc) sc.textContent = selCount + ' fill' + (selCount!==1?'s':'') + ' selected';
+
+  tbody.innerHTML = h;
 }
 
 function renderLegend() {
-  const el = document.getElementById('fill-legend');
+  const el = document.getElementById('grp-legend');
   if (!el) return;
-  const active = [...usedGroups].sort((a,b)=>a-b);
-  if (!active.length) { el.innerHTML=''; return; }
+  const active = [...usedGroups].sort((a,b) => a-b);
   el.innerHTML = active.map(g => {
     const pal = PALETTE[g % PALETTE.length];
-    const cnt = allFills.filter(f=>f._group===g).length;
-    return `<span><span class="legend-dot" style="background:${pal.bar}"></span>${palLabel(g)} — ${cnt} fill${cnt>1?'s':''}</span>`;
+    const cnt = allFills.filter(f => f._group === g).length;
+    return `<span class="grp-leg-item">
+      <span class="grp-leg-dot" style="background:${pal.bar}"></span>
+      ${palLabel(g)} — ${cnt} fill${cnt > 1 ? 's' : ''}
+    </span>`;
   }).join('');
 }
 
 function renderSummary() {
-  const el = document.getElementById('grouping-summary');
-  if (!el) return;
-  const active = [...usedGroups].sort((a,b)=>a-b);
-  const ungrouped = allFills.filter(f=>f._group===null).length;
+  const sumEl  = document.getElementById('grp-summary');
+  const impRow = document.getElementById('grp-import-row');
+  if (!sumEl) return;
+
+  const active    = [...usedGroups].sort((a,b) => a-b);
+  const ungrouped = allFills.filter(f => f._group === null).length;
+
   if (!active.length) {
-    el.innerHTML = ungrouped
-      ? `<span style="color:var(--text-muted,#aaa)">${ungrouped} fill${ungrouped>1?'s':''} ungrouped — select fills and click "Group fills into trade"</span>`
-      : '';
+    sumEl.innerHTML  = `<span style="color:var(--text-muted)">Select fills and click "Group into trade" to build your trades.</span>`;
+    impRow.innerHTML = '';
     return;
   }
-  const pills = active.map(g => {
-    const pal   = PALETTE[g % PALETTE.length];
-    const gf    = allFills.filter(f=>f._group===g);
-    const qty   = gf.reduce((s,f)=>s+f.qty,0);
-    const pnl   = gf.reduce((s,f)=>s+(parseFloat(f.pnl)||0),0);
-    const pnlStr= (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
-    const pnlCls= pnl>0?'pnl-pos':pnl<0?'pnl-neg':'';
-    return `<span style="background:${pal.bg};color:${pal.text};padding:3px 10px;border-radius:10px;margin-right:6px;display:inline-block">
-      ${palLabel(g)}: ${gf.length} fills · qty ${qty} · <span class="${pnlCls}">${pnlStr}</span>
+
+  sumEl.innerHTML = active.map(g => {
+    const pal = PALETTE[g % PALETTE.length];
+    const gf  = allFills.filter(f => f._group === g);
+    const qty = gf.reduce((s, f) => s + f.qty, 0);
+    const pnl = gf.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
+    const pnlClr = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
+    const pnlStr = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
+    return `<span class="grp-sum-pill" style="background:${pal.bg}">
+      <span class="grp-leg-dot" style="background:${pal.bar}"></span>
+      <span style="color:${pal.text};font-weight:500">${palLabel(g)}</span>
+      <span style="color:var(--text-muted)">${gf.length} fills · qty ${qty} ·</span>
+      <span style="color:${pnlClr};font-family:var(--font-mono)">${pnlStr}</span>
     </span>`;
-  }).join('');
-  const ungroupedNote = ungrouped
-    ? `<span style="color:var(--text-muted,#aaa);margin-left:4px">${ungrouped} fill${ungrouped>1?'s':''} ungrouped (will not be imported)</span>`
-    : '';
-  el.innerHTML = pills + ungroupedNote;
+  }).join('') + (ungrouped
+    ? `<span style="color:var(--text-muted)">${ungrouped} fill${ungrouped > 1 ? 's' : ''} ungrouped</span>`
+    : '');
 
-  // show import button only when at least one group exists
-  const importBar = document.getElementById('import-bar');
-  if (importBar) {
-    importBar.innerHTML = active.length
-      ? `<button onclick="confirmImport()" style="font-weight:500">Import ${active.length} trade${active.length>1?'s':''}</button>
-         <span style="font-size:12px;color:var(--text-secondary,#888)">${ungrouped} fill${ungrouped>1?'s':''} will be skipped</span>`
-      : '';
-  }
+  impRow.innerHTML = `<button class="grp-import-btn" onclick="confirmImport()">Import ${active.length} trade${active.length > 1 ? 's' : ''}</button>`
+    + (ungrouped ? `<span class="grp-skip-note">${ungrouped} fill${ungrouped > 1 ? 's' : ''} will be skipped</span>` : '');
 }
 
-// ── Selection helpers ──────────────────────────────────────────────────────
-function toggleRow(idx, e) {
-  if (e.target.type==='checkbox') return;
-  allFills[idx]._selected = !allFills[idx]._selected;
-  renderRows(); renderSummary();
+/* ── Selection ── */
+function rowClick(idx, e) {
+  if (e.target.type === 'checkbox') return;
+  allFills[idx]._sel = !allFills[idx]._sel;
+  renderAll();
 }
-function toggleCheck(idx, el) {
-  allFills[idx]._selected = el.checked;
-  renderRows(); renderSummary();
+
+function chkRow(idx, el) {
+  allFills[idx]._sel = el.checked;
+  renderAll();
 }
+
 function toggleAll(el) {
-  allFills.forEach(f => f._selected = el.checked);
-  renderRows(); renderSummary();
-}
-function clearSel() {
-  allFills.forEach(f => f._selected = false);
-  renderRows(); renderSummary();
+  allFills.forEach(f => f._sel = el.checked);
+  renderAll();
 }
 
-// ── Grouping actions ───────────────────────────────────────────────────────
+function clearSel() {
+  allFills.forEach(f => f._sel = false);
+  const ca = document.getElementById('chkAll');
+  if (ca) ca.checked = false;
+  renderAll();
+}
+
+/* ── Grouping ── */
 function groupSelected() {
-  const sel = allFills.filter(f => f._selected);
+  const sel = allFills.filter(f => f._sel);
   if (!sel.length) return;
 
-  // if selected fills span an existing group, add to it; otherwise new group
-  const existingGroups = [...new Set(sel.filter(f=>f._group!==null).map(f=>f._group))];
-  const gid = existingGroups.length === 1 ? existingGroups[0] : nextGroupId++;
+  const existing = [...new Set(sel.filter(f => f._group !== null).map(f => f._group))];
+  const gid      = existing.length === 1 ? existing[0] : nextGroupId++;
 
-  sel.forEach(f => { f._group = gid; f._selected = false; });
+  sel.forEach(f => { f._group = gid; f._sel = false; });
   usedGroups.add(gid);
+
+  const ca = document.getElementById('chkAll');
+  if (ca) ca.checked = false;
   renderAll();
 }
 
 function ungroupSelected() {
-  allFills.filter(f=>f._selected).forEach(f => { f._group=null; f._selected=false; });
-  usedGroups = new Set(allFills.filter(f=>f._group!==null).map(f=>f._group));
+  allFills.filter(f => f._sel).forEach(f => { f._group = null; f._sel = false; });
+  usedGroups = new Set(allFills.filter(f => f._group !== null).map(f => f._group));
   renderAll();
 }
 
-// ── Confirm import ─────────────────────────────────────────────────────────
+/* ── Confirm import ── */
 function confirmImport() {
-  const active = [...usedGroups].sort((a,b)=>a-b);
+  const active = [...usedGroups].sort((a,b) => a-b);
   if (!active.length) return;
 
-  // build groups payload: list of {fillIndices, label}
   const groups = active.map(gid => ({
-    fillIndices: allFills.filter(f=>f._group===gid).map(f=>f._idx),
-    label: palLabel(gid),
+    fillIndices: allFills.filter(f => f._group === gid).map(f => f._idx),
+    label:       palLabel(gid),
   }));
 
   showLoader('Saving trades...');
-  messageDiv.innerHTML = '';
+  msgDiv.innerHTML = '';
+  msgDiv.className = '';
 
   fetch('/confirm_upload', {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json' },
-    body: JSON.stringify({ groups }),
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ groups }),
   })
-  .then(r => r.json())
-  .then(data => {
-    hideLoader();
-    if (data.error) { messageDiv.innerHTML=data.error; messageDiv.className='error'; return; }
-    const warn = data.failed_charts?.length
-      ? ` (${data.failed_charts.length} chart${data.failed_charts.length>1?'s':''} failed)`
-      : '';
-    messageDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted!==1?'s':''} imported${warn}`;
-    messageDiv.className = 'success';
-    allFills = [];
-    usedGroups = new Set();
-    document.getElementById('table-container').innerHTML = '';
-  })
-  .catch(() => { hideLoader(); messageDiv.innerHTML='Import failed'; messageDiv.className='error'; });
+    .then(r => r.json())
+    .then(data => {
+      hideLoader();
+      if (data.error) {
+        msgDiv.innerHTML = data.error;
+        msgDiv.className = 'error';
+        return;
+      }
+      const warn = data.failed_charts?.length
+        ? ` (${data.failed_charts.length} chart${data.failed_charts.length > 1 ? 's' : ''} failed)`
+        : '';
+      msgDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted !== 1 ? 's' : ''} imported${warn}`;
+      msgDiv.className = 'success';
+      allFills  = [];
+      usedGroups = new Set();
+      document.getElementById('table-container').innerHTML = '';
+    })
+    .catch(() => {
+      hideLoader();
+      msgDiv.innerHTML = 'Import failed';
+      msgDiv.className = 'error';
+    });
 }
 </script>
 
