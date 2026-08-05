@@ -59,7 +59,7 @@
       <li>4. Drop your CSV file here.</li>
       <li>5. Make sure the right account is selected on the top left.</li>
       <li>6. Click "Preview fills" — each row is one partial fill.</li>
-      <li>7. Select fills and click "Group into trade" to build your trades.</li>
+      <li>7. Use the proximity window to get grouping suggestions, then confirm or adjust manually.</li>
       <li>8. Click "Import trades" when all fills are grouped.</li>
     </ul>
     <p><br>Fees configured in settings will be applied per fill.<br>
@@ -72,6 +72,90 @@
 <div id="table-container"></div>
 
 <style>
+/* ── Top hint bar ── */
+.hint-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  margin-bottom: 10px;
+}
+.hint-bar-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hint-bar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-strong);
+  flex-shrink: 0;
+}
+.hint-bar select {
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.hint-bar select:focus { border-color: var(--accent-blue); }
+.hint-count { font-size: 11px; color: var(--text-muted); }
+.hint-count b { color: var(--accent-amber); }
+
+/* ── Suggestion banner ── */
+.suggest-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.suggest-banner b { color: var(--accent-amber); }
+.suggest-accept-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: var(--accent-amber);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #1a1000;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-top: 0;
+}
+.suggest-accept-btn:hover { opacity: .85; background: var(--accent-amber); color: #1a1000; border-color: transparent; }
+
+/* ── Hint legend ── */
+.hint-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.hint-leg-item { display: flex; align-items: center; gap: 5px; }
+
 /* ── Toolbar ── */
 .grp-toolbar {
   display: flex;
@@ -80,13 +164,7 @@
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
-
-.grp-toolbar span {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-left: 4px;
-}
-
+.grp-toolbar span { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
 .grp-btn {
   padding: 5px 12px;
   background: var(--bg-active);
@@ -99,192 +177,71 @@
   transition: background .15s, color .15s, border-color .15s;
   margin-top: 0;
 }
-
-.grp-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-accent);
-}
-
-.grp-btn.primary {
-  background: var(--blue-bg);
-  border-color: var(--blue-border);
-  color: var(--accent-blue);
-}
-
-.grp-btn.primary:hover {
-  background: rgba(91,142,245,.14);
-  color: #7ba8f7;
-}
+.grp-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-accent); }
+.grp-btn.primary { background: var(--blue-bg); border-color: var(--blue-border); color: var(--accent-blue); }
+.grp-btn.primary:hover { background: rgba(91,142,245,.14); color: #7ba8f7; }
 
 /* ── Legend ── */
-.grp-legend {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-  min-height: 18px;
-}
-
-.grp-leg-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.grp-leg-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
+.grp-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; min-height: 16px; }
+.grp-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+.grp-leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
 /* ── Table ── */
-#fill-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
-}
-
+#fill-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
 #fill-table thead th {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border-default);
-  white-space: nowrap;
-  background: var(--bg-elevated);
+  font-size: 10px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-muted); text-align: left; padding: 6px 8px;
+  border-bottom: 1px solid var(--border-default); white-space: nowrap; background: var(--bg-elevated);
 }
-
-#fill-table tbody tr {
-  cursor: pointer;
-  transition: background .1s;
-}
-
-#fill-table tbody tr:hover td {
-  background: var(--bg-hover);
-}
-
+#fill-table tbody tr { cursor: pointer; transition: background .1s; }
+#fill-table tbody tr:hover td { filter: brightness(1.12); }
 #fill-table tbody td {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
+  padding: 6px 8px; border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; vertical-align: middle;
 }
+.fill-bar-cell { width: 3px !important; padding: 0 !important; border-bottom: none !important; }
 
-.fill-bar-cell {
-  width: 3px !important;
-  padding: 0 !important;
-  border-bottom: none !important;
-}
+/* Suggested row — dashed amber outline */
+.suggest-row { outline: 1px dashed rgba(232,169,74,.30); outline-offset: -1px; }
 
 /* ── Pills ── */
-.grp-pill {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 10px;
+.grp-pill { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
+.grp-ungrouped {
+  display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 8px;
+  background: var(--bg-active); color: var(--text-muted); border: 1px solid var(--border-strong);
 }
 
-.grp-ungrouped {
-  display: inline-block;
-  font-size: 10px;
-  padding: 1px 7px;
-  border-radius: 8px;
-  background: var(--bg-active);
-  color: var(--text-muted);
-  border: 1px solid var(--border-strong);
-}
+/* ── Timestamp dots ── */
+.ts-wrap { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; }
+.ts-dot-exact { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.ts-dot-prox  { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; display: inline-block; opacity: .6; }
 
 /* ── P&L ── */
-.fill-pnl-pos {
-  color: var(--accent-green) !important;
-  font-family: var(--font-mono);
-  font-weight: 500;
-}
+.fill-pnl-pos { color: var(--accent-green) !important; font-family: var(--font-mono); font-weight: 500; }
+.fill-pnl-neg { color: var(--accent-red)   !important; font-family: var(--font-mono); font-weight: 500; }
 
-.fill-pnl-neg {
-  color: var(--accent-red) !important;
-  font-family: var(--font-mono);
-  font-weight: 500;
-}
-
-.fill-pnl-zero {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
-/* ── Summary bar ── */
+/* ── Summary ── */
 .grp-summary {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-default);
-  font-size: 11px;
-  min-height: 38px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  margin-top: 12px; padding: 10px 14px; background: var(--bg-elevated);
+  border-radius: var(--radius-lg); border: 1px solid var(--border-default);
+  font-size: 11px; min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
-
-.grp-sum-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-}
+.grp-sum-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 8px; font-size: 11px; }
 
 /* ── Import row ── */
-.grp-import-row {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+.grp-import-row { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
 .grp-import-btn {
-  padding: 6px 18px;
-  background: var(--accent-blue);
-  border: none;
-  border-radius: var(--radius-md);
-  color: #fff;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity .15s;
-  margin-top: 0;
+  padding: 6px 18px; background: var(--accent-blue); border: none; border-radius: var(--radius-md);
+  color: #fff; font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: opacity .15s; margin-top: 0;
 }
-
-.grp-import-btn:hover {
-  opacity: .85;
-  background: var(--accent-blue);
-  color: #fff;
-  border-color: transparent;
-}
-
-.grp-skip-note {
-  font-size: 11px;
-  color: var(--text-muted);
-}
+.grp-import-btn:hover { opacity: .85; background: var(--accent-blue); color: #fff; border-color: transparent; }
+.grp-skip-note { font-size: 11px; color: var(--text-muted); }
 </style>
 
 <script>
-/* ── Palette — translucent tints over dark bg ── */
+/* ── Palette ── */
 const PALETTE = [
   { bar:'#5b8ef5', bg:'rgba(91,142,245,.12)',  text:'#7ba8f7' },
   { bar:'#34c38f', bg:'rgba(52,195,143,.10)',   text:'#4dd4a0' },
@@ -296,13 +253,23 @@ const PALETTE = [
   { bar:'#a0c878', bg:'rgba(145,195,100,.10)',  text:'#b8d896' },
 ];
 
+const HINT_COLORS = ['#e8a94a','#34c38f','#c97be8','#38c9e0','#f0758a','#a0c878'];
+
 /* ── State ── */
 let allFills    = [];
 let nextGroupId = 0;
 let usedGroups  = new Set();
+let hintClusters = [];
 
 function palLabel(gid) {
-  return 'Trade ' + ([...usedGroups].sort((a,b)=>a-b).indexOf(gid) + 1);
+  return 'Trade ' + ([...usedGroups].sort((a,b) => a-b).indexOf(gid) + 1);
+}
+
+function parseTs(str) {
+  if (!str) return 0;
+  const [d, t] = str.split(' ');
+  const [mo, dy, yr] = d.split('/');
+  return new Date(`${yr}-${mo}-${dy}T${t}`).getTime();
 }
 
 /* ── Dropzone ── */
@@ -317,13 +284,11 @@ function showLoader(t) { loaderTxt.innerText = t; loader.classList.remove('hidde
 function hideLoader()  { loader.classList.add('hidden'); }
 
 dropzone.onclick = () => fileInput.click();
-
 fileInput.onchange = e => {
   selectedFile = e.target.files[0];
   dropzone.innerHTML = 'Selected: ' + selectedFile.name;
   dropzone.classList.add('dropped');
 };
-
 dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
 dropzone.ondragleave = () => dropzone.classList.remove('dragover');
 dropzone.ondrop = e => {
@@ -338,22 +303,11 @@ dropzone.ondrop = e => {
 function uploadFile() {
   msgDiv.innerHTML = '';
   msgDiv.className = '';
-
-  if (!selectedFile) {
-    msgDiv.innerHTML = 'No file selected';
-    msgDiv.className = 'error';
-    return;
-  }
-
+  if (!selectedFile) { msgDiv.innerHTML = 'No file selected'; msgDiv.className = 'error'; return; }
   const accountId = document.getElementById('accountSelect')?.value;
-  if (!accountId) {
-    msgDiv.innerHTML = 'Select an account first';
-    msgDiv.className = 'error';
-    return;
-  }
+  if (!accountId) { msgDiv.innerHTML = 'Select an account first'; msgDiv.className = 'error'; return; }
 
   showLoader('Uploading and parsing CSV...');
-
   const formData = new FormData();
   formData.append('file', selectedFile);
   formData.append('account_id', accountId);
@@ -363,46 +317,62 @@ function uploadFile() {
     .then(r => r.json())
     .then(data => {
       hideLoader();
-      if (data.error) {
-        msgDiv.innerHTML = data.error;
-        msgDiv.className = 'error';
-        return;
-      }
+      if (data.error) { msgDiv.innerHTML = data.error; msgDiv.className = 'error'; return; }
       msgDiv.innerHTML = '✅ ' + data.rows.length + ' fills loaded — group them into trades below';
       msgDiv.className = 'success';
       initFills(data.rows);
     })
-    .catch(() => {
-      hideLoader();
-      msgDiv.innerHTML = 'Upload failed';
-      msgDiv.className = 'error';
-    });
+    .catch(() => { hideLoader(); msgDiv.innerHTML = 'Upload failed'; msgDiv.className = 'error'; });
 }
 
 /* ── Init fills ── */
 function initFills(rows) {
-  allFills    = rows.map((r, i) => ({ ...r, _idx: i, _group: null, _sel: false }));
+  allFills = rows.map((r, i) => ({
+    ...r,
+    _idx:      i,
+    _group:    null,
+    _sel:      false,
+    _boughtMs: parseTs(r.boughtTimestamp),
+    _soldMs:   parseTs(r.soldTimestamp),
+  }));
   nextGroupId = 0;
   usedGroups  = new Set();
-  buildTable();
-  renderAll();
+  hintClusters = [];
+  buildShell();
+  recompute();
 }
 
-/* ── Build table skeleton ── */
-function buildTable() {
+/* ── Build static shell (toolbar + table skeleton) ── */
+function buildShell() {
   document.getElementById('table-container').innerHTML = `
-    <div class="grp-toolbar" id="grp-toolbar">
+    <div class="hint-bar" id="hintBar">
+      <span class="hint-bar-label">Grouping hints</span>
+      <select id="windowSelect" onchange="recompute()">
+        <option value="exact">Exact match only</option>
+        <option value="5">5 minutes</option>
+        <option value="10" selected>10 minutes</option>
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="off">Off</option>
+      </select>
+      <div class="hint-bar-sep"></div>
+      <span class="hint-count" id="hintCount"></span>
+    </div>
+
+    <div id="suggestBanner"></div>
+    <div class="hint-legend" id="hintLegend"></div>
+
+    <div class="grp-toolbar">
       <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:5px">
-        <input type="checkbox" id="chkAll" onchange="toggleAll(this)" style="accent-color:var(--accent-blue)">
-        All
+        <input type="checkbox" id="chkAll" onchange="toggleAll(this)" style="accent-color:var(--accent-blue)"> All
       </label>
       <button class="grp-btn primary" onclick="groupSelected()">Group into trade</button>
       <button class="grp-btn" onclick="ungroupSelected()">Ungroup</button>
       <button class="grp-btn" onclick="clearSel()">Clear selection</button>
-      <span id="sel-count">0 fills selected</span>
+      <span id="selCount">0 fills selected</span>
     </div>
 
-    <div class="grp-legend" id="grp-legend"></div>
+    <div class="grp-legend" id="grpLegend"></div>
 
     <div style="overflow-x:auto">
       <table id="fill-table">
@@ -411,96 +381,177 @@ function buildTable() {
           <th style="width:28px"></th>
           <th style="width:76px">Trade</th>
           <th style="width:56px">Symbol</th>
-          <th style="width:80px">Buy fill</th>
-          <th style="width:80px">Sell fill</th>
           <th style="width:32px;text-align:center">Qty</th>
           <th style="width:74px">Buy px</th>
           <th style="width:74px">Sell px</th>
           <th style="width:66px">P&amp;L</th>
-          <th style="width:124px">Bought</th>
-          <th style="width:124px">Sold</th>
+          <th style="width:140px">Bought</th>
+          <th style="width:140px">Sold</th>
           <th style="width:78px">Duration</th>
         </tr></thead>
-        <tbody id="fill-tbody"></tbody>
+        <tbody id="fillTbody"></tbody>
       </table>
     </div>
 
-    <div class="grp-summary" id="grp-summary"></div>
-    <div class="grp-import-row" id="grp-import-row"></div>
+    <div class="grp-summary" id="grpSummary"></div>
+    <div class="grp-import-row" id="grpImportRow"></div>
   `;
 }
 
+/* ── Recompute hint clusters then re-render ── */
+function recompute() {
+  hintClusters = [];
+  const val = document.getElementById('windowSelect')?.value;
+  if (!val || val === 'off') { renderAll(); return; }
+
+  const windowMs  = val === 'exact' ? 0 : parseInt(val) * 60000;
+  const exactOnly = val === 'exact';
+  const ungrouped = allFills.filter(f => f._group === null);
+  const used = new Set();
+  let cid = 0;
+
+  ungrouped.forEach(f => {
+    if (used.has(f._idx)) return;
+    const matches = ungrouped.filter(g => {
+      if (g._idx === f._idx || used.has(g._idx)) return false;
+      const exactSold   = f._soldMs   === g._soldMs;
+      const exactBought = f._boughtMs === g._boughtMs;
+      if (exactOnly) return exactSold || exactBought;
+      return exactSold || exactBought
+        || Math.abs(f._soldMs   - g._soldMs)   <= windowMs
+        || Math.abs(f._boughtMs - g._boughtMs) <= windowMs;
+    });
+    if (matches.length > 0) {
+      const cluster = { id: cid, indices: [f._idx, ...matches.map(m => m._idx)], color: HINT_COLORS[cid % HINT_COLORS.length] };
+      hintClusters.push(cluster);
+      cluster.indices.forEach(i => used.add(i));
+      cid++;
+    }
+  });
+
+  renderAll();
+}
+
+function clusterOf(idx) { return hintClusters.find(c => c.indices.includes(idx)) || null; }
+
 /* ── Render all ── */
 function renderAll() {
+  renderBanner();
+  renderHintLegend();
   renderRows();
   renderLegend();
   renderSummary();
-  const sel = allFills.filter(f => f._sel).length;
-  const sc  = document.getElementById('sel-count');
-  if (sc) sc.textContent = sel + ' fill' + (sel !== 1 ? 's' : '') + ' selected';
+  const sc = document.getElementById('selCount');
+  if (sc) sc.textContent = allFills.filter(f => f._sel).length + ' fills selected';
+}
+
+function renderBanner() {
+  const el  = document.getElementById('suggestBanner');
+  const cnt = document.getElementById('hintCount');
+  const val = document.getElementById('windowSelect')?.value;
+  if (!el) return;
+  if (val === 'off' || !hintClusters.length) {
+    el.innerHTML = '';
+    if (cnt) cnt.innerHTML = val === 'off' ? '<span style="color:var(--text-faint)">hints off</span>' : '';
+    return;
+  }
+  if (cnt) cnt.innerHTML = `<b>${hintClusters.length}</b> suggestion${hintClusters.length > 1 ? 's' : ''}`;
+  el.innerHTML = `
+    <div class="suggest-banner">
+      <i class="ti ti-bulb" aria-hidden="true" style="color:var(--accent-amber);font-size:15px;flex-shrink:0"></i>
+      <span><b>${hintClusters.length} suggested group${hintClusters.length > 1 ? 's' : ''}</b> detected — dashed rows are candidates. Review then accept, or group manually.</span>
+      <button class="suggest-accept-btn" onclick="acceptAll()">Accept all</button>
+    </div>`;
+}
+
+function renderHintLegend() {
+  const el  = document.getElementById('hintLegend');
+  const val = document.getElementById('windowSelect')?.value;
+  if (!el) return;
+  if (val === 'off' || !hintClusters.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <span class="hint-leg-item">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent-amber);display:inline-block"></span>
+      Exact timestamp match
+    </span>
+    <span class="hint-leg-item">
+      <span style="width:5px;height:5px;border-radius:50%;background:var(--accent-amber);opacity:.55;display:inline-block"></span>
+      Within window
+    </span>
+    <span class="hint-leg-item">
+      <span style="display:inline-block;width:14px;height:1px;background:repeating-linear-gradient(90deg,rgba(232,169,74,.5) 0 4px,transparent 4px 7px);vertical-align:middle"></span>
+      Suggested group
+    </span>`;
 }
 
 function renderRows() {
-  const tbody = document.getElementById('fill-tbody');
+  const tbody = document.getElementById('fillTbody');
   if (!tbody) return;
+  const val = document.getElementById('windowSelect')?.value;
+  const hintsOn = val !== 'off';
 
   let h = '';
   allFills.forEach(f => {
     const g   = f._group;
     const pal = g !== null ? PALETTE[g % PALETTE.length] : null;
-    const rowBg  = f._sel
-      ? 'background:rgba(91,142,245,.10)'
-      : g !== null ? `background:${pal.bg}` : '';
-    const barClr = pal ? pal.bar : 'transparent';
+    const cl  = hintsOn && g === null ? clusterOf(f._idx) : null;
+
+    const rowBg  = f._sel ? 'background:rgba(91,142,245,.10)' : g !== null ? `background:${pal.bg}` : '';
+    const barClr = pal ? pal.bar : cl ? cl.color : 'transparent';
 
     const badge = g !== null
       ? `<span class="grp-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
       : `<span class="grp-ungrouped">ungrouped</span>`;
 
     const pnl    = parseFloat(f.pnl) || 0;
-    const pnlCls = pnl > 0 ? 'fill-pnl-pos' : pnl < 0 ? 'fill-pnl-neg' : 'fill-pnl-zero';
+    const pnlCls = pnl > 0 ? 'fill-pnl-pos' : pnl < 0 ? 'fill-pnl-neg' : '';
     const pnlStr = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
 
-    const bought = (f.boughtTimestamp || '').split('.')[0];
-    const sold   = (f.soldTimestamp   || '').split('.')[0];
+    /* timestamp dots */
+    function tsDot(isExactMatch) {
+      if (!cl) return '';
+      return isExactMatch
+        ? `<span class="ts-dot-exact" style="background:${cl.color}" title="Exact timestamp match"></span>`
+        : `<span class="ts-dot-prox"  style="background:${cl.color}" title="Within proximity window"></span>`;
+    }
 
-    h += `<tr data-idx="${f._idx}" onclick="rowClick(${f._idx}, event)" style="${rowBg}">
+    const boughtExact = hintsOn && g === null && allFills.some(g2 => g2._idx !== f._idx && g2._boughtMs === f._boughtMs && g2._group === null);
+    const soldExact   = hintsOn && g === null && allFills.some(g2 => g2._idx !== f._idx && g2._soldMs   === f._soldMs   && g2._group === null);
+
+    const boughtHtml = `<span class="ts-wrap">${tsDot(boughtExact)}${(f.boughtTimestamp || '').split('.')[0]}</span>`;
+    const soldHtml   = `<span class="ts-wrap">${tsDot(soldExact)}${(f.soldTimestamp   || '').split('.')[0]}</span>`;
+
+    h += `<tr data-idx="${f._idx}" onclick="rowClick(${f._idx}, event)" style="${rowBg}" class="${cl ? 'suggest-row' : ''}">
       <td class="fill-bar-cell" style="background:${barClr}"></td>
       <td><input type="checkbox" ${f._sel ? 'checked' : ''} onclick="event.stopPropagation()" onchange="chkRow(${f._idx}, this)" style="accent-color:var(--accent-blue)"></td>
       <td>${badge}</td>
       <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-primary)">${f.symbol || ''}</td>
-      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">${String(f.buyFillId || '').slice(-6)}</td>
-      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">${String(f.sellFillId || '').slice(-6)}</td>
       <td style="text-align:center;color:var(--text-primary)">${f.qty}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.buyPrice).toFixed(2)}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.sellPrice).toFixed(2)}</td>
       <td class="${pnlCls}">${pnlStr}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${bought}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${sold}</td>
+      <td>${boughtHtml}</td>
+      <td>${soldHtml}</td>
       <td style="color:var(--text-muted)">${f.duration || ''}</td>
     </tr>`;
   });
-
   tbody.innerHTML = h;
 }
 
 function renderLegend() {
-  const el = document.getElementById('grp-legend');
+  const el = document.getElementById('grpLegend');
   if (!el) return;
   const active = [...usedGroups].sort((a,b) => a-b);
   el.innerHTML = active.map(g => {
     const pal = PALETTE[g % PALETTE.length];
     const cnt = allFills.filter(f => f._group === g).length;
-    return `<span class="grp-leg-item">
-      <span class="grp-leg-dot" style="background:${pal.bar}"></span>
-      ${palLabel(g)} — ${cnt} fill${cnt > 1 ? 's' : ''}
-    </span>`;
+    return `<span class="grp-leg-item"><span class="grp-leg-dot" style="background:${pal.bar}"></span>${palLabel(g)} — ${cnt} fill${cnt > 1 ? 's' : ''}</span>`;
   }).join('');
 }
 
 function renderSummary() {
-  const sumEl  = document.getElementById('grp-summary');
-  const impRow = document.getElementById('grp-import-row');
+  const sumEl  = document.getElementById('grpSummary');
+  const impRow = document.getElementById('grpImportRow');
   if (!sumEl) return;
 
   const active    = [...usedGroups].sort((a,b) => a-b);
@@ -518,16 +569,13 @@ function renderSummary() {
     const qty = gf.reduce((s, f) => s + f.qty, 0);
     const pnl = gf.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
     const pnlClr = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
-    const pnlStr = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
     return `<span class="grp-sum-pill" style="background:${pal.bg}">
       <span class="grp-leg-dot" style="background:${pal.bar}"></span>
       <span style="color:${pal.text};font-weight:500">${palLabel(g)}</span>
       <span style="color:var(--text-muted)">${gf.length} fills · qty ${qty} ·</span>
-      <span style="color:${pnlClr};font-family:var(--font-mono)">${pnlStr}</span>
+      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2)}</span>
     </span>`;
-  }).join('') + (ungrouped
-    ? `<span style="color:var(--text-muted)">${ungrouped} fill${ungrouped > 1 ? 's' : ''} ungrouped</span>`
-    : '');
+  }).join('') + (ungrouped ? `<span style="color:var(--text-muted)">${ungrouped} ungrouped</span>` : '');
 
   impRow.innerHTML = `<button class="grp-import-btn" onclick="confirmImport()">Import ${active.length} trade${active.length > 1 ? 's' : ''}</button>`
     + (ungrouped ? `<span class="grp-skip-note">${ungrouped} fill${ungrouped > 1 ? 's' : ''} will be skipped</span>` : '');
@@ -539,17 +587,8 @@ function rowClick(idx, e) {
   allFills[idx]._sel = !allFills[idx]._sel;
   renderAll();
 }
-
-function chkRow(idx, el) {
-  allFills[idx]._sel = el.checked;
-  renderAll();
-}
-
-function toggleAll(el) {
-  allFills.forEach(f => f._sel = el.checked);
-  renderAll();
-}
-
+function chkRow(idx, el) { allFills[idx]._sel = el.checked; renderAll(); }
+function toggleAll(el)   { allFills.forEach(f => f._sel = el.checked); renderAll(); }
 function clearSel() {
   allFills.forEach(f => f._sel = false);
   const ca = document.getElementById('chkAll');
@@ -561,22 +600,31 @@ function clearSel() {
 function groupSelected() {
   const sel = allFills.filter(f => f._sel);
   if (!sel.length) return;
-
   const existing = [...new Set(sel.filter(f => f._group !== null).map(f => f._group))];
-  const gid      = existing.length === 1 ? existing[0] : nextGroupId++;
-
+  const gid = existing.length === 1 ? existing[0] : nextGroupId++;
   sel.forEach(f => { f._group = gid; f._sel = false; });
   usedGroups.add(gid);
-
   const ca = document.getElementById('chkAll');
   if (ca) ca.checked = false;
-  renderAll();
+  recompute();
 }
 
 function ungroupSelected() {
   allFills.filter(f => f._sel).forEach(f => { f._group = null; f._sel = false; });
   usedGroups = new Set(allFills.filter(f => f._group !== null).map(f => f._group));
-  renderAll();
+  recompute();
+}
+
+/* ── Accept all hint suggestions ── */
+function acceptAll() {
+  hintClusters.forEach(cl => {
+    const ungroupedInCluster = allFills.filter(f => cl.indices.includes(f._idx) && f._group === null);
+    if (!ungroupedInCluster.length) return;
+    const gid = nextGroupId++;
+    ungroupedInCluster.forEach(f => f._group = gid);
+    usedGroups.add(gid);
+  });
+  recompute();
 }
 
 /* ── Confirm import ── */
@@ -601,25 +649,17 @@ function confirmImport() {
     .then(r => r.json())
     .then(data => {
       hideLoader();
-      if (data.error) {
-        msgDiv.innerHTML = data.error;
-        msgDiv.className = 'error';
-        return;
-      }
+      if (data.error) { msgDiv.innerHTML = data.error; msgDiv.className = 'error'; return; }
       const warn = data.failed_charts?.length
         ? ` (${data.failed_charts.length} chart${data.failed_charts.length > 1 ? 's' : ''} failed)`
         : '';
       msgDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted !== 1 ? 's' : ''} imported${warn}`;
       msgDiv.className = 'success';
-      allFills  = [];
+      allFills   = [];
       usedGroups = new Set();
       document.getElementById('table-container').innerHTML = '';
     })
-    .catch(() => {
-      hideLoader();
-      msgDiv.innerHTML = 'Import failed';
-      msgDiv.className = 'error';
-    });
+    .catch(() => { hideLoader(); msgDiv.innerHTML = 'Import failed'; msgDiv.className = 'error'; });
 }
 </script>
 
