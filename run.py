@@ -493,7 +493,6 @@ def upload_file():
             return jsonify({"error": "No file provided"}), 400
 
         file = request.files["file"]
-
         if not file.filename.lower().endswith(".csv"):
             return jsonify({"error": "Only CSV files allowed"}), 400
 
@@ -503,7 +502,6 @@ def upload_file():
 
         df = pd.read_csv(file)
 
-        # ===== FETCH FEES =====
         user_id = session["user"]["id"]
         fees_res = (
             supabase_admin.table("fees")
@@ -512,42 +510,21 @@ def upload_file():
             .execute()
         )
         df_fees = pd.DataFrame(fees_res.data or [])
-        
-        # ===== FETCH SETTINGS =====
-        settings_res = (
-            supabase_admin.table("settings")
-            .select("trade_merging")
-            .eq("user_id", user_id)
-            .execute()
-        )
-        trade_merging = "Entry"
-        if settings_res.data:
-            trade_merging = settings_res.data[0].get("trade_merging", "Entry")
 
-        df_imported_trades = csv_handler(
-            df,
-            df_fees,
-            trade_merging=trade_merging
-        )
+        df_fills = csv_handler(df, df_fees)
 
-        # keep full version for backend
-        df_imported_trades["key_trading_accounts"] = account_id
+        # tag each fill with account_id for later use in confirm
+        df_fills["key_trading_accounts"] = account_id
 
-        # convert datetime → string
-        df_imported_trades["entryTimestamp"] = pd.to_datetime(df_imported_trades["entryTimestamp"]).astype(str)
-        df_imported_trades["exitTimestamp"]  = pd.to_datetime(df_imported_trades["exitTimestamp"]).astype(str)
-
-
-        # create preview version WITHOUT it
-        preview_df = df_imported_trades.drop(columns=["key_trading_accounts"])
-
-        # store full data temporarily (session or cache)
-        session["preview_trades"] = df_imported_trades.to_dict(orient="records")
+        session["preview_fills"]  = df_fills.to_dict(orient="records")
         session["chart_timeframe"] = request.form.get("chart_timeframe", "5m")
 
+        # send preview without account_id column
+        preview = df_fills.drop(columns=["key_trading_accounts", "fees"])
+
         return jsonify({
-            "rows": preview_df.to_dict(orient="records"),
-            "columns": list(preview_df.columns)
+            "rows":    preview.to_dict(orient="records"),
+            "columns": list(preview.columns)
         })
 
     except Exception as e:
@@ -557,52 +534,147 @@ def upload_file():
 @login_required
 def confirm_upload():
     try:
-        data = request.json
-        trades = session.get("preview_trades", [])
+        data   = request.json
+        # groups: [{ fillIndices: [0,2,3], label: "Trade 1" }, ...]
+        groups = data.get("groups", [])
+        fills  = session.get("preview_fills", [])
 
-        if not trades:
-            return jsonify({"error": "No trades to insert"}), 400
+        if not fills:
+            return jsonify({"error": "No fills in session"}), 400
+        if not groups:
+            return jsonify({"error": "No groups defined"}), 400
 
-        # Insert
-        response = supabase_admin.table("trades").insert(trades).execute()
-        inserted_trades = response.data or []
-
-        print(f"Inserted {len(inserted_trades)} trades, generating charts...")
-
-        # Generate charts
-        user_id = session["user"]["id"]
+        user_id        = session["user"]["id"]
         chart_timeframe = session.get("chart_timeframe", "5m")
-        failed = []
-        for trade in inserted_trades:
+        failed_charts  = []
+        inserted_trades = []
+
+        for group in groups:
+            indices      = group.get("fillIndices", [])
+            group_fills  = [fills[i] for i in indices if i < len(fills)]
+            if not group_fills:
+                continue
+
+            # ── Compute trade-level aggregates ──────────────────────────
+            symbol    = group_fills[0]["symbol"]
+            account   = group_fills[0]["key_trading_accounts"]
+            total_qty = sum(f["qty"] for f in group_fills)
+            total_pnl = round(sum(f["pnl"] for f in group_fills), 2)
+            total_fees = round(sum(f.get("fees", 0) for f in group_fills), 2)
+            gross_pnl = round(total_pnl + total_fees, 2)
+
+            # Determine side: if boughtTimestamp < soldTimestamp → long
+            first_fill = group_fills[0]
+            side = "long" if first_fill["boughtTimestamp"] < first_fill["soldTimestamp"] else "short"
+
+            # Entry = earliest bought (long) or sold (short) timestamp
+            if side == "long":
+                timestamps_entry = [f["boughtTimestamp"] for f in group_fills]
+                timestamps_exit  = [f["soldTimestamp"]   for f in group_fills]
+                prices_entry     = [f["buyPrice"]        for f in group_fills]
+                prices_exit      = [f["sellPrice"]       for f in group_fills]
+            else:
+                timestamps_entry = [f["soldTimestamp"]   for f in group_fills]
+                timestamps_exit  = [f["boughtTimestamp"] for f in group_fills]
+                prices_entry     = [f["sellPrice"]       for f in group_fills]
+                prices_exit      = [f["buyPrice"]        for f in group_fills]
+
+            entry_timestamp = min(timestamps_entry)
+            exit_timestamp  = max(timestamps_exit)
+
+            # Weighted average entry/exit price
+            avg_entry = round(
+                sum(p * f["qty"] for p, f in zip(prices_entry, group_fills)) / total_qty, 4
+            )
+            avg_exit = round(
+                sum(p * f["qty"] for p, f in zip(prices_exit, group_fills)) / total_qty, 4
+            )
+
+            # Duration: first entry → last exit
+            from datetime import datetime as dt
+            entry_dt   = dt.fromisoformat(entry_timestamp)
+            exit_dt    = dt.fromisoformat(exit_timestamp)
+            delta      = exit_dt - entry_dt
+            total_secs = int(delta.total_seconds())
+            hours, rem = divmod(total_secs, 3600)
+            mins, secs = divmod(rem, 60)
+            if hours:
+                duration = f"{hours}h {mins}min {secs}sec"
+            elif mins:
+                duration = f"{mins}min {secs}sec"
+            else:
+                duration = f"{secs}sec"
+
+            # ── Insert trade ─────────────────────────────────────────────
+            trade_row = {
+                "symbol":               symbol,
+                "entryTimestamp":       entry_timestamp,
+                "exitTimestamp":        exit_timestamp,
+                "entryPrice":           avg_entry,
+                "exitPrice":            avg_exit,
+                "qty":                  total_qty,
+                "pnl":                  total_pnl,
+                "gross_pnl":            gross_pnl,
+                "fees":                 total_fees,
+                "duration":             duration,
+                "side":                 side,
+                "key_trading_accounts": account,
+            }
+
+            trade_res = supabase_admin.table("trades").insert(trade_row).execute()
+            trade     = trade_res.data[0]
+            trade_id  = trade["id"]
+
+            # ── Insert fills linked to this trade ────────────────────────
+            fill_rows = []
+            for f in group_fills:
+                fill_rows.append({
+                    "trade_id":        trade_id,
+                    "buy_fill_id":     f.get("buyFillId"),
+                    "sell_fill_id":    f.get("sellFillId"),
+                    "qty":             f["qty"],
+                    "buy_price":       f["buyPrice"],
+                    "sell_price":      f["sellPrice"],
+                    "pnl":             f["pnl"],
+                    "bought_timestamp": f["boughtTimestamp"],
+                    "sold_timestamp":   f["soldTimestamp"],
+                    "duration":        f.get("duration"),
+                })
+            supabase_admin.table("fills").insert(fill_rows).execute()
+
+            # ── Generate chart ───────────────────────────────────────────
             try:
                 chart_b64 = generate_chart_base64(
-                    symbol      = trade["symbol"],
-                    entry_time  = datetime.fromisoformat(trade["entryTimestamp"]),
-                    exit_time   = datetime.fromisoformat(trade["exitTimestamp"]),
-                    entry_price = float(trade["entryPrice"]),
-                    exit_price  = float(trade["exitPrice"]),
-                    side        = trade["side"],
+                    symbol      = symbol,
+                    entry_time  = entry_dt,
+                    exit_time   = exit_dt,
+                    entry_price = avg_entry,
+                    exit_price  = avg_exit,
+                    side        = side,
                     user_id     = user_id,
-                    timeframe   = chart_timeframe
+                    timeframe   = chart_timeframe,
                 )
-
                 if chart_b64:
                     supabase_admin.table("trades") \
                         .update({"chart_image": chart_b64}) \
-                        .eq("id", trade["id"]) \
+                        .eq("id", trade_id) \
                         .execute()
-
             except Exception as e:
-                print(f"Chart error for trade {trade['id']}: {e}")
-                failed.append(trade["id"])
-                continue
-        session.pop("preview_trades", None)
+                print(f"Chart error for trade {trade_id}: {e}")
+                failed_charts.append(trade_id)
+
+            inserted_trades.append(trade_id)
+
+        session.pop("preview_fills", None)
         return jsonify({
-            "ok": True,
-            "failed": failed
-})
+            "ok":           True,
+            "inserted":     len(inserted_trades),
+            "failed_charts": failed_charts,
+        })
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @app.route("/accounts")

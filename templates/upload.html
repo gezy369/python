@@ -1,16 +1,12 @@
 {% extends "base.html" %}
-
 {% block title %}New Trades{% endblock %}
-
 {% block content %}
 
-<!-- ===== UPLOAD SECTION ===== -->
 <div class="upload-container">
 
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
-    <!-- TIMEFRAME SELECTOR -->
     <div class="timeframe-row">
       <label for="chartTimeframe">Chart timeframe</label>
       <div class="timeframe-controls">
@@ -25,7 +21,6 @@
           <option value="4h">4 h</option>
           <option value="D">Daily</option>
         </select>
-
         <div class="tf-info-wrapper">
           <span class="tf-info-icon">ⓘ</span>
           <div class="tf-tooltip">
@@ -40,209 +35,346 @@
         </div>
       </div>
     </div>
-    <div id="dropzone" class="dropzone">
-      Drop CSV file here<br>or click to select
-    </div>
-
+    <div id="dropzone" class="dropzone">Drop CSV file here<br>or click to select</div>
     <input type="file" id="fileInput" accept=".csv" hidden>
-    <button onclick="uploadFile()">Preview trades</button>
-
-    <!-- loader -->
+    <button onclick="uploadFile()">Preview fills</button>
     <div id="loader" class="loader hidden">
       <div class="spinner"></div>
       <div id="loader-text">Processing CSV...</div>
     </div>
-
     <div id="message"></div>
   </div>
 
   <!-- RIGHT: EXPLANATION -->
-  <div class=upload-right>
+  <div class="upload-right">
     <h2>How to import trades</h2>
-    <p>
-      <ul>
-        <li>1. Open Tradovate (web) and go to "Reports" on the right hand side Menu.</li>
-        <li>2. Select the account you want to export from in the drop list on the left.</li>
-        <li>3. From the [Performance] tab, select the dates and Download CSV.</li>
-        <li>4. Drop your CSV file here.</li>
-        <li>5. Before you import, make sure you have the right account selected on the top left.</li>
-        <li>6. Click "Preview" to preview you trades to import.</li>
-        <li>7. Import your trade with the button at the bottom of the table.</li>
-      </ul>
-    </p>
-    <p><br>The fees configured in you settings will be applied.<br>
-      If no fees are found, $0 will be applied and you can edit them later.
-    </p>
+    <ul>
+      <li>1. Open Tradovate (web) and go to "Reports" on the right hand side menu.</li>
+      <li>2. Select the account you want to export from in the drop list on the left.</li>
+      <li>3. From the [Performance] tab, select the dates and download CSV.</li>
+      <li>4. Drop your CSV file here.</li>
+      <li>5. Make sure the right account is selected on the top left.</li>
+      <li>6. Click "Preview fills" — each row is one partial fill.</li>
+      <li>7. Select fills and click "Group fills into trade" to build your trades.</li>
+      <li>8. Click "Import trades" when all fills are grouped.</li>
+    </ul>
+    <p><br>Fees configured in settings will be applied per fill.<br>
+       Ungrouped fills will not be imported.</p>
   </div>
-
 </div>
 
-<!-- ===== TABLE PREVIEW (OUTSIDE FLEX CONTAINER) ===== -->
-<div id="table-container">
-  <h2></h2><div id="confirm-container"></div>
-</div>
+<!-- GROUPING TABLE -->
+<div id="table-container"></div>
+
+<style>
+#grouping-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+#grouping-toolbar span { font-size:13px; color:var(--text-secondary,#666); }
+#fill-legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; font-size:12px; color:var(--text-secondary,#666); }
+.legend-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+#fill-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
+#fill-table thead th { font-size:11px; font-weight:500; color:var(--text-secondary,#888); text-align:left; padding:6px 8px; border-bottom:1px solid var(--border,#e5e5e5); white-space:nowrap; }
+#fill-table tbody tr { cursor:pointer; }
+#fill-table tbody tr:hover { filter:brightness(0.97); }
+#fill-table tbody td { padding:6px 8px; border-bottom:1px solid var(--border,#eee); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.fill-bar { width:4px !important; padding:0 !important; border:none !important; }
+.group-pill { display:inline-block; font-size:10px; font-weight:500; padding:2px 8px; border-radius:10px; }
+.ungrouped-badge { display:inline-block; font-size:10px; padding:1px 7px; border-radius:8px; background:var(--surface-1,#f5f5f5); color:var(--text-muted,#aaa); border:1px solid var(--border,#e0e0e0); }
+.pnl-pos { color:#1a7f4b; }
+.pnl-neg { color:#c0392b; }
+#grouping-summary { margin-top:14px; padding:10px 16px; background:var(--surface-1,#f7f7f7); border-radius:8px; border:1px solid var(--border,#e5e5e5); font-size:12px; }
+#import-bar { margin-top:16px; display:flex; align-items:center; gap:12px; }
+</style>
 
 <script>
-const dropzone = document.getElementById("dropzone");
-const fileInput = document.getElementById("fileInput");
-const messageDiv = document.getElementById("message");
+// ── State ──────────────────────────────────────────────────────────────────
+let allFills    = [];   // raw rows from server, each gets _idx, _group, _selected
+let nextGroupId = 0;
+let usedGroups  = new Set();
+
+const PALETTE = [
+  { bar:'#378ADD', bg:'#E6F1FB', text:'#0C447C' },
+  { bar:'#1D9E75', bg:'#E1F5EE', text:'#085041' },
+  { bar:'#D85A30', bg:'#FAECE7', text:'#712B13' },
+  { bar:'#D4537E', bg:'#FBEAF0', text:'#72243E' },
+  { bar:'#7F77DD', bg:'#EEEDFE', text:'#3C3489' },
+  { bar:'#BA7517', bg:'#FAEEDA', text:'#633806' },
+  { bar:'#639922', bg:'#EAF3DE', text:'#27500A' },
+  { bar:'#888780', bg:'#F1EFE8', text:'#444441' },
+];
+
+function palLabel(gid) {
+  const sorted = [...usedGroups].sort((a,b)=>a-b);
+  return 'Trade ' + (sorted.indexOf(gid) + 1);
+}
+
+// ── Upload & parse ─────────────────────────────────────────────────────────
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const messageDiv = document.getElementById('message');
+const loader     = document.getElementById('loader');
+const loaderText = document.getElementById('loader-text');
 let selectedFile = null;
-let previewTrades = [];
 
-//loader
-const loader = document.getElementById("loader");
-const loaderText = document.getElementById("loader-text");
+function showLoader(t){ loaderText.innerText=t; loader.classList.remove('hidden'); }
+function hideLoader(){ loader.classList.add('hidden'); }
 
-function showLoader(text = "Processing CSV...") {
-  loaderText.innerText = text;
-  loader.classList.remove("hidden");
-}
-
-function hideLoader() {
-  loader.classList.add("hidden");
-}
-
-// --- Drag & Drop logic ---
 dropzone.onclick = () => fileInput.click();
-
-fileInput.onchange = (e) => {
+fileInput.onchange = e => {
   selectedFile = e.target.files[0];
-  dropzone.innerHTML = "Selected: " + selectedFile.name;
-  dropzone.classList.add("dropped");
+  dropzone.innerHTML = 'Selected: ' + selectedFile.name;
+  dropzone.classList.add('dropped');
 };
-
-dropzone.ondragover = (e) => {
+dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
+dropzone.ondragleave = () => dropzone.classList.remove('dragover');
+dropzone.ondrop = e => {
   e.preventDefault();
-  dropzone.classList.add("dragover");
-};
-
-dropzone.ondragleave = () => dropzone.classList.remove("dragover");
-
-dropzone.ondrop = (e) => {
-  e.preventDefault();
-  dropzone.classList.remove("dragover");
-  dropzone.classList.add("dropped");        // ← add
+  dropzone.classList.remove('dragover');
+  dropzone.classList.add('dropped');
   selectedFile = e.dataTransfer.files[0];
-  dropzone.innerHTML = "Dropped: " + selectedFile.name;
+  dropzone.innerHTML = 'Dropped: ' + selectedFile.name;
 };
 
-
-function renderTable(columns, rows) {
-  const container = document.getElementById("table-container");
-  if (!rows || !rows.length) {
-    container.innerHTML = "<p>No trades to preview</p>";
-    return;
-  }
-
-  let html = '<table border="1" style="border-collapse: collapse; width: 100%;">';
-  html += "<thead><tr>";
-  columns.forEach(col => html += `<th>${col}</th>`);
-  html += "</tr></thead><tbody>";
-  rows.forEach(row => {
-    html += "<tr>";
-    columns.forEach(col => html += `<td>${row[col]}</td>`);
-    html += "</tr>";
-  });
-  html += "</tbody></table>";
-
-  container.innerHTML = html + '<div id="confirm-container"></div>';
-}
-
-// --- Upload preview ---
 function uploadFile() {
-  messageDiv.innerHTML = "";
-  messageDiv.className = "";
+  messageDiv.innerHTML = '';
+  if (!selectedFile) { messageDiv.innerHTML='No file selected'; messageDiv.className='error'; return; }
+  const accountId = document.getElementById('accountSelect')?.value;
+  if (!accountId) { messageDiv.innerHTML='Select an account first'; messageDiv.className='error'; return; }
 
-  if (!selectedFile) {
-    messageDiv.innerHTML = "No file selected";
-    messageDiv.className = "error";
-    return;
-  }
-
-  const accountId = document.getElementById("accountSelect")?.value;
-
-  if (!accountId) {
-    messageDiv.innerHTML = "Please select an account first";
-    messageDiv.className = "error";
-    return;
-  }
-
-  showLoader("Uploading & parsing CSV..."); // 🔥 ADD
-
+  showLoader('Uploading & parsing CSV...');
   const formData = new FormData();
-  formData.append("file", selectedFile);
-  formData.append("account_id", accountId);
-  const chartTimeframe = document.getElementById("chartTimeframe")?.value || "5m";
-  formData.append("chart_timeframe", chartTimeframe);
+  formData.append('file', selectedFile);
+  formData.append('account_id', accountId);
+  formData.append('chart_timeframe', document.getElementById('chartTimeframe')?.value || '5m');
 
-  fetch("{{ url_for('upload_file') }}", {
-    method: "POST",
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    hideLoader(); // 🔥 ADD
-
-    if (data.error) {
-      messageDiv.innerHTML = data.error;
-      messageDiv.className = "error";
-    } else {
-      messageDiv.innerHTML = "✅ Preview ready — validate before import";
-      messageDiv.className = "success";
-
-      previewTrades = data.rows;
-      renderTable(data.columns, data.rows);
-      showConfirmButton();
-    }
-  })
-  .catch(err => {
-    hideLoader(); // 🔥 ADD
-    messageDiv.innerHTML = "Upload failed";
-    messageDiv.className = "error";
-  });
+  fetch("{{ url_for('upload_file') }}", { method:'POST', body:formData })
+    .then(r => r.json())
+    .then(data => {
+      hideLoader();
+      if (data.error) { messageDiv.innerHTML=data.error; messageDiv.className='error'; return; }
+      messageDiv.innerHTML = '✅ ' + data.rows.length + ' fills loaded — group them into trades below';
+      messageDiv.className = 'success';
+      initFills(data.rows);
+    })
+    .catch(() => { hideLoader(); messageDiv.innerHTML='Upload failed'; messageDiv.className='error'; });
 }
 
-function confirmImport() {
-  if (!previewTrades.length) return;
-
-  showLoader("Saving trades to database..."); // 🔥 ADD
-
-  fetch("/confirm_upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ trades: previewTrades })
-  })
-  .then(res => res.json())
-  .then(data => {
-    hideLoader(); // 🔥 ADD
-
-    if (data.error) {
-      messageDiv.innerHTML = data.error;
-      messageDiv.className = "error";
-    } else {
-      messageDiv.innerHTML = "✅ Trades imported successfully";
-      messageDiv.className = "success";
-
-      previewTrades = [];
-      document.getElementById("confirm-container").innerHTML = "";
-      document.getElementById("table-container").innerHTML = "<h2>Imported trades</h2><div id='confirm-container'></div>"; // 🔥 ADD THIS LINE
-    }
-  })
-  .catch(() => {
-    hideLoader(); // 🔥 ADD
-    messageDiv.innerHTML = "Import failed";
-    messageDiv.className = "error";
-  });
+// ── Init fills from server response ───────────────────────────────────────
+function initFills(rows) {
+  allFills    = rows.map((r,i) => ({ ...r, _idx:i, _group:null, _selected:false }));
+  nextGroupId = 0;
+  usedGroups  = new Set();
+  renderAll();
 }
 
-function showConfirmButton() {
-  document.getElementById("confirm-container").innerHTML = `
-    <button onclick="confirmImport()">Confirm Import</button>
+// ── Render everything ──────────────────────────────────────────────────────
+function renderAll() {
+  const container = document.getElementById('table-container');
+  if (!allFills.length) { container.innerHTML=''; return; }
+
+  const selCount = allFills.filter(f=>f._selected).length;
+
+  container.innerHTML = `
+    <div id="grouping-toolbar">
+      <label style="font-size:13px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"> All</label>
+      <button onclick="groupSelected()">Group fills into trade</button>
+      <button onclick="ungroupSelected()">Ungroup</button>
+      <button onclick="clearSel()">Clear selection</button>
+      <span id="sel-count">${selCount} fill${selCount!==1?'s':''} selected</span>
+    </div>
+    <div id="fill-legend"></div>
+    <div style="overflow-x:auto">
+      <table id="fill-table">
+        <thead>
+          <tr>
+            <th class="fill-bar" style="width:4px"></th>
+            <th style="width:32px"><input type="checkbox" id="checkAllInner" onchange="toggleAll(this)"></th>
+            <th style="width:72px">Trade</th>
+            <th style="width:60px">Symbol</th>
+            <th style="width:80px">Buy fill</th>
+            <th style="width:80px">Sell fill</th>
+            <th style="width:36px">Qty</th>
+            <th style="width:74px">Buy price</th>
+            <th style="width:74px">Sell price</th>
+            <th style="width:62px">P&L</th>
+            <th style="width:130px">Bought</th>
+            <th style="width:130px">Sold</th>
+            <th style="width:80px">Duration</th>
+          </tr>
+        </thead>
+        <tbody id="fill-tbody"></tbody>
+      </table>
+    </div>
+    <div id="grouping-summary"></div>
+    <div id="import-bar"></div>
   `;
+
+  renderRows();
+  renderLegend();
+  renderSummary();
 }
 
+function renderRows() {
+  const tbody = document.getElementById('fill-tbody');
+  if (!tbody) return;
+  let html = '';
+  allFills.forEach(f => {
+    const g   = f._group;
+    const pal = g !== null ? PALETTE[g % PALETTE.length] : null;
+    const rowBg  = f._selected ? 'background:var(--bg-accent,#dbeafe)' : (pal ? `background:${pal.bg}` : '');
+    const barClr = pal ? pal.bar : 'transparent';
+    const pill   = g !== null
+      ? `<span class="group-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
+      : `<span class="ungrouped-badge">ungrouped</span>`;
+    const pnl    = parseFloat(f.pnl) || 0;
+    const pnlCls = pnl > 0 ? 'pnl-pos' : pnl < 0 ? 'pnl-neg' : '';
+    const pnlStr = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+    const bought = f.boughtTimestamp ? f.boughtTimestamp.split('.')[0] : '';
+    const sold   = f.soldTimestamp   ? f.soldTimestamp.split('.')[0]   : '';
+
+    html += `<tr data-idx="${f._idx}" onclick="toggleRow(${f._idx},event)" style="${rowBg}">
+      <td class="fill-bar" style="background:${barClr}"></td>
+      <td><input type="checkbox" ${f._selected?'checked':''} onclick="event.stopPropagation()" onchange="toggleCheck(${f._idx},this)"></td>
+      <td>${pill}</td>
+      <td>${f.symbol||''}</td>
+      <td style="font-family:monospace;font-size:11px">${String(f.buyFillId||'').slice(-6)}</td>
+      <td style="font-family:monospace;font-size:11px">${String(f.sellFillId||'').slice(-6)}</td>
+      <td style="text-align:center">${f.qty}</td>
+      <td style="font-family:monospace">${parseFloat(f.buyPrice).toFixed(2)}</td>
+      <td style="font-family:monospace">${parseFloat(f.sellPrice).toFixed(2)}</td>
+      <td class="${pnlCls}" style="font-family:monospace">${pnlStr}</td>
+      <td style="font-size:11px">${bought}</td>
+      <td style="font-size:11px">${sold}</td>
+      <td style="color:var(--text-secondary,#888)">${f.duration||''}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  const selCount = allFills.filter(f=>f._selected).length;
+  const sc = document.getElementById('sel-count');
+  if (sc) sc.textContent = selCount + ' fill' + (selCount!==1?'s':'') + ' selected';
+}
+
+function renderLegend() {
+  const el = document.getElementById('fill-legend');
+  if (!el) return;
+  const active = [...usedGroups].sort((a,b)=>a-b);
+  if (!active.length) { el.innerHTML=''; return; }
+  el.innerHTML = active.map(g => {
+    const pal = PALETTE[g % PALETTE.length];
+    const cnt = allFills.filter(f=>f._group===g).length;
+    return `<span><span class="legend-dot" style="background:${pal.bar}"></span>${palLabel(g)} — ${cnt} fill${cnt>1?'s':''}</span>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const el = document.getElementById('grouping-summary');
+  if (!el) return;
+  const active = [...usedGroups].sort((a,b)=>a-b);
+  const ungrouped = allFills.filter(f=>f._group===null).length;
+  if (!active.length) {
+    el.innerHTML = ungrouped
+      ? `<span style="color:var(--text-muted,#aaa)">${ungrouped} fill${ungrouped>1?'s':''} ungrouped — select fills and click "Group fills into trade"</span>`
+      : '';
+    return;
+  }
+  const pills = active.map(g => {
+    const pal   = PALETTE[g % PALETTE.length];
+    const gf    = allFills.filter(f=>f._group===g);
+    const qty   = gf.reduce((s,f)=>s+f.qty,0);
+    const pnl   = gf.reduce((s,f)=>s+(parseFloat(f.pnl)||0),0);
+    const pnlStr= (pnl>=0?'+':'')+'$'+pnl.toFixed(2);
+    const pnlCls= pnl>0?'pnl-pos':pnl<0?'pnl-neg':'';
+    return `<span style="background:${pal.bg};color:${pal.text};padding:3px 10px;border-radius:10px;margin-right:6px;display:inline-block">
+      ${palLabel(g)}: ${gf.length} fills · qty ${qty} · <span class="${pnlCls}">${pnlStr}</span>
+    </span>`;
+  }).join('');
+  const ungroupedNote = ungrouped
+    ? `<span style="color:var(--text-muted,#aaa);margin-left:4px">${ungrouped} fill${ungrouped>1?'s':''} ungrouped (will not be imported)</span>`
+    : '';
+  el.innerHTML = pills + ungroupedNote;
+
+  // show import button only when at least one group exists
+  const importBar = document.getElementById('import-bar');
+  if (importBar) {
+    importBar.innerHTML = active.length
+      ? `<button onclick="confirmImport()" style="font-weight:500">Import ${active.length} trade${active.length>1?'s':''}</button>
+         <span style="font-size:12px;color:var(--text-secondary,#888)">${ungrouped} fill${ungrouped>1?'s':''} will be skipped</span>`
+      : '';
+  }
+}
+
+// ── Selection helpers ──────────────────────────────────────────────────────
+function toggleRow(idx, e) {
+  if (e.target.type==='checkbox') return;
+  allFills[idx]._selected = !allFills[idx]._selected;
+  renderRows(); renderSummary();
+}
+function toggleCheck(idx, el) {
+  allFills[idx]._selected = el.checked;
+  renderRows(); renderSummary();
+}
+function toggleAll(el) {
+  allFills.forEach(f => f._selected = el.checked);
+  renderRows(); renderSummary();
+}
+function clearSel() {
+  allFills.forEach(f => f._selected = false);
+  renderRows(); renderSummary();
+}
+
+// ── Grouping actions ───────────────────────────────────────────────────────
+function groupSelected() {
+  const sel = allFills.filter(f => f._selected);
+  if (!sel.length) return;
+
+  // if selected fills span an existing group, add to it; otherwise new group
+  const existingGroups = [...new Set(sel.filter(f=>f._group!==null).map(f=>f._group))];
+  const gid = existingGroups.length === 1 ? existingGroups[0] : nextGroupId++;
+
+  sel.forEach(f => { f._group = gid; f._selected = false; });
+  usedGroups.add(gid);
+  renderAll();
+}
+
+function ungroupSelected() {
+  allFills.filter(f=>f._selected).forEach(f => { f._group=null; f._selected=false; });
+  usedGroups = new Set(allFills.filter(f=>f._group!==null).map(f=>f._group));
+  renderAll();
+}
+
+// ── Confirm import ─────────────────────────────────────────────────────────
+function confirmImport() {
+  const active = [...usedGroups].sort((a,b)=>a-b);
+  if (!active.length) return;
+
+  // build groups payload: list of {fillIndices, label}
+  const groups = active.map(gid => ({
+    fillIndices: allFills.filter(f=>f._group===gid).map(f=>f._idx),
+    label: palLabel(gid),
+  }));
+
+  showLoader('Saving trades...');
+  messageDiv.innerHTML = '';
+
+  fetch('/confirm_upload', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ groups }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    hideLoader();
+    if (data.error) { messageDiv.innerHTML=data.error; messageDiv.className='error'; return; }
+    const warn = data.failed_charts?.length
+      ? ` (${data.failed_charts.length} chart${data.failed_charts.length>1?'s':''} failed)`
+      : '';
+    messageDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted!==1?'s':''} imported${warn}`;
+    messageDiv.className = 'success';
+    allFills = [];
+    usedGroups = new Set();
+    document.getElementById('table-container').innerHTML = '';
+  })
+  .catch(() => { hideLoader(); messageDiv.innerHTML='Import failed'; messageDiv.className='error'; });
+}
 </script>
 
 {% endblock %}

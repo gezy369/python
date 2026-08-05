@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
+def csv_handler(df_trade, df_fees=None):
     df_trade["pnl"] = (
         df_trade["pnl"]
         .astype(str)
@@ -15,87 +15,28 @@ def csv_handler(df_trade, df_fees=None, trade_merging="Entry"):
     df_trade["boughtTimestamp"] = pd.to_datetime(df_trade["boughtTimestamp"], format="%m/%d/%Y %H:%M:%S")
     df_trade["soldTimestamp"]   = pd.to_datetime(df_trade["soldTimestamp"],   format="%m/%d/%Y %H:%M:%S")
 
-    df_trade["side"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"], "short", "long"
-    )
+    df_trade["symbol"] = df_trade["symbol"].str[:-2]
 
-    df_trade["entryTimestamp"] = np.where(
-        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
-        df_trade["boughtTimestamp"], df_trade["soldTimestamp"]
-    )
-
-    df_trade["exitTimestamp"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
-        df_trade["boughtTimestamp"], df_trade["soldTimestamp"]
-    )
-
-    df_trade["entryPrice"] = np.where(
-        df_trade["boughtTimestamp"] < df_trade["soldTimestamp"],
-        df_trade["buyPrice"], df_trade["sellPrice"]
-    )
-
-    df_trade["exitPrice"] = np.where(
-        df_trade["boughtTimestamp"] > df_trade["soldTimestamp"],
-        df_trade["buyPrice"], df_trade["sellPrice"]
-    )
-
-    # ===== GROUP =====
-    if trade_merging == "Exit":
-        trade_cols = ["symbol", "exitTimestamp", "exitPrice"]
-    else:
-        # Entry mode: group by entry AND exit to avoid merging different exits
-        trade_cols = ["symbol", "entryTimestamp", "entryPrice"]
-
-    df_trades = (
-        df_trade
-        .groupby(trade_cols, as_index=False)
-        .agg(
-            qty=("qty", "sum"),
-            pnl=("pnl", "sum"),
-            duration=("duration", "last"),
-            entryTimestamp=("entryTimestamp", "first"),
-            entryPrice=("entryPrice", "mean"),
-            exitPrice=("exitPrice", "last"),
-            exitTimestamp=("exitTimestamp", "last"),
-            side=("side", "first")
-        )
-    )
-
-    # Normalize symbol
-    df_trades["symbol"] = df_trades["symbol"].str[:-2]
-
-    # Adds gross pnl
-    df_trades["gross_pnl"] = df_trades["pnl"]
     # ===== FEES =====
     if df_fees is not None and not df_fees.empty:
-        # Ensure same format
-        df_fees["symbol"] = df_fees["symbol"].str.upper()
-        df_trades["symbol"] = df_trades["symbol"].str.upper()
-        # Merge fees
-        df_trades = df_trades.merge(df_fees, on="symbol", how="left")
-        # Fill missing fees with 0
-        df_trades["fees"] = df_trades["fees"].fillna(0)
-        # Compute total fees (round turn * qty)
-        df_trades["fees"] = df_trades["fees"] * df_trades["qty"]
-        # Net PnL
-        df_trades["pnl"] = df_trades["pnl"] - df_trades["fees"]
-        # Optional: drop fee column if you don’t want it stored
-        # df_trades.drop(columns=["fee"], inplace=True)
+        df_fees["symbol"]  = df_fees["symbol"].str.upper()
+        df_trade["symbol"] = df_trade["symbol"].str.upper()
+        df_trade = df_trade.merge(df_fees, on="symbol", how="left")
+        df_trade["fees"] = df_trade["fees"].fillna(0) * df_trade["qty"]
+        df_trade["pnl"]  = df_trade["pnl"] - df_trade["fees"]
     else:
-        df_trades["fees"] = 0
+        df_trade["fees"] = 0
 
-    # rounds numbers
-    df_trades["pnl"] = round(df_trades["pnl"],2)
-    df_trades["gross_pnl"] = round(df_trades["gross_pnl"],2)
-    
-    # ===== FINAL FORMAT =====
-    df_trades = df_trades[[
-        "symbol", "entryTimestamp", "exitTimestamp",
-        "entryPrice", "exitPrice", "duration",
-        "side", "qty", "gross_pnl", "fees", "pnl"
+    df_trade["pnl"] = round(df_trade["pnl"], 2)
+
+    df_trade["boughtTimestamp"] = df_trade["boughtTimestamp"].astype(str)
+    df_trade["soldTimestamp"]   = df_trade["soldTimestamp"].astype(str)
+
+    return df_trade[[
+        "symbol", "buyFillId", "sellFillId",
+        "qty", "buyPrice", "sellPrice",
+        "pnl", "fees", "boughtTimestamp", "soldTimestamp", "duration"
     ]]
-
-    return df_trades
 
 def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None):
     result = []
