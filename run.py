@@ -395,23 +395,12 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         all_exit_prices  = set()
 
         def parse_fill_ts(raw):
-            """
-            Parse a fill timestamp from Supabase into a tz-aware Timestamp
-            in user_timezone.
-
-            Supabase TIMESTAMPTZ returns strings like:
-              '2026-08-03T14:00:32+00:00'   ← UTC with offset
-              '2026-08-03 14:00:32+00:00'   ← same, space separator
-              '2026-08-03 14:00:32'          ← naive (older rows stored without tz)
-
-            pd.Timestamp() handles all three correctly when we DON'T strip
-            the offset before parsing.
-            """
-            ts = pd.Timestamp(str(raw))
+            ts = pd.Timestamp(str(raw).split(".")[0])  # strip microseconds, treat as naive local time
             if ts.tzinfo is None:
-                # Naive string — was stored without timezone, assume UTC
-                ts = ts.tz_localize("UTC")
-            return ts.tz_convert(user_timezone)
+                ts = ts.tz_localize(user_timezone)
+            else:
+                ts = ts.tz_convert(user_timezone)
+            return ts
 
         if fills:
             for fill in fills:
