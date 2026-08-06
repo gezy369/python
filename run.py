@@ -1533,8 +1533,8 @@ def signup():
 @login_required
 def generate_charts():
     try:
-        data = request.json
-        ids = data.get("ids", [])
+        data      = request.json
+        ids       = data.get("ids", [])
         timeframe = data.get("timeframe", "5m")
 
         if not ids:
@@ -1548,22 +1548,39 @@ def generate_charts():
         )
 
         trades = trades_res.data or []
-        failed = []
-        updated_trades = []
 
+        # Fetch ALL fills for these trades in one query
+        fills_res = (
+            supabase_admin.table("fills")
+            .select("trade_id, buy_price, sell_price, bought_timestamp, sold_timestamp")
+            .in_("trade_id", ids)
+            .execute()
+        )
+
+        # Group fills by trade_id
+        fills_by_trade = {}
+        for f in (fills_res.data or []):
+            tid = f["trade_id"]
+            fills_by_trade.setdefault(tid, []).append(f)
+
+        failed  = []
+        updated = []
         user_id = session["user"]["id"]
 
         for trade in trades:
             try:
+                trade_fills = fills_by_trade.get(trade["id"]) or None
+
                 chart_b64 = generate_chart_base64(
-                    symbol=trade["symbol"],
-                    entry_time=datetime.fromisoformat(trade["entryTimestamp"]),
-                    exit_time=datetime.fromisoformat(trade["exitTimestamp"]),
-                    entry_price=float(trade["entryPrice"]),
-                    exit_price=float(trade["exitPrice"]),
-                    side=trade["side"],
-                    user_id=user_id,
-                    timeframe=timeframe
+                    symbol      = trade["symbol"],
+                    entry_time  = datetime.fromisoformat(trade["entryTimestamp"]),
+                    exit_time   = datetime.fromisoformat(trade["exitTimestamp"]),
+                    entry_price = float(trade["entryPrice"]),
+                    exit_price  = float(trade["exitPrice"]),
+                    side        = trade["side"],
+                    user_id     = user_id,
+                    timeframe   = timeframe,
+                    fills       = trade_fills,   # None for legacy trades → single marker fallback
                 )
 
                 if chart_b64:
@@ -1571,9 +1588,7 @@ def generate_charts():
                         .update({"chart_image": chart_b64}) \
                         .eq("id", trade["id"]) \
                         .execute()
-
-                    updated_trades.append(trade["id"])
-
+                    updated.append(trade["id"])
                 else:
                     failed.append(trade["id"])
 
@@ -1582,9 +1597,9 @@ def generate_charts():
                 failed.append(trade["id"])
 
         return jsonify({
-            "ok": True,
-            "updated": updated_trades,
-            "failed": failed
+            "ok":      True,
+            "updated": updated,
+            "failed":  failed,
         })
 
     except Exception as e:
