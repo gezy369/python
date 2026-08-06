@@ -234,7 +234,7 @@ def logout():
     return redirect(url_for("login"))
 
 # ===== CHART GENERATION =====
-def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side, user_id, timeframe="5m"):
+def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price, side, user_id, timeframe="5m", fills=None):
     try:
         # ── Timeframe → Yahoo interval mapping ──────────────────────────
         TIMEFRAME_TO_YAHOO = {
@@ -251,9 +251,9 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             "5m":  (4, 5),   "15m": (8, 10),   "30m": (16, 20),
             "1h":  (24, 48), "4h":  (72, 120), "D":   (720, 1440),
         }
-        yahoo_interval             = TIMEFRAME_TO_YAHOO.get(timeframe, "5m")
-        lookback                   = YAHOO_LOOKBACK_DAYS.get(yahoo_interval, 5)
-        ctx_before, ctx_after      = CONTEXT_HOURS.get(timeframe, (3, 4))
+        yahoo_interval        = TIMEFRAME_TO_YAHOO.get(timeframe, "5m")
+        lookback              = YAHOO_LOOKBACK_DAYS.get(yahoo_interval, 5)
+        ctx_before, ctx_after = CONTEXT_HOURS.get(timeframe, (3, 4))
 
         yahoo_symbol = symbol if symbol.endswith("=F") else f"{symbol}=F"
         trade_date   = entry_time.date()
@@ -277,7 +277,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Yahoo returned {r.status_code} for {yahoo_symbol}: {r.text[:300]}")
             return None
 
-        data = r.json()
+        data   = r.json()
         result = data.get("chart", {}).get("result")
         if not result:
             print(f"No result in Yahoo response for {yahoo_symbol}: {data.get('chart', {}).get('error')}")
@@ -311,7 +311,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"Insufficient candles for {yahoo_symbol}: {len(df)}")
             return None
 
-        # ── Localize entry/exit ──────────────────────────────────────────
+        # ── Localize trade-level entry/exit (used for chart window) ─────
         entry_ts = pd.Timestamp(entry_time)
         exit_ts  = pd.Timestamp(exit_time)
 
@@ -352,9 +352,9 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             else:
                 df[column_name] = df["Close"].ewm(span=ma["value"], adjust=False).mean()
 
-        # ── 2. Compute VWAP on FULL df ───────────────────────────────────────
+        # ── 2. Compute VWAP on FULL df ───────────────────────────────────
         if to_bool(settings.get("VWAP_activ")):
-            typical_price = (df["High"] + df["Low"] + df["Close"]) / 3
+            typical_price     = (df["High"] + df["Low"] + df["Close"]) / 3
             df["_tp_vol"]     = typical_price * df["Volume"]
             df["_date"]       = df.index.date
             df["_cum_tp_vol"] = df.groupby("_date")["_tp_vol"].cumsum()
@@ -362,7 +362,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             df["VWAP"]        = (df["_cum_tp_vol"] / df["_cum_vol"]).ffill()
             df.drop(columns=["_tp_vol", "_date", "_cum_tp_vol", "_cum_vol"], inplace=True)
 
-        # ── 3. NOW trim to trade window ──────────────────────────────────
+        # ── 3. Trim to trade window ──────────────────────────────────────
         df = df[
             (df.index >= entry_ts - timedelta(hours=ctx_before)) &
             (df.index <= exit_ts  + timedelta(hours=ctx_after))
@@ -372,9 +372,9 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             print(f"No candles in trade window for {yahoo_symbol}")
             return None
 
-        entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
-        exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
-        is_long   = str(side).lower() == "long"
+        is_long     = str(side).lower() == "long"
+        entry_color = "#26a666" if is_long else "#ef5350"
+        exit_color  = "#ef5350" if is_long else "#26a666"
 
         # ── 4. Build addplots AFTER trim ─────────────────────────────────
         apds = []
@@ -389,45 +389,105 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         if "VWAP" in df.columns:
             apds.append(mpf.make_addplot(df["VWAP"], width=1.2, color="#d47bfd"))
 
-        # ── Entry/exit marker colors ──────────────────────────────────────────
-        entry_color = "#26a666" if is_long else "#ef5350"   # green long, red short
-        exit_color  = "#ef5350" if is_long else "#26a666"
+        # ── 5. Per-fill markers ──────────────────────────────────────────
+        # Collect all entry/exit prices for hlines
+        all_entry_prices = set()
+        all_exit_prices  = set()
 
-        # ── Custom candle style ───────────────────────────────────────────────
-        custom_style = mpf.make_mpf_style(
-            base_mpf_style="charles",
-            marketcolors=mpf.make_marketcolors(
-                up       = "#D1D1D1",   # up body fill
-                down     = "#7E838C",   # down body fill
-                edge     = {"up": "#7E838C", "down": "#7E838C"},   # body outline
-                wick     = {"up": "#7E838C", "down": "#7E838C"},   # wicks
-                ohlc     = "inherit",
-                volume   = {"up": "#D1D1D1", "down": "#7E838C"},
-            ),
-            facecolor  = "#ffffff",   # chart background (matches --bg-base)
-            figcolor   = "#ffffff",
-            gridcolor  = "#e0e0e0",
-            gridstyle  = "--",
-            gridaxis   = "both",
-        )
+        if fills:
+            for fill in fills:
+                try:
+                    # Resolve which timestamp/price is entry vs exit per side
+                    if is_long:
+                        fe_ts  = pd.Timestamp(str(fill["bought_timestamp"]).split(".")[0])
+                        fx_ts  = pd.Timestamp(str(fill["sold_timestamp"]).split(".")[0])
+                        fe_px  = float(fill["buy_price"])
+                        fx_px  = float(fill["sell_price"])
+                    else:
+                        fe_ts  = pd.Timestamp(str(fill["sold_timestamp"]).split(".")[0])
+                        fx_ts  = pd.Timestamp(str(fill["bought_timestamp"]).split(".")[0])
+                        fe_px  = float(fill["sell_price"])
+                        fx_px  = float(fill["buy_price"])
 
-        apds.extend([
-            mpf.make_addplot(
+                    # Localize
+                    if fe_ts.tzinfo is None:
+                        fe_ts = fe_ts.tz_localize(user_timezone)
+                    else:
+                        fe_ts = fe_ts.tz_convert(user_timezone)
+
+                    if fx_ts.tzinfo is None:
+                        fx_ts = fx_ts.tz_localize(user_timezone)
+                    else:
+                        fx_ts = fx_ts.tz_convert(user_timezone)
+
+                    fe_idx = df.index.get_indexer([fe_ts], method="nearest")[0]
+                    fx_idx = df.index.get_indexer([fx_ts], method="nearest")[0]
+
+                    # Entry marker
+                    apds.append(mpf.make_addplot(
+                        [fe_px if i == fe_idx else float("nan") for i in range(len(df))],
+                        type="scatter", markersize=90,
+                        marker="^" if is_long else "v", color=entry_color
+                    ))
+                    # Exit marker
+                    apds.append(mpf.make_addplot(
+                        [fx_px if i == fx_idx else float("nan") for i in range(len(df))],
+                        type="scatter", markersize=90,
+                        marker="v" if is_long else "^", color=exit_color
+                    ))
+
+                    all_entry_prices.add(fe_px)
+                    all_exit_prices.add(fx_px)
+
+                except Exception as e:
+                    print(f"Marker error for fill: {e}")
+                    continue
+
+        else:
+            # ── Fallback: single marker for legacy trades without fills ──
+            entry_idx = df.index.get_indexer([entry_ts], method="nearest")[0]
+            exit_idx  = df.index.get_indexer([exit_ts],  method="nearest")[0]
+
+            apds.append(mpf.make_addplot(
                 [entry_price if i == entry_idx else float("nan") for i in range(len(df))],
                 type="scatter", markersize=120,
                 marker="^" if is_long else "v", color=entry_color
-            ),
-            mpf.make_addplot(
+            ))
+            apds.append(mpf.make_addplot(
                 [exit_price if i == exit_idx else float("nan") for i in range(len(df))],
                 type="scatter", markersize=120,
                 marker="v" if is_long else "^", color=exit_color
-            ),
-        ])
+            ))
+
+            all_entry_prices.add(entry_price)
+            all_exit_prices.add(exit_price)
+
+        # ── 6. Hlines: one per unique price level ────────────────────────
+        hline_prices = list(all_entry_prices) + list(all_exit_prices)
+        hline_colors = [entry_color] * len(all_entry_prices) + [exit_color] * len(all_exit_prices)
 
         hlines = dict(
-            hlines=[entry_price, exit_price],
-            colors=[entry_color, exit_color],
-            linestyle="--", linewidths=1
+            hlines=hline_prices,
+            colors=hline_colors,
+            linestyle="--", linewidths=0.8
+        )
+
+        # ── 7. Custom candle style ───────────────────────────────────────
+        custom_style = mpf.make_mpf_style(
+            base_mpf_style="charles",
+            marketcolors=mpf.make_marketcolors(
+                up   = "#D1D1D1",
+                down = "#7E838C",
+                edge = {"up": "#7E838C", "down": "#7E838C"},
+                wick = {"up": "#7E838C", "down": "#7E838C"},
+                ohlc = "inherit",
+                volume = {"up": "#D1D1D1", "down": "#7E838C"},
+            ),
+            facecolor = "#ffffff",
+            figcolor  = "#ffffff",
+            gridcolor = "#e0e0e0",
+            gridstyle = "--",
+            gridaxis  = "both",
         )
 
         fig, axes = mpf.plot(
@@ -441,7 +501,7 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
             returnfig=True
         )
 
-        # Watermark — timeframe label, top-right corner
+        # ── 8. Watermark ─────────────────────────────────────────────────
         axes[0].text(
             0.02, 0.02,
             timeframe,
@@ -465,7 +525,6 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         print(f"Chart generation failed for {symbol}")
         print(traceback.format_exc())
         return None
-
 # ===== PAGE ROUTES =====
 
 @app.route("/")
