@@ -394,31 +394,39 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         all_entry_prices = set()
         all_exit_prices  = set()
 
+        def parse_fill_ts(raw):
+            """
+            Parse a fill timestamp from Supabase into a tz-aware Timestamp
+            in user_timezone.
+
+            Supabase TIMESTAMPTZ returns strings like:
+              '2026-08-03T14:00:32+00:00'   ← UTC with offset
+              '2026-08-03 14:00:32+00:00'   ← same, space separator
+              '2026-08-03 14:00:32'          ← naive (older rows stored without tz)
+
+            pd.Timestamp() handles all three correctly when we DON'T strip
+            the offset before parsing.
+            """
+            ts = pd.Timestamp(str(raw))
+            if ts.tzinfo is None:
+                # Naive string — was stored without timezone, assume UTC
+                ts = ts.tz_localize("UTC")
+            return ts.tz_convert(user_timezone)
+
         if fills:
             for fill in fills:
                 try:
                     # Resolve which timestamp/price is entry vs exit per side
                     if is_long:
-                        fe_ts  = pd.Timestamp(str(fill["bought_timestamp"]).split(".")[0])
-                        fx_ts  = pd.Timestamp(str(fill["sold_timestamp"]).split(".")[0])
-                        fe_px  = float(fill["buy_price"])
-                        fx_px  = float(fill["sell_price"])
+                        fe_ts = parse_fill_ts(fill["bought_timestamp"])
+                        fx_ts = parse_fill_ts(fill["sold_timestamp"])
+                        fe_px = float(fill["buy_price"])
+                        fx_px = float(fill["sell_price"])
                     else:
-                        fe_ts  = pd.Timestamp(str(fill["sold_timestamp"]).split(".")[0])
-                        fx_ts  = pd.Timestamp(str(fill["bought_timestamp"]).split(".")[0])
-                        fe_px  = float(fill["sell_price"])
-                        fx_px  = float(fill["buy_price"])
-
-                    # Localize
-                    if fe_ts.tzinfo is None:
-                        fe_ts = fe_ts.tz_localize(user_timezone)
-                    else:
-                        fe_ts = fe_ts.tz_convert(user_timezone)
-
-                    if fx_ts.tzinfo is None:
-                        fx_ts = fx_ts.tz_localize(user_timezone)
-                    else:
-                        fx_ts = fx_ts.tz_convert(user_timezone)
+                        fe_ts = parse_fill_ts(fill["sold_timestamp"])
+                        fx_ts = parse_fill_ts(fill["bought_timestamp"])
+                        fe_px = float(fill["sell_price"])
+                        fx_px = float(fill["buy_price"])
 
                     fe_idx = df.index.get_indexer([fe_ts], method="nearest")[0]
                     fx_idx = df.index.get_indexer([fx_ts], method="nearest")[0]
