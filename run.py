@@ -523,7 +523,42 @@ def generate_chart_base64(symbol, entry_time, exit_time, entry_price, exit_price
         print(traceback.format_exc())
         return None
 # ===== PAGE ROUTES =====
+@app.get("/api/fills/<int:trade_id>")
+@login_required
+def get_fills(trade_id):
+    try:
+        # Security: verify the trade belongs to this user
+        trade_res = (
+            supabase_admin.table("trades")
+            .select("key_trading_accounts")
+            .eq("id", trade_id)
+            .execute()
+        )
+        if not trade_res.data:
+            return jsonify({"error": "Trade not found"}), 404
 
+        accounts_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("user_id", session["user"]["id"])
+            .execute()
+        )
+        user_account_ids = [a["id"] for a in (accounts_res.data or [])]
+        if trade_res.data[0]["key_trading_accounts"] not in user_account_ids:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        fills_res = (
+            supabase_admin.table("fills")
+            .select("*")
+            .eq("trade_id", trade_id)
+            .order("bought_timestamp")
+            .execute()
+        )
+        return jsonify(fills_res.data or [])
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/")
 @login_required
 def dashboard():

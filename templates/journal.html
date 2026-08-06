@@ -735,6 +735,84 @@ function renderEmotionTags(trade, container) {
 // ══════════════════════════════════════════════════════════════════════════
 // TRADE DETAILS PANEL
 // ══════════════════════════════════════════════════════════════════════════
+async function loadFills(tradeId, side) {
+  const container = document.getElementById(`fills-${tradeId}`);
+  if (!container) return;
+
+  try {
+    const res  = await fetch(`/api/fills/${tradeId}`);
+    const fills = await res.json();
+
+    if (!fills.length) {
+      container.innerHTML = `<div class="fills-no-data">No fills recorded</div>`;
+      return;
+    }
+
+    const isLong = String(side).toLowerCase() === "long";
+
+    let html = `
+      <table class="fills-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>P&L</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    fills.forEach((f, i) => {
+      // Entry fill
+      const entryPrice = isLong ? f.buy_price  : f.sell_price;
+      const exitPrice  = isLong ? f.sell_price : f.buy_price;
+      const entryTime  = isLong ? f.bought_timestamp : f.sold_timestamp;
+      const exitTime   = isLong ? f.sold_timestamp   : f.bought_timestamp;
+      const pnl        = parseFloat(f.pnl) || 0;
+      const pnlStr     = (pnl >= 0 ? "+" : "") + "$" + Math.abs(pnl).toFixed(2);
+      const pnlCls     = pnl > 0 ? "pnl-positive" : pnl < 0 ? "pnl-negative" : "";
+
+      // Format time — strip date if same day, just show HH:MM:SS
+      const fmtTs = ts => {
+        if (!ts) return "—";
+        const s = String(ts).split(".")[0].replace("T", " ");
+        // if it contains a space, just show the time part
+        return s.includes(" ") ? s.split(" ")[1] : s;
+      };
+
+      html += `
+        <tr>
+          <td style="color:var(--text-faint)">${i + 1}</td>
+          <td class="fill-side-entry">Entry</td>
+          <td>${parseFloat(entryPrice).toFixed(2)}</td>
+          <td>${f.qty}</td>
+          <td rowspan="2" class="${pnlCls}" style="vertical-align:middle">${pnlStr}</td>
+          <td>${fmtTs(entryTime)}</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="fill-side-exit">Exit</td>
+          <td>${parseFloat(exitPrice).toFixed(2)}</td>
+          <td>${f.qty}</td>
+          <td>${fmtTs(exitTime)}</td>
+        </tr>`;
+
+      // Divider between fills
+      if (i < fills.length - 1) {
+        html += `<tr><td colspan="6" style="padding:0;border-bottom:1px solid var(--border-default)"></td></tr>`;
+      }
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+
+  } catch (e) {
+    container.innerHTML = `<div class="fills-no-data">Could not load fills</div>`;
+  }
+}
+
 function toggleTradeDetails(tr, trade) {
   if (openRow && openRow.tr === tr) {
     closeDetails();
@@ -805,7 +883,6 @@ td.innerHTML = `
       <div class="td-col">
 
         <div class="td-section-label">Strategy</div>
-
         <select class="trade-strategy dark-select">
           <option value="">No strategy</option>
           ${STRATEGIES.map(s => `
@@ -815,19 +892,21 @@ td.innerHTML = `
             </option>
           `).join("")}
         </select>
-
         <div class="strategy-tag-container"></div>
 
         <div class="td-section-label" style="margin-top:10px;">Setups</div>
-
         <select class="setup-add dark-select">
           <option value="">+ Add setup</option>
           ${SETUPS.map(s => `
             <option value="${s.id}">${s.setup_name}</option>
           `).join("")}
         </select>
-
         <div class="setup-tag-container"></div>
+
+        <div class="td-section-label" style="margin-top:10px;">Fills</div>
+        <div class="fills-container" id="fills-${trade.id}">
+          <div style="color:var(--text-faint);font-size:11px">Loading...</div>
+        </div>
 
       </div>
 
@@ -875,6 +954,7 @@ td.innerHTML = `
   setupSetupHandler(td, trade, setupContainer);
   setupEmotionHandler(td, trade, emotionContainer);
   showTradeChart(trade, `tradeChart-${trade.id}`);
+  loadFills(trade.id, trade.side);
 }
 
 function setupNotesHandler(td, trade) {

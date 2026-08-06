@@ -3319,3 +3319,38 @@ input:checked + .slider:before {
   width: 180px;
   font-size: 10px;
 }
+
+/* ── Fills table ── */
+.fills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.fills-table thead th {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fills-table tbody td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.fills-table tbody tr:last-child td { border-bottom: none; }
+.fills-table .fill-side-entry { color: var(--accent-green); }
+.fills-table .fill-side-exit  { color: var(--accent-red); }
+.fills-no-data {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+  padding: 4px 0;
+}
