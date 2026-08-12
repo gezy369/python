@@ -405,6 +405,15 @@ function buildShell() {
 }
 
 /* ── Recompute hint clusters then re-render ── */
+function getSide(f) {
+  // boughtTimestamp < soldTimestamp → long, otherwise short
+  return f._boughtMs < f._soldMs ? "long" : "short";
+}
+
+function getDate(ms) {
+  return new Date(ms).toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 function recompute() {
   hintClusters = [];
   const val = document.getElementById('windowSelect')?.value;
@@ -412,27 +421,88 @@ function recompute() {
 
   const windowMs  = val === 'exact' ? 0 : parseInt(val) * 60000;
   const exactOnly = val === 'exact';
-  const ungrouped = allFills.filter(f => f._group === null);
-  const used = new Set();
-  let cid = 0;
 
+  // Only consider ungrouped fills
+  const ungrouped = allFills.filter(f => f._group === null);
+
+  // Pre-compute side and date per fill
   ungrouped.forEach(f => {
-    if (used.has(f._idx)) return;
-    const matches = ungrouped.filter(g => {
-      if (g._idx === f._idx || used.has(g._idx)) return false;
-      const exactSold   = f._soldMs   === g._soldMs;
-      const exactBought = f._boughtMs === g._boughtMs;
-      if (exactOnly) return exactSold || exactBought;
-      return exactSold || exactBought
-        || Math.abs(f._soldMs   - g._soldMs)   <= windowMs
-        || Math.abs(f._boughtMs - g._boughtMs) <= windowMs;
-    });
-    if (matches.length > 0) {
-      const cluster = { id: cid, indices: [f._idx, ...matches.map(m => m._idx)], color: HINT_COLORS[cid % HINT_COLORS.length] };
-      hintClusters.push(cluster);
-      cluster.indices.forEach(i => used.add(i));
-      cid++;
+    f._side = getSide(f);
+    f._date = getDate(f._boughtMs); // use entry timestamp for date
+  });
+
+  // Build adjacency: which fills directly match each other
+  function directlyMatch(a, b) {
+    // Rule 1: same symbol
+    if (a.symbol !== b.symbol) return false;
+
+    // Rule 2: same calendar date
+    if (a._date !== b._date) return false;
+
+    // Rule 3: same side
+    if (a._side !== b._side) return false;
+
+    // Rule 5: no re-entry after first exit
+    // If either fill's entry is after the other's exit, they're separate trades
+    const aEntryMs = a._side === 'long' ? a._boughtMs : a._soldMs;
+    const aExitMs  = a._side === 'long' ? a._soldMs   : a._boughtMs;
+    const bEntryMs = b._side === 'long' ? b._boughtMs : b._soldMs;
+    const bExitMs  = b._side === 'long' ? b._soldMs   : b._boughtMs;
+
+    // b entered after a exited → different trade
+    if (bEntryMs > aExitMs) return false;
+    // a entered after b exited → different trade
+    if (aEntryMs > bExitMs) return false;
+
+    // Rule 4 (proximity / exact match check)
+    const exactSold   = a._soldMs   === b._soldMs;
+    const exactBought = a._boughtMs === b._boughtMs;
+    if (exactOnly) return exactSold || exactBought;
+
+    return exactSold || exactBought
+      || Math.abs(a._soldMs   - b._soldMs)   <= windowMs
+      || Math.abs(a._boughtMs - b._boughtMs) <= windowMs;
+  }
+
+  // Rule 4: transitive closure via union-find
+  const parent = {};
+  ungrouped.forEach(f => parent[f._idx] = f._idx);
+
+  function find(x) {
+    if (parent[x] !== x) parent[x] = find(parent[x]);
+    return parent[x];
+  }
+
+  function union(x, y) {
+    const px = find(x), py = find(y);
+    if (px !== py) parent[px] = py;
+  }
+
+  // Check every pair and union matches
+  for (let i = 0; i < ungrouped.length; i++) {
+    for (let j = i + 1; j < ungrouped.length; j++) {
+      if (directlyMatch(ungrouped[i], ungrouped[j])) {
+        union(ungrouped[i]._idx, ungrouped[j]._idx);
+      }
     }
+  }
+
+  // Collect groups from union-find — only groups with 2+ fills become hints
+  const groups = {};
+  ungrouped.forEach(f => {
+    const root = find(f._idx);
+    (groups[root] = groups[root] || []).push(f._idx);
+  });
+
+  let cid = 0;
+  Object.values(groups).forEach(indices => {
+    if (indices.length < 2) return; // single fill = no hint needed
+    hintClusters.push({
+      id:      cid,
+      indices: indices,
+      color:   HINT_COLORS[cid % HINT_COLORS.length],
+    });
+    cid++;
   });
 
   renderAll();
