@@ -7,36 +7,6 @@
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
-
-    <div class="timeframe-row">
-      <label for="chartTimeframe">Chart timeframe</label>
-      <div class="timeframe-controls">
-        <select id="chartTimeframe">
-          <option value="1m">1 min</option>
-          <option value="2m">2 min</option>
-          <option value="3m">3 min</option>
-          <option value="5m" selected>5 min</option>
-          <option value="15m">15 min</option>
-          <option value="30m">30 min</option>
-          <option value="1h">1 h</option>
-          <option value="4h">4 h</option>
-          <option value="D">Daily</option>
-        </select>
-        <div class="tf-info-wrapper">
-          <span class="tf-info-icon">ⓘ</span>
-          <div class="tf-tooltip">
-            <strong>Yahoo Finance data limits:</strong><br>
-            1 min → last 7 days only<br>
-            2 / 3 min → last 60 days<br>
-            5 / 15 / 30 min → last 60 days<br>
-            1 h → last 730 days<br>
-            4 h → uses 1 h bars (no native 4 h)<br>
-            Daily → no limit
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div id="dropzone" class="dropzone">Drop CSV file here<br>or click to select</div>
     <input type="file" id="fileInput" accept=".csv" hidden>
     <button onclick="uploadFile()">Preview fills</button>
@@ -344,6 +314,7 @@ function initFills(rows) {
   nextGroupId = 0;
   usedGroups  = new Set();
   hintClusters = [];
+  excludedFromImport = new Set();
   buildShell();
   recompute();
 }
@@ -360,6 +331,19 @@ function buildShell() {
         <option value="15">15 minutes</option>
         <option value="30">30 minutes</option>
         <option value="off">Off</option>
+      </select>
+      <div class="hint-bar-sep"></div>
+      <span class="hint-bar-label">Chart timeframe</span>
+      <select id="chartTimeframe">
+        <option value="1m">1 min</option>
+        <option value="2m">2 min</option>
+        <option value="3m">3 min</option>
+        <option value="5m" selected>5 min</option>
+        <option value="15m">15 min</option>
+        <option value="30m">30 min</option>
+        <option value="1h">1 h</option>
+        <option value="4h">4 h</option>
+        <option value="D">Daily</option>
       </select>
       <div class="hint-bar-sep"></div>
       <span class="hint-count" id="hintCount"></span>
@@ -629,31 +613,38 @@ function renderLegend() {
   }).join('');
 }
 
+function toggleImport(key, checked) {
+  if (checked) excludedFromImport.delete(key);
+  else         excludedFromImport.add(key);
+  renderSummary();
+}
+
 function renderSummary() {
   const sumEl  = document.getElementById('grpSummary');
   const impRow = document.getElementById('grpImportRow');
   if (!sumEl) return;
 
-  const active       = [...usedGroups].sort((a,b) => a-b);
-  const needsGroup   = allFills.filter(f => f._group === null && clusterOf(f._idx) !== null);
-  const soloFills    = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
-  const totalTrades  = active.length + soloFills.length;
+  const active      = [...usedGroups].sort((a,b) => a-b);
+  const needsGroup  = allFills.filter(f => f._group === null && clusterOf(f._idx) !== null);
+  const soloFills   = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
 
-  // Empty state
   if (!active.length && !soloFills.length && !needsGroup.length) {
     sumEl.innerHTML  = `<span style="color:var(--text-muted)">Select fills and click "Group into trade" to build your trades.</span>`;
     impRow.innerHTML = '';
     return;
   }
 
-  // Summary pills for confirmed groups
+  // Confirmed group pills
   const groupPills = active.map(g => {
-    const pal = PALETTE[g % PALETTE.length];
-    const gf  = allFills.filter(f => f._group === g);
-    const qty = gf.reduce((s, f) => s + f.qty, 0);
-    const pnl = gf.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
-    const pnlClr = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
-    return `<span class="grp-sum-pill" style="background:${pal.bg}">
+    const pal     = PALETTE[g % PALETTE.length];
+    const gf      = allFills.filter(f => f._group === g);
+    const qty     = gf.reduce((s, f) => s + f.qty, 0);
+    const pnl     = gf.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
+    const pnlClr  = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
+    const checked = !excludedFromImport.has(`group_${g}`);
+    return `<span class="grp-sum-pill" style="background:${pal.bg};opacity:${checked ? 1 : 0.4}">
+      <input type="checkbox" ${checked ? 'checked' : ''} style="accent-color:var(--accent-blue);cursor:pointer"
+        onchange="toggleImport('group_${g}', this.checked)">
       <span class="grp-leg-dot" style="background:${pal.bar}"></span>
       <span style="color:${pal.text};font-weight:500">${palLabel(g)}</span>
       <span style="color:var(--text-muted)">${gf.length} fill${gf.length>1?'s':''} · qty ${qty} ·</span>
@@ -661,18 +652,21 @@ function renderSummary() {
     </span>`;
   }).join('');
 
-  // Solo fills pill
-  const soloPill = soloFills.length ? (() => {
-    const qty = soloFills.reduce((s, f) => s + f.qty, 0);
-    const pnl = soloFills.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
-    const pnlClr = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
-    return `<span class="grp-sum-pill" style="background:var(--bg-active);border:1px solid var(--border-strong)">
+  // Solo fills pills — one per fill so each can be toggled individually
+  const soloPills = soloFills.map((f, i) => {
+    const key     = `solo_${f._idx}`;
+    const checked = !excludedFromImport.has(key);
+    const pnl     = parseFloat(f.pnl) || 0;
+    const pnlClr  = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
+    return `<span class="grp-sum-pill" style="background:var(--bg-active);border:1px solid var(--border-strong);opacity:${checked ? 1 : 0.4}">
+      <input type="checkbox" ${checked ? 'checked' : ''} style="accent-color:var(--accent-blue);cursor:pointer"
+        onchange="toggleImport('${key}', this.checked)">
       <span class="grp-leg-dot" style="background:var(--text-muted)"></span>
-      <span style="color:var(--text-secondary);font-weight:500">${soloFills.length} solo fill${soloFills.length>1?'s':''}</span>
-      <span style="color:var(--text-muted)">qty ${qty} ·</span>
+      <span style="color:var(--text-secondary);font-weight:500">Solo fill</span>
+      <span style="color:var(--text-muted)">qty ${f.qty} ·</span>
       <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2)}</span>
     </span>`;
-  })() : '';
+  }).join('');
 
   // Needs-grouping warning
   const needsPill = needsGroup.length
@@ -682,10 +676,14 @@ function renderSummary() {
        </span>`
     : '';
 
-  sumEl.innerHTML = groupPills + soloPill + needsPill;
+  sumEl.innerHTML = groupPills + soloPills + needsPill;
 
-  // Import button — only show if there's something to import
-if (totalTrades > 0) {
+  // Count only what's checked
+  const readyGroups = active.filter(g  => !excludedFromImport.has(`group_${g}`)).length;
+  const readySolos  = soloFills.filter(f => !excludedFromImport.has(`solo_${f._idx}`)).length;
+  const totalTrades = readyGroups + readySolos;
+
+  if (totalTrades > 0) {
     impRow.innerHTML = `
       <button class="grp-import-btn" onclick="confirmImport()">
         Import ${totalTrades} trade${totalTrades > 1 ? 's' : ''}
@@ -746,18 +744,24 @@ function acceptAll() {
 
 /* ── Confirm import ── */
 function confirmImport() {
-  const active = [...usedGroups].sort((a,b) => a-b);
-  if (!active.length) return;
+  const active     = [...usedGroups].sort((a,b) => a-b);
+  const soloFills  = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
 
-  // Confirmed manual groups
-  const groups = active.map(gid => ({
-    fillIndices: allFills.filter(f => f._group === gid).map(f => f._idx),
-    label:       palLabel(gid),
-  }));
+  const groups = [];
 
-    // Auto-import solo fills (ungrouped AND not in any hint cluster)
-  allFills
-    .filter(f => f._group === null && clusterOf(f._idx) === null)
+  // Confirmed groups — skip excluded
+  active
+    .filter(gid => !excludedFromImport.has(`group_${gid}`))
+    .forEach(gid => {
+      groups.push({
+        fillIndices: allFills.filter(f => f._group === gid).map(f => f._idx),
+        label:       palLabel(gid),
+      });
+    });
+
+  // Solo fills — skip excluded
+  soloFills
+    .filter(f => !excludedFromImport.has(`solo_${f._idx}`))
     .forEach(f => {
       groups.push({
         fillIndices: [f._idx],
@@ -785,8 +789,9 @@ function confirmImport() {
         : '';
       msgDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted !== 1 ? 's' : ''} imported${warn}`;
       msgDiv.className = 'success';
-      allFills   = [];
-      usedGroups = new Set();
+      allFills            = [];
+      usedGroups          = new Set();
+      excludedFromImport  = new Set();
       document.getElementById('table-container').innerHTML = '';
     })
     .catch(() => { hideLoader(); msgDiv.innerHTML = 'Import failed'; msgDiv.className = 'error'; });
