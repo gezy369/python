@@ -634,16 +634,20 @@ function renderSummary() {
   const impRow = document.getElementById('grpImportRow');
   if (!sumEl) return;
 
-  const active    = [...usedGroups].sort((a,b) => a-b);
-  const ungrouped = allFills.filter(f => f._group === null).length;
+  const active       = [...usedGroups].sort((a,b) => a-b);
+  const needsGroup   = allFills.filter(f => f._group === null && clusterOf(f._idx) !== null);
+  const soloFills    = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
+  const totalTrades  = active.length + soloFills.length;
 
-  if (!active.length) {
+  // Empty state
+  if (!active.length && !soloFills.length && !needsGroup.length) {
     sumEl.innerHTML  = `<span style="color:var(--text-muted)">Select fills and click "Group into trade" to build your trades.</span>`;
     impRow.innerHTML = '';
     return;
   }
 
-  sumEl.innerHTML = active.map(g => {
+  // Summary pills for confirmed groups
+  const groupPills = active.map(g => {
     const pal = PALETTE[g % PALETTE.length];
     const gf  = allFills.filter(f => f._group === g);
     const qty = gf.reduce((s, f) => s + f.qty, 0);
@@ -652,13 +656,46 @@ function renderSummary() {
     return `<span class="grp-sum-pill" style="background:${pal.bg}">
       <span class="grp-leg-dot" style="background:${pal.bar}"></span>
       <span style="color:${pal.text};font-weight:500">${palLabel(g)}</span>
-      <span style="color:var(--text-muted)">${gf.length} fills · qty ${qty} ·</span>
-      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2)}</span>
+      <span style="color:var(--text-muted)">${gf.length} fill${gf.length>1?'s':''} · qty ${qty} ·</span>
+      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2)}</span>
     </span>`;
-  }).join('') + (ungrouped ? `<span style="color:var(--text-muted)">${ungrouped} ungrouped</span>` : '');
+  }).join('');
 
-  impRow.innerHTML = `<button class="grp-import-btn" onclick="confirmImport()">Import ${active.length} trade${active.length > 1 ? 's' : ''}</button>`
-    + (ungrouped ? `<span class="grp-skip-note">${ungrouped} fill${ungrouped > 1 ? 's' : ''} will be skipped</span>` : '');
+  // Solo fills pill
+  const soloPill = soloFills.length ? (() => {
+    const qty = soloFills.reduce((s, f) => s + f.qty, 0);
+    const pnl = soloFills.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
+    const pnlClr = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
+    return `<span class="grp-sum-pill" style="background:var(--bg-active);border:1px solid var(--border-strong)">
+      <span class="grp-leg-dot" style="background:var(--text-muted)"></span>
+      <span style="color:var(--text-secondary);font-weight:500">${soloFills.length} solo fill${soloFills.length>1?'s':''}</span>
+      <span style="color:var(--text-muted)">qty ${qty} ·</span>
+      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2)}</span>
+    </span>`;
+  })() : '';
+
+  // Needs-grouping warning
+  const needsPill = needsGroup.length
+    ? `<span style="color:var(--accent-amber);font-size:11px;display:inline-flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-amber);display:inline-block"></span>
+        ${needsGroup.length} fill${needsGroup.length>1?'s':''} still need grouping
+       </span>`
+    : '';
+
+  sumEl.innerHTML = groupPills + soloPill + needsPill;
+
+  // Import button — only show if there's something to import
+if (totalTrades > 0) {
+    impRow.innerHTML = `
+      <button class="grp-import-btn" onclick="confirmImport()">
+        Import ${totalTrades} trade${totalTrades > 1 ? 's' : ''}
+      </button>
+      ${needsGroup.length
+        ? `<span class="grp-skip-note" style="color:var(--accent-amber)">${needsGroup.length} fill${needsGroup.length > 1 ? 's' : ''} will be skipped</span>`
+        : ''}`;
+  } else {
+    impRow.innerHTML = '';
+  }
 }
 
 /* ── Selection ── */
@@ -712,10 +749,23 @@ function confirmImport() {
   const active = [...usedGroups].sort((a,b) => a-b);
   if (!active.length) return;
 
+  // Confirmed manual groups
   const groups = active.map(gid => ({
     fillIndices: allFills.filter(f => f._group === gid).map(f => f._idx),
     label:       palLabel(gid),
   }));
+
+    // Auto-import solo fills (ungrouped AND not in any hint cluster)
+  allFills
+    .filter(f => f._group === null && clusterOf(f._idx) === null)
+    .forEach(f => {
+      groups.push({
+        fillIndices: [f._idx],
+        label:       'Solo',
+      });
+    });
+
+  if (!groups.length) return;
 
   showLoader('Saving trades...');
   msgDiv.innerHTML = '';
