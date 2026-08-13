@@ -797,10 +797,14 @@ function toggleTradeDetails(tr, trade) {
               click to expand
             </span>
           </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;line-height:1.5;">
+            Drop your own picture on the chart below to replace it.
+          </div>
           <div id="tradeChart-${trade.id}"
-               class="chart-clickable"
-               style="height:300px;"
-               onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})">
+              class="chart-clickable chart-drop-zone"
+              style="height:300px;"
+              onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})"
+              data-trade-id="${trade.id}">
           </div>
         </div>
 
@@ -832,6 +836,70 @@ function toggleTradeDetails(tr, trade) {
   // Load fills and chart
   loadFills(trade.id, trade.side, document.getElementById(`fillsContainer-${trade.id}`));
   showTradeChart(trade, `tradeChart-${trade.id}`);
+  setupChartDropZone(trade);
+}
+
+function setupChartDropZone(trade) {
+  const zone = document.getElementById(`tradeChart-${trade.id}`);
+  if (!zone) return;
+
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.add('drag-over');
+  });
+
+  zone.addEventListener('dragleave', e => {
+    e.stopPropagation();
+    zone.classList.remove('drag-over');
+  });
+
+  zone.addEventListener('drop', async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('drag-over');
+
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) {
+      alert('Please drop an image file.');
+      return;
+    }
+
+    // Convert to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result.split(',')[1]); // strip data:image/...;base64,
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // Show a quick uploading state
+    zone.style.opacity = '0.5';
+
+    try {
+      const res = await fetch(`/api/trades/${trade.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ chart_image: base64 }),
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      // Update in-memory trade so overlay and chart grid stay in sync
+      trade.chart_image = base64;
+
+      // Re-render the chart in the panel
+      showTradeChart(trade, `tradeChart-${trade.id}`);
+
+      // Re-attach drop zone (showTradeChart replaces innerHTML)
+      setupChartDropZone(trade);
+
+    } catch (err) {
+      alert('Chart upload failed. Please try again.');
+    } finally {
+      zone.style.opacity = '';
+    }
+  });
 }
 
 function setupNotesHandler(td, trade) {

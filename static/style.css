@@ -3354,3 +3354,27 @@ input:checked + .slider:before {
   font-style: italic;
   padding: 4px 0;
 }
+
+.chart-drop-zone {
+  position: relative;
+  border-radius: var(--radius-md);
+  transition: outline .15s;
+}
+.chart-drop-zone.drag-over {
+  outline: 2px dashed var(--accent-blue);
+  outline-offset: -2px;
+}
+.chart-drop-zone.drag-over::after {
+  content: 'Drop to replace chart';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13,15,20,.75);
+  color: var(--accent-blue);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
