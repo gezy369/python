@@ -7,6 +7,7 @@
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
+
     <div id="dropzone" class="dropzone">Drop CSV file here<br>or click to select</div>
     <input type="file" id="fileInput" accept=".csv" hidden>
     <button onclick="uploadFile()">Preview fills</button>
@@ -30,10 +31,10 @@
       <li>5. Make sure the right account is selected on the top left.</li>
       <li>6. Click "Preview fills" — each row is one partial fill.</li>
       <li>7. Use the proximity window to get grouping suggestions, then confirm or adjust manually.</li>
-      <li>8. Click "Import trades" when all fills are grouped.</li>
+      <li>8. Review the import table, uncheck any trades you want to skip, then click "Import".</li>
     </ul>
     <p><br>Fees configured in settings will be applied per fill.<br>
-       Ungrouped fills will not be imported.</p>
+       Fills still in an unresolved hint cluster will be skipped.</p>
   </div>
 
 </div>
@@ -42,286 +43,144 @@
 <div id="table-container"></div>
 
 <style>
-/* ── Top hint bar ── */
-.hint-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 9px 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  margin-bottom: 10px;
-}
-.hint-bar-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.hint-bar-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--border-strong);
-  flex-shrink: 0;
-}
-.hint-bar select {
-  background: var(--bg-active);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  outline: none;
-  cursor: pointer;
-  transition: border-color .15s;
-}
-.hint-bar select:focus { border-color: var(--accent-blue); }
-.hint-count { font-size: 11px; color: var(--text-muted); }
-.hint-count b { color: var(--accent-amber); }
+.hint-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-lg);margin-bottom:10px}
+.hint-bar-label{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.hint-bar-sep{width:1px;height:18px;background:var(--border-strong);flex-shrink:0}
+.hint-bar select{background:var(--bg-active);border:1px solid var(--border-strong);border-radius:var(--radius-sm);color:var(--text-secondary);padding:4px 8px;font-family:var(--font-ui);font-size:12px;outline:none;cursor:pointer;transition:border-color .15s}
+.hint-bar select:focus{border-color:var(--accent-blue)}
+.hint-count{font-size:11px;color:var(--text-muted)}
+.hint-count b{color:var(--accent-amber)}
 
-/* ── Suggestion banner ── */
-.suggest-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 12px;
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-border);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.suggest-banner b { color: var(--accent-amber); }
-.suggest-accept-btn {
-  margin-left: auto;
-  padding: 4px 12px;
-  background: var(--accent-amber);
-  border: none;
-  border-radius: var(--radius-sm);
-  color: #1a1000;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  margin-top: 0;
-}
-.suggest-accept-btn:hover { opacity: .85; background: var(--accent-amber); color: #1a1000; border-color: transparent; }
+.suggest-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-md);margin-bottom:10px;font-size:12px;color:var(--text-secondary)}
+.suggest-banner b{color:var(--accent-amber)}
+.suggest-accept-btn{margin-left:auto;padding:4px 12px;background:var(--accent-amber);border:none;border-radius:var(--radius-sm);color:#1a1000;font-family:var(--font-ui);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:0}
+.suggest-accept-btn:hover{opacity:.85;background:var(--accent-amber);color:#1a1000;border-color:transparent}
 
-/* ── Hint legend ── */
-.hint-legend {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.hint-leg-item { display: flex; align-items: center; gap: 5px; }
+.hint-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:11px;color:var(--text-muted)}
+.hint-leg-item{display:flex;align-items:center;gap:5px}
 
-/* ── Toolbar ── */
-.grp-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.grp-toolbar span { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
-.grp-btn {
-  padding: 5px 12px;
-  background: var(--bg-active);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-family: var(--font-ui);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-  margin-top: 0;
-}
-.grp-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-accent); }
-.grp-btn.primary { background: var(--blue-bg); border-color: var(--blue-border); color: var(--accent-blue); }
-.grp-btn.primary:hover { background: rgba(91,142,245,.14); color: #7ba8f7; }
+.grp-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.grp-toolbar span{font-size:11px;color:var(--text-muted);margin-left:4px}
+.grp-btn{padding:5px 12px;background:var(--bg-active);border:1px solid var(--border-strong);border-radius:var(--radius-md);color:var(--text-secondary);font-family:var(--font-ui);font-size:11px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;margin-top:0}
+.grp-btn:hover{background:var(--bg-hover);color:var(--text-primary);border-color:var(--border-accent)}
+.grp-btn.primary{background:var(--blue-bg);border-color:var(--blue-border);color:var(--accent-blue)}
+.grp-btn.primary:hover{background:rgba(91,142,245,.14);color:#7ba8f7}
 
-/* ── Legend ── */
-.grp-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; min-height: 16px; }
-.grp-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
-.grp-leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.grp-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;min-height:16px}
+.grp-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)}
+.grp-leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
-/* ── Table ── */
-#fill-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
-#fill-table thead th {
-  font-size: 10px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--text-muted); text-align: left; padding: 6px 8px;
-  border-bottom: 1px solid var(--border-default); white-space: nowrap; background: var(--bg-elevated);
-}
-#fill-table tbody tr { cursor: pointer; transition: background .1s; }
-#fill-table tbody tr:hover td { filter: brightness(1.12); }
-#fill-table tbody td {
-  padding: 6px 8px; border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary); white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; vertical-align: middle;
-}
-.fill-bar-cell { width: 3px !important; padding: 0 !important; border-bottom: none !important; }
+#fill-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
+#fill-table thead th{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border-default);white-space:nowrap;background:var(--bg-elevated)}
+#fill-table tbody tr{cursor:pointer;transition:background .1s}
+#fill-table tbody tr:hover td{filter:brightness(1.12)}
+#fill-table tbody td{padding:6px 8px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.fill-bar-cell{width:3px!important;padding:0!important;border-bottom:none!important}
+.suggest-row{outline:1px dashed rgba(232,169,74,.30);outline-offset:-1px}
+.grp-pill{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px}
+.grp-ungrouped{display:inline-block;font-size:10px;padding:1px 7px;border-radius:8px;background:var(--bg-active);color:var(--text-muted);border:1px solid var(--border-strong)}
+.ts-wrap{display:inline-flex;align-items:center;gap:4px;font-size:11px}
+.ts-dot-exact{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.ts-dot-prox{width:5px;height:5px;border-radius:50%;flex-shrink:0;display:inline-block;opacity:.6}
+.fill-pnl-pos{color:var(--accent-green)!important;font-family:var(--font-mono);font-weight:500}
+.fill-pnl-neg{color:var(--accent-red)!important;font-family:var(--font-mono);font-weight:500}
 
-/* Suggested row — dashed amber outline */
-.suggest-row { outline: 1px dashed rgba(232,169,74,.30); outline-offset: -1px; }
-
-/* ── Pills ── */
-.grp-pill { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; }
-.grp-ungrouped {
-  display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 8px;
-  background: var(--bg-active); color: var(--text-muted); border: 1px solid var(--border-strong);
-}
-
-/* ── Timestamp dots ── */
-.ts-wrap { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; }
-.ts-dot-exact { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.ts-dot-prox  { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; display: inline-block; opacity: .6; }
-
-/* ── P&L ── */
-.fill-pnl-pos { color: var(--accent-green) !important; font-family: var(--font-mono); font-weight: 500; }
-.fill-pnl-neg { color: var(--accent-red)   !important; font-family: var(--font-mono); font-weight: 500; }
-
-/* ── Summary ── */
-.grp-summary {
-  margin-top: 12px; padding: 10px 14px; background: var(--bg-elevated);
-  border-radius: var(--radius-lg); border: 1px solid var(--border-default);
-  font-size: 11px; min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-}
-.grp-sum-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 8px; font-size: 11px; }
-
-/* ── Import row ── */
-.grp-import-row { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
-.grp-import-btn {
-  padding: 6px 18px; background: var(--accent-blue); border: none; border-radius: var(--radius-md);
-  color: #fff; font-family: var(--font-ui); font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: opacity .15s; margin-top: 0;
-}
-.grp-import-btn:hover { opacity: .85; background: var(--accent-blue); color: #fff; border-color: transparent; }
-.grp-skip-note { font-size: 11px; color: var(--text-muted); }
+/* Import table */
+.import-table-wrap{margin-top:16px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden}
+.import-table-label{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);padding:10px 14px 8px;border-bottom:1px solid var(--border-strong);background:var(--bg-elevated)}
+#import-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+#import-table thead th{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border-default);background:var(--bg-elevated);white-space:nowrap}
+#import-table tbody td{padding:6px 10px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary);vertical-align:middle;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#import-table tbody tr:last-child td{border-bottom:none}
+#import-table tbody tr:hover td{background:var(--bg-hover)}
+#import-table tbody tr.excluded td{opacity:.35}
+.import-type-pill{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px}
+.import-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border-strong);background:var(--bg-elevated)}
+.grp-import-btn{padding:6px 18px;background:var(--accent-blue);border:none;border-radius:var(--radius-md);color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s;margin-top:0}
+.grp-import-btn:hover{opacity:.85}
+.grp-import-btn:disabled{opacity:.4;cursor:not-allowed}
+.import-skip-note{font-size:11px;color:var(--accent-amber)}
+.import-fill-count{font-size:11px;color:var(--text-muted);margin-left:auto}
+.needs-group-note{font-size:11px;color:var(--accent-amber);display:flex;align-items:center;gap:5px}
 </style>
 
 <script>
-/* ── Palette ── */
-const PALETTE = [
-  { bar:'#5b8ef5', bg:'rgba(91,142,245,.12)',  text:'#7ba8f7' },
-  { bar:'#34c38f', bg:'rgba(52,195,143,.10)',   text:'#4dd4a0' },
-  { bar:'#e8a94a', bg:'rgba(232,169,74,.10)',   text:'#edbc6e' },
-  { bar:'#c97be8', bg:'rgba(180,100,220,.10)',  text:'#d49eee' },
-  { bar:'#e55353', bg:'rgba(229,83,83,.10)',    text:'#ea7777' },
-  { bar:'#38c9e0', bg:'rgba(56,201,224,.10)',   text:'#5dd6e8' },
-  { bar:'#f0758a', bg:'rgba(240,117,138,.10)',  text:'#f492a3' },
-  { bar:'#a0c878', bg:'rgba(145,195,100,.10)',  text:'#b8d896' },
+const PALETTE=[
+  {bar:'#5b8ef5',bg:'rgba(91,142,245,.12)',text:'#7ba8f7'},
+  {bar:'#34c38f',bg:'rgba(52,195,143,.10)',text:'#4dd4a0'},
+  {bar:'#e8a94a',bg:'rgba(232,169,74,.10)',text:'#edbc6e'},
+  {bar:'#c97be8',bg:'rgba(180,100,220,.10)',text:'#d49eee'},
+  {bar:'#e55353',bg:'rgba(229,83,83,.10)',text:'#ea7777'},
+  {bar:'#38c9e0',bg:'rgba(56,201,224,.10)',text:'#5dd6e8'},
+  {bar:'#f0758a',bg:'rgba(240,117,138,.10)',text:'#f492a3'},
+  {bar:'#a0c878',bg:'rgba(145,195,100,.10)',text:'#b8d896'},
 ];
+const HINT_COLORS=['#e8a94a','#34c38f','#c97be8','#38c9e0','#f0758a','#a0c878'];
 
-const HINT_COLORS = ['#e8a94a','#34c38f','#c97be8','#38c9e0','#f0758a','#a0c878'];
+let allFills=[];
+let nextGroupId=0;
+let usedGroups=new Set();
+let hintClusters=[];
+let excludedFromImport=new Set();
 
-/* ── State ── */
-let allFills    = [];
-let nextGroupId = 0;
-let usedGroups  = new Set();
-let hintClusters = [];
+function palLabel(gid){return'Trade '+([...usedGroups].sort((a,b)=>a-b).indexOf(gid)+1)}
 
-function palLabel(gid) {
-  return 'Trade ' + ([...usedGroups].sort((a,b) => a-b).indexOf(gid) + 1);
-}
-
-function parseTs(str) {
-  if (!str) return 0;
-  str = str.split('.')[0].trim(); // strip microseconds
-  if (str[4] === '-') {
-    // pandas ISO format: YYYY-MM-DD HH:MM:SS
-    return new Date(str.replace(' ', 'T')).getTime();
-  }
-  // original CSV format: MM/DD/YYYY HH:MM:SS
-  const [d, t] = str.split(' ');
-  const [mo, dy, yr] = d.split('/');
+function parseTs(str){
+  if(!str)return 0;
+  str=str.split('.')[0].trim();
+  if(str[4]==='-')return new Date(str.replace(' ','T')).getTime();
+  const[d,t]=str.split(' ');const[mo,dy,yr]=d.split('/');
   return new Date(`${yr}-${mo}-${dy}T${t}`).getTime();
 }
 
 /* ── Dropzone ── */
-const dropzone  = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-const msgDiv    = document.getElementById('message');
-const loader    = document.getElementById('loader');
-const loaderTxt = document.getElementById('loader-text');
-let selectedFile = null;
+const dropzone=document.getElementById('dropzone');
+const fileInput=document.getElementById('fileInput');
+const msgDiv=document.getElementById('message');
+const loader=document.getElementById('loader');
+const loaderTxt=document.getElementById('loader-text');
+let selectedFile=null;
 
-function showLoader(t) { loaderTxt.innerText = t; loader.classList.remove('hidden'); }
-function hideLoader()  { loader.classList.add('hidden'); }
+function showLoader(t){loaderTxt.innerText=t;loader.classList.remove('hidden')}
+function hideLoader(){loader.classList.add('hidden')}
 
-dropzone.onclick = () => fileInput.click();
-fileInput.onchange = e => {
-  selectedFile = e.target.files[0];
-  dropzone.innerHTML = 'Selected: ' + selectedFile.name;
-  dropzone.classList.add('dropped');
-};
-dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
-dropzone.ondragleave = () => dropzone.classList.remove('dragover');
-dropzone.ondrop = e => {
-  e.preventDefault();
-  dropzone.classList.remove('dragover');
-  dropzone.classList.add('dropped');
-  selectedFile = e.dataTransfer.files[0];
-  dropzone.innerHTML = 'Dropped: ' + selectedFile.name;
-};
+dropzone.onclick=()=>fileInput.click();
+fileInput.onchange=e=>{selectedFile=e.target.files[0];dropzone.innerHTML='Selected: '+selectedFile.name;dropzone.classList.add('dropped')};
+dropzone.ondragover=e=>{e.preventDefault();dropzone.classList.add('dragover')};
+dropzone.ondragleave=()=>dropzone.classList.remove('dragover');
+dropzone.ondrop=e=>{e.preventDefault();dropzone.classList.remove('dragover');dropzone.classList.add('dropped');selectedFile=e.dataTransfer.files[0];dropzone.innerHTML='Dropped: '+selectedFile.name};
 
-/* ── Upload ── */
-function uploadFile() {
-  msgDiv.innerHTML = '';
-  msgDiv.className = '';
-  if (!selectedFile) { msgDiv.innerHTML = 'No file selected'; msgDiv.className = 'error'; return; }
-  const accountId = document.getElementById('accountSelect')?.value;
-  if (!accountId) { msgDiv.innerHTML = 'Select an account first'; msgDiv.className = 'error'; return; }
-
+function uploadFile(){
+  msgDiv.innerHTML='';msgDiv.className='';
+  if(!selectedFile){msgDiv.innerHTML='No file selected';msgDiv.className='error';return}
+  const accountId=document.getElementById('accountSelect')?.value;
+  if(!accountId){msgDiv.innerHTML='Select an account first';msgDiv.className='error';return}
   showLoader('Uploading and parsing CSV...');
-  const formData = new FormData();
-  formData.append('file', selectedFile);
-  formData.append('account_id', accountId);
-  formData.append('chart_timeframe', document.getElementById('chartTimeframe')?.value || '5m');
-
-  fetch("{{ url_for('upload_file') }}", { method: 'POST', body: formData })
-    .then(r => r.json())
-    .then(data => {
+  const formData=new FormData();
+  formData.append('file',selectedFile);
+  formData.append('account_id',accountId);
+  formData.append('chart_timeframe',document.getElementById('chartTimeframe')?.value||'5m');
+  fetch("{{ url_for('upload_file') }}",{method:'POST',body:formData})
+    .then(r=>r.json())
+    .then(data=>{
       hideLoader();
-      if (data.error) { msgDiv.innerHTML = data.error; msgDiv.className = 'error'; return; }
-      msgDiv.innerHTML = '✅ ' + data.rows.length + ' fills loaded — group them into trades below';
-      msgDiv.className = 'success';
+      if(data.error){msgDiv.innerHTML=data.error;msgDiv.className='error';return}
+      msgDiv.innerHTML='✅ '+data.rows.length+' fills loaded — group them into trades below';
+      msgDiv.className='success';
       initFills(data.rows);
     })
-    .catch(() => { hideLoader(); msgDiv.innerHTML = 'Upload failed'; msgDiv.className = 'error'; });
+    .catch(()=>{hideLoader();msgDiv.innerHTML='Upload failed';msgDiv.className='error'});
 }
 
-/* ── Init fills ── */
-function initFills(rows) {
-  allFills = rows.map((r, i) => ({
-    ...r,
-    _idx:      i,
-    _group:    null,
-    _sel:      false,
-    _boughtMs: parseTs(r.boughtTimestamp),
-    _soldMs:   parseTs(r.soldTimestamp),
-  }));
-  nextGroupId = 0;
-  usedGroups  = new Set();
-  hintClusters = [];
-  excludedFromImport = new Set();
-  buildShell();
-  recompute();
+function initFills(rows){
+  allFills=rows.map((r,i)=>({...r,_idx:i,_group:null,_sel:false,
+    _boughtMs:parseTs(r.boughtTimestamp),_soldMs:parseTs(r.soldTimestamp)}));
+  nextGroupId=0;usedGroups=new Set();hintClusters=[];excludedFromImport=new Set();
+  buildShell();recompute();
 }
 
-/* ── Build static shell (toolbar + table skeleton) ── */
-function buildShell() {
-  document.getElementById('table-container').innerHTML = `
+function buildShell(){
+  document.getElementById('table-container').innerHTML=`
     <div class="hint-bar" id="hintBar">
       <span class="hint-bar-label">Grouping hints</span>
       <select id="windowSelect" onchange="recompute()">
@@ -371,11 +230,11 @@ function buildShell() {
           <th style="width:28px"></th>
           <th style="width:76px">Trade</th>
           <th style="width:56px">Symbol</th>
+          <th style="width:54px">Side</th>
           <th style="width:32px;text-align:center">Qty</th>
           <th style="width:74px">Buy px</th>
           <th style="width:74px">Sell px</th>
           <th style="width:66px">P&amp;L</th>
-          <th style="width:54px">Side</th>
           <th style="width:140px">Bought</th>
           <th style="width:140px">Sold</th>
           <th style="width:78px">Duration</th>
@@ -384,417 +243,350 @@ function buildShell() {
       </table>
     </div>
 
-    <div class="grp-summary" id="grpSummary"></div>
-    <div class="grp-import-row" id="grpImportRow"></div>
-  `;
-}
-
-/* ── Recompute hint clusters then re-render ── */
-function getSide(f) {
-  // boughtTimestamp < soldTimestamp → long, otherwise short
-  return f._boughtMs < f._soldMs ? "long" : "short";
-}
-
-function getDate(ms) {
-  return new Date(ms).toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-function recompute() {
-  hintClusters = [];
-  const val = document.getElementById('windowSelect')?.value;
-  if (!val || val === 'off') { renderAll(); return; }
-
-  const windowMs  = val === 'exact' ? 0 : parseInt(val) * 60000;
-  const exactOnly = val === 'exact';
-
-  // Only consider ungrouped fills
-  const ungrouped = allFills.filter(f => f._group === null);
-
-  // Pre-compute side and date per fill
-  ungrouped.forEach(f => {
-    f._side = getSide(f);
-    f._date = getDate(f._boughtMs); // use entry timestamp for date
-  });
-
-  // Build adjacency: which fills directly match each other
-  function directlyMatch(a, b) {
-    // Rule 1: same symbol
-    if (a.symbol !== b.symbol) return false;
-
-    // Rule 2: same calendar date
-    if (a._date !== b._date) return false;
-
-    // Rule 3: same side
-    if (a._side !== b._side) return false;
-
-    // Rule 5: no re-entry after first exit
-    // If either fill's entry is after the other's exit, they're separate trades
-    const aEntryMs = a._side === 'long' ? a._boughtMs : a._soldMs;
-    const aExitMs  = a._side === 'long' ? a._soldMs   : a._boughtMs;
-    const bEntryMs = b._side === 'long' ? b._boughtMs : b._soldMs;
-    const bExitMs  = b._side === 'long' ? b._soldMs   : b._boughtMs;
-
-    // b entered after a exited → different trade
-    if (bEntryMs > aExitMs) return false;
-    // a entered after b exited → different trade
-    if (aEntryMs > bExitMs) return false;
-
-    // Rule 4 (proximity / exact match check)
-    const exactSold   = a._soldMs   === b._soldMs;
-    const exactBought = a._boughtMs === b._boughtMs;
-    if (exactOnly) return exactSold || exactBought;
-
-    return exactSold || exactBought
-      || Math.abs(a._soldMs   - b._soldMs)   <= windowMs
-      || Math.abs(a._boughtMs - b._boughtMs) <= windowMs;
-  }
-
-  // Rule 4: transitive closure via union-find
-  const parent = {};
-  ungrouped.forEach(f => parent[f._idx] = f._idx);
-
-  function find(x) {
-    if (parent[x] !== x) parent[x] = find(parent[x]);
-    return parent[x];
-  }
-
-  function union(x, y) {
-    const px = find(x), py = find(y);
-    if (px !== py) parent[px] = py;
-  }
-
-  // Check every pair and union matches
-  for (let i = 0; i < ungrouped.length; i++) {
-    for (let j = i + 1; j < ungrouped.length; j++) {
-      if (directlyMatch(ungrouped[i], ungrouped[j])) {
-        union(ungrouped[i]._idx, ungrouped[j]._idx);
-      }
-    }
-  }
-
-  // Collect groups from union-find — only groups with 2+ fills become hints
-  const groups = {};
-  ungrouped.forEach(f => {
-    const root = find(f._idx);
-    (groups[root] = groups[root] || []).push(f._idx);
-  });
-
-  let cid = 0;
-  Object.values(groups).forEach(indices => {
-    if (indices.length < 2) return; // single fill = no hint needed
-    hintClusters.push({
-      id:      cid,
-      indices: indices,
-      color:   HINT_COLORS[cid % HINT_COLORS.length],
-    });
-    cid++;
-  });
-
-  renderAll();
-}
-
-function clusterOf(idx) { return hintClusters.find(c => c.indices.includes(idx)) || null; }
-
-/* ── Render all ── */
-function renderAll() {
-  renderBanner();
-  renderHintLegend();
-  renderRows();
-  renderLegend();
-  renderSummary();
-  const sc = document.getElementById('selCount');
-  if (sc) sc.textContent = allFills.filter(f => f._sel).length + ' fills selected';
-}
-
-function renderBanner() {
-  const el  = document.getElementById('suggestBanner');
-  const cnt = document.getElementById('hintCount');
-  const val = document.getElementById('windowSelect')?.value;
-  if (!el) return;
-  if (val === 'off' || !hintClusters.length) {
-    el.innerHTML = '';
-    if (cnt) cnt.innerHTML = val === 'off' ? '<span style="color:var(--text-faint)">hints off</span>' : '';
-    return;
-  }
-  if (cnt) cnt.innerHTML = `<b>${hintClusters.length}</b> suggestion${hintClusters.length > 1 ? 's' : ''}`;
-  el.innerHTML = `
-    <div class="suggest-banner">
-      <i class="ti ti-bulb" aria-hidden="true" style="color:var(--accent-amber);font-size:15px;flex-shrink:0"></i>
-      <span><b>${hintClusters.length} suggested group${hintClusters.length > 1 ? 's' : ''}</b> detected — dashed rows are candidates. Review then accept, or group manually.</span>
-      <button class="suggest-accept-btn" onclick="acceptAll()">Accept all</button>
+    <div class="import-table-wrap" id="importTableWrap" style="display:none">
+      <div class="import-table-label">Trades to import</div>
+      <div style="overflow-x:auto">
+        <table id="import-table">
+          <thead><tr>
+            <th style="width:36px"><input type="checkbox" id="importChkAll" onchange="toggleImportAll(this)" style="accent-color:var(--accent-blue)"></th>
+            <th style="width:80px">Type</th>
+            <th style="width:60px">Symbol</th>
+            <th style="width:54px">Side</th>
+            <th style="width:44px;text-align:center">Fills</th>
+            <th style="width:44px;text-align:center">Qty</th>
+            <th style="width:130px">Entry time</th>
+            <th style="width:130px">Exit time</th>
+            <th style="width:80px">P&amp;L</th>
+          </tr></thead>
+          <tbody id="importTbody"></tbody>
+        </table>
+      </div>
+      <div class="import-footer">
+        <button class="grp-import-btn" id="importBtn" onclick="confirmImport()">Import</button>
+        <span class="import-skip-note" id="importSkipNote"></span>
+        <span class="import-fill-count" id="importFillCount"></span>
+      </div>
     </div>`;
 }
 
-function renderHintLegend() {
-  const el  = document.getElementById('hintLegend');
-  const val = document.getElementById('windowSelect')?.value;
-  if (!el) return;
-  if (val === 'off' || !hintClusters.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <span class="hint-leg-item">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--accent-amber);display:inline-block"></span>
-      Exact timestamp match
-    </span>
-    <span class="hint-leg-item">
-      <span style="width:5px;height:5px;border-radius:50%;background:var(--accent-amber);opacity:.55;display:inline-block"></span>
-      Within window
-    </span>
-    <span class="hint-leg-item">
-      <span style="display:inline-block;width:14px;height:1px;background:repeating-linear-gradient(90deg,rgba(232,169,74,.5) 0 4px,transparent 4px 7px);vertical-align:middle"></span>
-      Suggested group
-    </span>`;
+/* ── Hint clustering (improved rules) ── */
+function getSide(f){return f._boughtMs<f._soldMs?'long':'short'}
+function getDate(ms){return new Date(ms).toISOString().slice(0,10)}
+
+function recompute(){
+  hintClusters=[];
+  const val=document.getElementById('windowSelect')?.value;
+  if(!val||val==='off'){renderAll();return}
+  const windowMs=val==='exact'?0:parseInt(val)*60000;
+  const exactOnly=val==='exact';
+  const ungrouped=allFills.filter(f=>f._group===null);
+  ungrouped.forEach(f=>{f._side=getSide(f);f._date=getDate(f._boughtMs)});
+
+  function directlyMatch(a,b){
+    if(a.symbol!==b.symbol)return false;
+    if(a._date!==b._date)return false;
+    if(a._side!==b._side)return false;
+    const aEntryMs=a._side==='long'?a._boughtMs:a._soldMs;
+    const aExitMs=a._side==='long'?a._soldMs:a._boughtMs;
+    const bEntryMs=b._side==='long'?b._boughtMs:b._soldMs;
+    const bExitMs=b._side==='long'?b._soldMs:b._boughtMs;
+    if(bEntryMs>aExitMs)return false;
+    if(aEntryMs>bExitMs)return false;
+    const exactSold=a._soldMs===b._soldMs;
+    const exactBought=a._boughtMs===b._boughtMs;
+    if(exactOnly)return exactSold||exactBought;
+    return exactSold||exactBought
+      ||Math.abs(a._soldMs-b._soldMs)<=windowMs
+      ||Math.abs(a._boughtMs-b._boughtMs)<=windowMs;
+  }
+
+  const parent={};
+  ungrouped.forEach(f=>parent[f._idx]=f._idx);
+  function find(x){if(parent[x]!==x)parent[x]=find(parent[x]);return parent[x]}
+  function union(x,y){const px=find(x),py=find(y);if(px!==py)parent[px]=py}
+
+  for(let i=0;i<ungrouped.length;i++)
+    for(let j=i+1;j<ungrouped.length;j++)
+      if(directlyMatch(ungrouped[i],ungrouped[j]))union(ungrouped[i]._idx,ungrouped[j]._idx);
+
+  const groups={};
+  ungrouped.forEach(f=>{const root=find(f._idx);(groups[root]=groups[root]||[]).push(f._idx)});
+
+  let cid=0;
+  Object.values(groups).forEach(indices=>{
+    if(indices.length<2)return;
+    hintClusters.push({id:cid,indices,color:HINT_COLORS[cid%HINT_COLORS.length]});
+    cid++;
+  });
+  renderAll();
 }
 
-function renderRows() {
-  const tbody = document.getElementById('fillTbody');
-  if (!tbody) return;
-  const val = document.getElementById('windowSelect')?.value;
-  const hintsOn = val !== 'off';
+function clusterOf(idx){return hintClusters.find(c=>c.indices.includes(idx))||null}
 
-  let h = '';
-  allFills.forEach(f => {
-    const g   = f._group;
-    const pal = g !== null ? PALETTE[g % PALETTE.length] : null;
-    const cl  = hintsOn && g === null ? clusterOf(f._idx) : null;
+function renderAll(){
+  renderBanner();renderHintLegend();renderRows();renderLegend();renderImportTable();
+  const sc=document.getElementById('selCount');
+  if(sc)sc.textContent=allFills.filter(f=>f._sel).length+' fills selected';
+}
 
-    const rowBg  = f._sel ? 'background:rgba(91,142,245,.10)' : g !== null ? `background:${pal.bg}` : '';
-    const barClr = pal ? pal.bar : cl ? cl.color : 'transparent';
+function renderBanner(){
+  const el=document.getElementById('suggestBanner');
+  const cnt=document.getElementById('hintCount');
+  const val=document.getElementById('windowSelect')?.value;
+  if(!el)return;
+  if(val==='off'||!hintClusters.length){
+    el.innerHTML='';
+    if(cnt)cnt.innerHTML=val==='off'?'<span style="color:var(--text-faint)">hints off</span>':'';
+    return;
+  }
+  if(cnt)cnt.innerHTML=`<b>${hintClusters.length}</b> suggestion${hintClusters.length>1?'s':''}`;
+  el.innerHTML=`<div class="suggest-banner">
+    <span><b>${hintClusters.length} suggested group${hintClusters.length>1?'s':''}</b> detected — dashed rows are candidates. Review then accept, or group manually.</span>
+    <button class="suggest-accept-btn" onclick="acceptAll()">Accept all</button>
+  </div>`;
+}
 
-    const badge = g !== null
-      ? `<span class="grp-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
-      : `<span class="grp-ungrouped">ungrouped</span>`;
+function renderHintLegend(){
+  const el=document.getElementById('hintLegend');
+  const val=document.getElementById('windowSelect')?.value;
+  if(!el)return;
+  if(val==='off'||!hintClusters.length){el.innerHTML='';return}
+  el.innerHTML=`
+    <span class="hint-leg-item"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent-amber);display:inline-block"></span>Exact timestamp match</span>
+    <span class="hint-leg-item"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent-amber);opacity:.55;display:inline-block"></span>Within window</span>
+    <span class="hint-leg-item"><span style="display:inline-block;width:14px;height:1px;background:repeating-linear-gradient(90deg,rgba(232,169,74,.5) 0 4px,transparent 4px 7px);vertical-align:middle"></span>Suggested group</span>`;
+}
 
-    const pnl    = parseFloat(f.pnl) || 0;
-    const pnlCls = pnl > 0 ? 'fill-pnl-pos' : pnl < 0 ? 'fill-pnl-neg' : '';
-    const pnlStr = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
-    const side    = f._boughtMs < f._soldMs ? 'long' : 'short';
-    const sideCls = side === 'long' ? 'side-long' : 'side-short';
-
-    /* timestamp dots */
-    function tsDot(isExactMatch) {
-      if (!cl) return '';
-      return isExactMatch
-        ? `<span class="ts-dot-exact" style="background:${cl.color}" title="Exact timestamp match"></span>`
-        : `<span class="ts-dot-prox"  style="background:${cl.color}" title="Within proximity window"></span>`;
+function renderRows(){
+  const tbody=document.getElementById('fillTbody');if(!tbody)return;
+  const val=document.getElementById('windowSelect')?.value;
+  const hintsOn=val!=='off';
+  let h='';
+  allFills.forEach(f=>{
+    const g=f._group,pal=g!==null?PALETTE[g%PALETTE.length]:null;
+    const cl=hintsOn&&g===null?clusterOf(f._idx):null;
+    const rowBg=f._sel?'background:rgba(91,142,245,.10)':g!==null?`background:${pal.bg}`:'';
+    const barClr=pal?pal.bar:cl?cl.color:'transparent';
+    const badge=g!==null
+      ?`<span class="grp-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
+      :`<span class="grp-ungrouped">ungrouped</span>`;
+    const pnl=parseFloat(f.pnl)||0;
+    const pnlCls=pnl>0?'fill-pnl-pos':pnl<0?'fill-pnl-neg':'';
+    const pnlStr=(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2);
+    const side=f._boughtMs<f._soldMs?'long':'short';
+    const sideCls=side==='long'?'side-long':'side-short';
+    function tsDot(isExact){
+      if(!cl)return'';
+      return isExact
+        ?`<span class="ts-dot-exact" style="background:${cl.color}"></span>`
+        :`<span class="ts-dot-prox" style="background:${cl.color}"></span>`;
     }
-
-    const boughtExact = hintsOn && g === null && allFills.some(g2 => g2._idx !== f._idx && g2._boughtMs === f._boughtMs && g2._group === null);
-    const soldExact   = hintsOn && g === null && allFills.some(g2 => g2._idx !== f._idx && g2._soldMs   === f._soldMs   && g2._group === null);
-
-    const boughtHtml = `<span class="ts-wrap">${tsDot(boughtExact)}${(f.boughtTimestamp || '').split('.')[0]}</span>`;
-    const soldHtml   = `<span class="ts-wrap">${tsDot(soldExact)}${(f.soldTimestamp   || '').split('.')[0]}</span>`;
-
-    h += `<tr data-idx="${f._idx}" onclick="rowClick(${f._idx}, event)" style="${rowBg}" class="${cl ? 'suggest-row' : ''}">
+    const boughtExact=hintsOn&&g===null&&allFills.some(g2=>g2._idx!==f._idx&&g2._boughtMs===f._boughtMs&&g2._group===null);
+    const soldExact=hintsOn&&g===null&&allFills.some(g2=>g2._idx!==f._idx&&g2._soldMs===f._soldMs&&g2._group===null);
+    const boughtHtml=`<span class="ts-wrap">${tsDot(boughtExact)}${(f.boughtTimestamp||'').split('.')[0]}</span>`;
+    const soldHtml=`<span class="ts-wrap">${tsDot(soldExact)}${(f.soldTimestamp||'').split('.')[0]}</span>`;
+    h+=`<tr data-idx="${f._idx}" onclick="rowClick(${f._idx},event)" style="${rowBg}" class="${cl?'suggest-row':''}">
       <td class="fill-bar-cell" style="background:${barClr}"></td>
-      <td><input type="checkbox" ${f._sel ? 'checked' : ''} onclick="event.stopPropagation()" onchange="chkRow(${f._idx}, this)" style="accent-color:var(--accent-blue)"></td>
+      <td><input type="checkbox" ${f._sel?'checked':''} onclick="event.stopPropagation()" onchange="chkRow(${f._idx},this)" style="accent-color:var(--accent-blue)"></td>
       <td>${badge}</td>
-      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-primary)">${f.symbol || ''}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-primary)">${f.symbol||''}</td>
+      <td class="${sideCls}" style="font-size:11px;font-weight:500">${side}</td>
       <td style="text-align:center;color:var(--text-primary)">${f.qty}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.buyPrice).toFixed(2)}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.sellPrice).toFixed(2)}</td>
       <td class="${pnlCls}">${pnlStr}</td>
-      <td class="${sideCls}" style="font-size:11px;font-weight:500">${side}</td>
       <td>${boughtHtml}</td>
       <td>${soldHtml}</td>
-      <td style="color:var(--text-muted)">${f.duration || ''}</td>
+      <td style="color:var(--text-muted)">${f.duration||''}</td>
     </tr>`;
   });
-  tbody.innerHTML = h;
+  tbody.innerHTML=h;
 }
 
-function renderLegend() {
-  const el = document.getElementById('grpLegend');
-  if (!el) return;
-  const active = [...usedGroups].sort((a,b) => a-b);
-  el.innerHTML = active.map(g => {
-    const pal = PALETTE[g % PALETTE.length];
-    const cnt = allFills.filter(f => f._group === g).length;
-    return `<span class="grp-leg-item"><span class="grp-leg-dot" style="background:${pal.bar}"></span>${palLabel(g)} — ${cnt} fill${cnt > 1 ? 's' : ''}</span>`;
+function renderLegend(){
+  const el=document.getElementById('grpLegend');if(!el)return;
+  const active=[...usedGroups].sort((a,b)=>a-b);
+  el.innerHTML=active.map(g=>{
+    const pal=PALETTE[g%PALETTE.length],cnt=allFills.filter(f=>f._group===g).length;
+    return`<span class="grp-leg-item"><span class="grp-leg-dot" style="background:${pal.bar}"></span>${palLabel(g)} — ${cnt} fill${cnt>1?'s':''}</span>`;
   }).join('');
 }
 
-function toggleImport(key, checked) {
-  if (checked) excludedFromImport.delete(key);
-  else         excludedFromImport.add(key);
-  renderSummary();
+/* ── Import table ── */
+function fmtTs(ms){
+  if(!ms)return'—';
+  const d=new Date(ms);
+  return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
-function renderSummary() {
-  const sumEl  = document.getElementById('grpSummary');
-  const impRow = document.getElementById('grpImportRow');
-  if (!sumEl) return;
+function buildImportRows(){
+  const active=[...usedGroups].sort((a,b)=>a-b);
+  const soloFills=allFills.filter(f=>f._group===null&&clusterOf(f._idx)===null);
+  const rows=[];
 
-  const active      = [...usedGroups].sort((a,b) => a-b);
-  const needsGroup  = allFills.filter(f => f._group === null && clusterOf(f._idx) !== null);
-  const soloFills   = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
+  active.forEach(gid=>{
+    const gf=allFills.filter(f=>f._group===gid);
+    const pal=PALETTE[gid%PALETTE.length];
+    const side=gf[0]._boughtMs<gf[0]._soldMs?'long':'short';
+    const qty=gf.reduce((s,f)=>s+f.qty,0);
+    const pnl=gf.reduce((s,f)=>s+(parseFloat(f.pnl)||0),0);
+    const entryMs=side==='long'?Math.min(...gf.map(f=>f._boughtMs)):Math.min(...gf.map(f=>f._soldMs));
+    const exitMs=side==='long'?Math.max(...gf.map(f=>f._soldMs)):Math.max(...gf.map(f=>f._boughtMs));
+    rows.push({key:`group_${gid}`,label:palLabel(gid),pillBg:pal.bg,pillText:pal.text,
+      symbol:gf[0].symbol||'',side,fills:gf.length,qty,pnl,entryMs,exitMs,isSolo:false});
+  });
 
-  if (!active.length && !soloFills.length && !needsGroup.length) {
-    sumEl.innerHTML  = `<span style="color:var(--text-muted)">Select fills and click "Group into trade" to build your trades.</span>`;
-    impRow.innerHTML = '';
-    return;
+  soloFills.forEach(f=>{
+    const side=f._boughtMs<f._soldMs?'long':'short';
+    const entryMs=side==='long'?f._boughtMs:f._soldMs;
+    const exitMs=side==='long'?f._soldMs:f._boughtMs;
+    rows.push({key:`solo_${f._idx}`,label:'Solo',pillBg:'var(--bg-active)',pillText:'var(--text-secondary)',
+      symbol:f.symbol||'',side,fills:1,qty:f.qty,pnl:parseFloat(f.pnl)||0,entryMs,exitMs,isSolo:true});
+  });
+
+  return rows;
+}
+
+function renderImportTable(){
+  const wrap=document.getElementById('importTableWrap');
+  const tbody=document.getElementById('importTbody');
+  const btn=document.getElementById('importBtn');
+  const skipNote=document.getElementById('importSkipNote');
+  const fillCount=document.getElementById('importFillCount');
+  const chkAll=document.getElementById('importChkAll');
+  if(!wrap||!tbody)return;
+
+  const rows=buildImportRows();
+  const needsGroup=allFills.filter(f=>f._group===null&&clusterOf(f._idx)!==null).length;
+
+  if(!rows.length&&!needsGroup){wrap.style.display='none';return}
+  wrap.style.display='';
+
+  let h='';
+  rows.forEach(r=>{
+    const isExcluded=excludedFromImport.has(r.key);
+    const pnl=r.pnl;
+    const pnlCls=pnl>0?'fill-pnl-pos':pnl<0?'fill-pnl-neg':'';
+    const pnlStr=(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2);
+    const sideCls=r.side==='long'?'side-long':'side-short';
+    const borderStyle=r.isSolo?`border:1px solid var(--border-strong)`:'';
+    h+=`<tr data-key="${r.key}" class="${isExcluded?'excluded':''}">
+      <td><input type="checkbox" ${isExcluded?'':'checked'} onchange="toggleImport('${r.key}',this.checked)" style="accent-color:var(--accent-blue)"></td>
+      <td><span class="import-type-pill" style="background:${r.pillBg};color:${r.pillText};${borderStyle}">${r.label}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-primary);font-weight:500">${r.symbol}</td>
+      <td class="${sideCls}" style="font-weight:500">${r.side}</td>
+      <td style="text-align:center;color:var(--text-muted)">${r.fills}</td>
+      <td style="text-align:center">${r.qty}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.entryMs)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.exitMs)}</td>
+      <td class="${pnlCls}">${pnlStr}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=h;
+
+  const ready=rows.filter(r=>!excludedFromImport.has(r.key));
+  const skipped=rows.filter(r=>excludedFromImport.has(r.key));
+  const totalFills=ready.reduce((s,r)=>s+r.fills,0);
+
+  btn.textContent=ready.length?`Import ${ready.length} trade${ready.length>1?'s':''}`:'-';
+  btn.disabled=!ready.length;
+
+  skipNote.textContent=skipped.length?`${skipped.length} trade${skipped.length>1?'s':''} excluded`:'';
+  skipNote.style.display=skipped.length?'':'none';
+
+  let fcParts=[];
+  if(totalFills)fcParts.push(`${totalFills} fill${totalFills!==1?'s':''} total`);
+  if(needsGroup)fcParts.push(`${needsGroup} fill${needsGroup>1?'s':''} still need grouping`);
+  fillCount.textContent=fcParts.join(' · ');
+  fillCount.style.color=needsGroup?'var(--accent-amber)':'var(--text-muted)';
+
+  // Header checkbox state
+  if(chkAll){
+    chkAll.checked=!excludedFromImport.size;
+    chkAll.indeterminate=!!excludedFromImport.size&&excludedFromImport.size<rows.length;
   }
+}
 
-  // Confirmed group pills
-  const groupPills = active.map(g => {
-    const pal     = PALETTE[g % PALETTE.length];
-    const gf      = allFills.filter(f => f._group === g);
-    const qty     = gf.reduce((s, f) => s + f.qty, 0);
-    const pnl     = gf.reduce((s, f) => s + (parseFloat(f.pnl) || 0), 0);
-    const pnlClr  = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
-    const checked = !excludedFromImport.has(`group_${g}`);
-    return `<span class="grp-sum-pill" style="background:${pal.bg};opacity:${checked ? 1 : 0.4}">
-      <input type="checkbox" ${checked ? 'checked' : ''} style="accent-color:var(--accent-blue);cursor:pointer"
-        onchange="toggleImport('group_${g}', this.checked)">
-      <span class="grp-leg-dot" style="background:${pal.bar}"></span>
-      <span style="color:${pal.text};font-weight:500">${palLabel(g)}</span>
-      <span style="color:var(--text-muted)">${gf.length} fill${gf.length>1?'s':''} · qty ${qty} ·</span>
-      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2)}</span>
-    </span>`;
-  }).join('');
+function toggleImport(key,checked){
+  if(checked)excludedFromImport.delete(key);
+  else excludedFromImport.add(key);
+  renderImportTable();
+}
 
-  // Solo fills pills — one per fill so each can be toggled individually
-  const soloPills = soloFills.map((f, i) => {
-    const key     = `solo_${f._idx}`;
-    const checked = !excludedFromImport.has(key);
-    const pnl     = parseFloat(f.pnl) || 0;
-    const pnlClr  = pnl > 0 ? 'var(--accent-green)' : pnl < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
-    return `<span class="grp-sum-pill" style="background:var(--bg-active);border:1px solid var(--border-strong);opacity:${checked ? 1 : 0.4}">
-      <input type="checkbox" ${checked ? 'checked' : ''} style="accent-color:var(--accent-blue);cursor:pointer"
-        onchange="toggleImport('${key}', this.checked)">
-      <span class="grp-leg-dot" style="background:var(--text-muted)"></span>
-      <span style="color:var(--text-secondary);font-weight:500">Solo fill</span>
-      <span style="color:var(--text-muted)">qty ${f.qty} ·</span>
-      <span style="color:${pnlClr};font-family:var(--font-mono)">${(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2)}</span>
-    </span>`;
-  }).join('');
-
-  // Needs-grouping warning
-  const needsPill = needsGroup.length
-    ? `<span style="color:var(--accent-amber);font-size:11px;display:inline-flex;align-items:center;gap:5px">
-        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-amber);display:inline-block"></span>
-        ${needsGroup.length} fill${needsGroup.length>1?'s':''} still need grouping
-       </span>`
-    : '';
-
-  sumEl.innerHTML = groupPills + soloPills + needsPill;
-
-  // Count only what's checked
-  const readyGroups = active.filter(g  => !excludedFromImport.has(`group_${g}`)).length;
-  const readySolos  = soloFills.filter(f => !excludedFromImport.has(`solo_${f._idx}`)).length;
-  const totalTrades = readyGroups + readySolos;
-
-  if (totalTrades > 0) {
-    impRow.innerHTML = `
-      <button class="grp-import-btn" onclick="confirmImport()">
-        Import ${totalTrades} trade${totalTrades > 1 ? 's' : ''}
-      </button>
-      ${needsGroup.length
-        ? `<span class="grp-skip-note" style="color:var(--accent-amber)">${needsGroup.length} fill${needsGroup.length > 1 ? 's' : ''} will be skipped</span>`
-        : ''}`;
-  } else {
-    impRow.innerHTML = '';
-  }
+function toggleImportAll(el){
+  const rows=buildImportRows();
+  rows.forEach(r=>{
+    if(el.checked)excludedFromImport.delete(r.key);
+    else excludedFromImport.add(r.key);
+  });
+  renderImportTable();
 }
 
 /* ── Selection ── */
-function rowClick(idx, e) {
-  if (e.target.type === 'checkbox') return;
-  allFills[idx]._sel = !allFills[idx]._sel;
-  renderAll();
-}
-function chkRow(idx, el) { allFills[idx]._sel = el.checked; renderAll(); }
-function toggleAll(el)   { allFills.forEach(f => f._sel = el.checked); renderAll(); }
-function clearSel() {
-  allFills.forEach(f => f._sel = false);
-  const ca = document.getElementById('chkAll');
-  if (ca) ca.checked = false;
-  renderAll();
-}
+function rowClick(idx,e){if(e.target.type==='checkbox')return;allFills[idx]._sel=!allFills[idx]._sel;renderAll()}
+function chkRow(idx,el){allFills[idx]._sel=el.checked;renderAll()}
+function toggleAll(el){allFills.forEach(f=>f._sel=el.checked);renderAll()}
+function clearSel(){allFills.forEach(f=>f._sel=false);const ca=document.getElementById('chkAll');if(ca)ca.checked=false;renderAll()}
 
 /* ── Grouping ── */
-function groupSelected() {
-  const sel = allFills.filter(f => f._sel);
-  if (!sel.length) return;
-  const existing = [...new Set(sel.filter(f => f._group !== null).map(f => f._group))];
-  const gid = existing.length === 1 ? existing[0] : nextGroupId++;
-  sel.forEach(f => { f._group = gid; f._sel = false; });
+function groupSelected(){
+  const sel=allFills.filter(f=>f._sel);if(!sel.length)return;
+  const existing=[...new Set(sel.filter(f=>f._group!==null).map(f=>f._group))];
+  const gid=existing.length===1?existing[0]:nextGroupId++;
+  sel.forEach(f=>{f._group=gid;f._sel=false});
   usedGroups.add(gid);
-  const ca = document.getElementById('chkAll');
-  if (ca) ca.checked = false;
+  const ca=document.getElementById('chkAll');if(ca)ca.checked=false;
   recompute();
 }
 
-function ungroupSelected() {
-  allFills.filter(f => f._sel).forEach(f => { f._group = null; f._sel = false; });
-  usedGroups = new Set(allFills.filter(f => f._group !== null).map(f => f._group));
+function ungroupSelected(){
+  allFills.filter(f=>f._sel).forEach(f=>{f._group=null;f._sel=false});
+  usedGroups=new Set(allFills.filter(f=>f._group!==null).map(f=>f._group));
   recompute();
 }
 
-/* ── Accept all hint suggestions ── */
-function acceptAll() {
-  hintClusters.forEach(cl => {
-    const ungroupedInCluster = allFills.filter(f => cl.indices.includes(f._idx) && f._group === null);
-    if (!ungroupedInCluster.length) return;
-    const gid = nextGroupId++;
-    ungroupedInCluster.forEach(f => f._group = gid);
+function acceptAll(){
+  hintClusters.forEach(cl=>{
+    const ug=allFills.filter(f=>cl.indices.includes(f._idx)&&f._group===null);
+    if(!ug.length)return;
+    const gid=nextGroupId++;
+    ug.forEach(f=>f._group=gid);
     usedGroups.add(gid);
   });
   recompute();
 }
 
 /* ── Confirm import ── */
-function confirmImport() {
-  const active     = [...usedGroups].sort((a,b) => a-b);
-  const soloFills  = allFills.filter(f => f._group === null && clusterOf(f._idx) === null);
+function confirmImport(){
+  const rows=buildImportRows().filter(r=>!excludedFromImport.has(r.key));
+  if(!rows.length)return;
 
-  const groups = [];
-
-  // Confirmed groups — skip excluded
-  active
-    .filter(gid => !excludedFromImport.has(`group_${gid}`))
-    .forEach(gid => {
-      groups.push({
-        fillIndices: allFills.filter(f => f._group === gid).map(f => f._idx),
-        label:       palLabel(gid),
-      });
-    });
-
-  // Solo fills — skip excluded
-  soloFills
-    .filter(f => !excludedFromImport.has(`solo_${f._idx}`))
-    .forEach(f => {
-      groups.push({
-        fillIndices: [f._idx],
-        label:       'Solo',
-      });
-    });
-
-  if (!groups.length) return;
+  const groups=rows.map(r=>({
+    fillIndices:r.isSolo
+      ?[parseInt(r.key.split('_')[1])]
+      :allFills.filter(f=>f._group===parseInt(r.key.split('_')[1])).map(f=>f._idx),
+    label:r.label,
+  }));
 
   showLoader('Saving trades...');
-  msgDiv.innerHTML = '';
-  msgDiv.className = '';
+  msgDiv.innerHTML='';msgDiv.className='';
 
-  fetch('/confirm_upload', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ groups }),
+  fetch('/confirm_upload',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({groups}),
   })
-    .then(r => r.json())
-    .then(data => {
+    .then(r=>r.json())
+    .then(data=>{
       hideLoader();
-      if (data.error) { msgDiv.innerHTML = data.error; msgDiv.className = 'error'; return; }
-      const warn = data.failed_charts?.length
-        ? ` (${data.failed_charts.length} chart${data.failed_charts.length > 1 ? 's' : ''} failed)`
-        : '';
-      msgDiv.innerHTML = `✅ ${data.inserted} trade${data.inserted !== 1 ? 's' : ''} imported${warn}`;
-      msgDiv.className = 'success';
-      allFills            = [];
-      usedGroups          = new Set();
-      excludedFromImport  = new Set();
-      document.getElementById('table-container').innerHTML = '';
+      if(data.error){msgDiv.innerHTML=data.error;msgDiv.className='error';return}
+      const warn=data.failed_charts?.length?` (${data.failed_charts.length} chart${data.failed_charts.length>1?'s':''} failed)`:'';
+      msgDiv.innerHTML=`✅ ${data.inserted} trade${data.inserted!==1?'s':''} imported${warn}`;
+      msgDiv.className='success';
+      allFills=[];usedGroups=new Set();excludedFromImport=new Set();
+      document.getElementById('table-container').innerHTML='';
     })
-    .catch(() => { hideLoader(); msgDiv.innerHTML = 'Import failed'; msgDiv.className = 'error'; });
+    .catch(()=>{hideLoader();msgDiv.innerHTML='Import failed';msgDiv.className='error'});
 }
 </script>
 
