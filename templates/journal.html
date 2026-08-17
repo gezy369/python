@@ -188,11 +188,10 @@
 </div>
 
 <style>
-/* ── Fills band ── */
-.fills-band {
-  background: var(--bg-elevated);
+/* ── Fills section ── */
+.fills-section {
   border-bottom: 1px solid var(--border-strong);
-  padding: 10px 16px;
+  padding: 10px 16px 12px;
 }
 .fills-band-label {
   font-size: 9px;
@@ -201,36 +200,56 @@
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 8px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--border-subtle);
 }
-.fills-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
+.fills-grid {
+  display: grid;
+  grid-template-columns: 24px repeat(6, 1fr);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
-.fills-table thead th {
+.fills-grid-head {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: .05em;
   text-transform: uppercase;
   color: var(--text-muted);
-  text-align: left;
-  padding: 4px 10px;
+  padding: 5px 10px;
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
 }
-.fills-table tbody td {
-  padding: 5px 10px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
+.fills-grid-head-num {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-default);
+}
+.fills-grid-cell {
   font-family: var(--font-mono);
   font-size: 11px;
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.fills-table tbody tr:last-child td { border-bottom: none; }
-.fills-table tbody tr:hover td { background: var(--bg-hover); }
-.fill-num { color: var(--text-faint) !important; font-size: 10px; }
+.fills-grid-num {
+  font-size: 10px;
+  color: var(--text-faint);
+  padding: 5px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+.fills-grid > div:nth-last-child(-n+7) {
+  border-bottom: none;
+}
+.fills-grid-row-hover:hover .fills-grid-cell,
+.fills-grid-row-hover:hover .fills-grid-num {
+  background: var(--bg-hover);
+}
 .fills-none {
   font-size: 11px;
   color: var(--text-faint);
@@ -683,43 +702,40 @@ async function loadFills(tradeId, side, container) {
 
     const isLong = String(side).toLowerCase() === "long";
 
-    let html = `
-      <table class="fills-table">
-        <thead>
-          <tr>
-            <th style="width:28px">#</th>
-            <th>Entry time</th>
-            <th>Exit time</th>
-            <th>Entry px</th>
-            <th>Exit px</th>
-            <th style="text-align:center">Qty</th>
-            <th>P&L</th>
-          </tr>
-        </thead>
-        <tbody>`;
+    // Header row — 7 columns (num + 6 data)
+    let html = `<div class="fills-grid">
+      <div class="fills-grid-head-num"></div>
+      <div class="fills-grid-head">Entry time</div>
+      <div class="fills-grid-head">Exit time</div>
+      <div class="fills-grid-head">Entry px</div>
+      <div class="fills-grid-head">Exit px</div>
+      <div class="fills-grid-head" style="text-align:center">Qty</div>
+      <div class="fills-grid-head">P&amp;L</div>`;
 
     fills.forEach((f, i) => {
-      const entryTime  = isLong ? f.bought_timestamp : f.sold_timestamp;
-      const exitTime   = isLong ? f.sold_timestamp   : f.bought_timestamp;
-      const entryPx    = isLong ? f.buy_price        : f.sell_price;
-      const exitPx     = isLong ? f.sell_price       : f.buy_price;
-      const pnl        = parseFloat(f.pnl) || 0;
-      const pnlStr     = (pnl >= 0 ? "+" : "-") + "$" + Math.abs(pnl).toFixed(2);
-      const pnlCls     = pnl > 0 ? "pnl-positive" : pnl < 0 ? "pnl-negative" : "";
+      const entryTime = isLong ? f.bought_timestamp : f.sold_timestamp;
+      const exitTime  = isLong ? f.sold_timestamp   : f.bought_timestamp;
+      const entryPx   = isLong ? f.buy_price        : f.sell_price;
+      const exitPx    = isLong ? f.sell_price        : f.buy_price;
+      const pnl       = parseFloat(f.pnl) || 0;
+      const pnlStr    = (pnl >= 0 ? "+" : "-") + "$" + Math.abs(pnl).toFixed(2);
+      const pnlColor  = pnl > 0
+        ? "color:var(--accent-green)"
+        : pnl < 0
+        ? "color:var(--accent-red)"
+        : "color:var(--text-muted)";
 
       html += `
-        <tr>
-          <td class="fill-num">${i + 1}</td>
-          <td>${fmtTs(entryTime)}</td>
-          <td>${fmtTs(exitTime)}</td>
-          <td>${parseFloat(entryPx).toFixed(2)}</td>
-          <td>${parseFloat(exitPx).toFixed(2)}</td>
-          <td style="text-align:center">${f.qty}</td>
-          <td class="${pnlCls}">${pnlStr}</td>
-        </tr>`;
+        <div class="fills-grid-num">${i + 1}</div>
+        <div class="fills-grid-cell">${fmtTs(entryTime)}</div>
+        <div class="fills-grid-cell">${fmtTs(exitTime)}</div>
+        <div class="fills-grid-cell">${parseFloat(entryPx).toFixed(2)}</div>
+        <div class="fills-grid-cell">${parseFloat(exitPx).toFixed(2)}</div>
+        <div class="fills-grid-cell" style="text-align:center">${f.qty}</div>
+        <div class="fills-grid-cell" style="${pnlColor};font-weight:500">${pnlStr}</div>`;
     });
 
-    html += `</tbody></table>`;
+    html += `</div>`;
     container.innerHTML = html;
 
   } catch (e) {
@@ -743,8 +759,8 @@ function toggleTradeDetails(tr, trade) {
   td.innerHTML = `
     <div class="trade-details">
 
-      <!-- ── FILLS BAND ── -->
-      <div class="fills-band">
+      <!-- ── FILLS SECTION ── -->
+      <div class="fills-section">
         <div class="fills-band-label">Fills</div>
         <div id="fillsContainer-${trade.id}">
           <div style="font-size:11px;color:var(--text-faint)">Loading fills...</div>
@@ -797,14 +813,10 @@ function toggleTradeDetails(tr, trade) {
               click to expand
             </span>
           </div>
-          <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;line-height:1.5;">
-            Drop your own picture on the chart below to replace it.
-          </div>
           <div id="tradeChart-${trade.id}"
-              class="chart-clickable chart-drop-zone"
-              style="height:300px;"
-              onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})"
-              data-trade-id="${trade.id}">
+               class="chart-clickable"
+               style="height:300px;"
+               onclick="openChartOverlay('${trade.id}','${trade.symbol}',${trade.entryPrice},${trade.exitPrice})">
           </div>
         </div>
 
@@ -836,70 +848,6 @@ function toggleTradeDetails(tr, trade) {
   // Load fills and chart
   loadFills(trade.id, trade.side, document.getElementById(`fillsContainer-${trade.id}`));
   showTradeChart(trade, `tradeChart-${trade.id}`);
-  setupChartDropZone(trade);
-}
-
-function setupChartDropZone(trade) {
-  const zone = document.getElementById(`tradeChart-${trade.id}`);
-  if (!zone) return;
-
-  zone.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    zone.classList.add('drag-over');
-  });
-
-  zone.addEventListener('dragleave', e => {
-    e.stopPropagation();
-    zone.classList.remove('drag-over');
-  });
-
-  zone.addEventListener('drop', async e => {
-    e.preventDefault();
-    e.stopPropagation();
-    zone.classList.remove('drag-over');
-
-    const file = e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) {
-      alert('Please drop an image file.');
-      return;
-    }
-
-    // Convert to base64
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result.split(',')[1]); // strip data:image/...;base64,
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    // Show a quick uploading state
-    zone.style.opacity = '0.5';
-
-    try {
-      const res = await fetch(`/api/trades/${trade.id}`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ chart_image: base64 }),
-      });
-
-      if (!res.ok) throw new Error('Upload failed');
-
-      // Update in-memory trade so overlay and chart grid stay in sync
-      trade.chart_image = base64;
-
-      // Re-render the chart in the panel
-      showTradeChart(trade, `tradeChart-${trade.id}`);
-
-      // Re-attach drop zone (showTradeChart replaces innerHTML)
-      setupChartDropZone(trade);
-
-    } catch (err) {
-      alert('Chart upload failed. Please try again.');
-    } finally {
-      zone.style.opacity = '';
-    }
-  });
 }
 
 function setupNotesHandler(td, trade) {
