@@ -735,6 +735,8 @@ tr.trade-details-row td {
   border-top: none;
 }
 
+tr.trade-details-row:hover td { background: none; filter: none; }
+
 .trade-details {
   overflow: hidden;
   max-height: 0;
