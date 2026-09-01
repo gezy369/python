@@ -434,10 +434,9 @@ function buildImportRows(){
     const fees    = gf.reduce((s, f) => s + (parseFloat(f.fees)      || 0), 0);
     const entryMs =side==='long'?Math.min(...gf.map(f=>f._boughtMs)):Math.min(...gf.map(f=>f._soldMs));
     const exitMs  =side==='long'?Math.max(...gf.map(f=>f._soldMs)):Math.max(...gf.map(f=>f._boughtMs));
-    rows.push({key:`solo_${f._idx}`, label:'Solo', pillBg:'var(--bg-active)', pillText:'var(--text-secondary)',
-      symbol:f.symbol||'', side, fills:1, qty:f.qty,
-      pnl:parseFloat(f.pnl)||0, fees:parseFloat(f.fees)||0,
-      entryMs, exitMs, isSolo:true});
+    rows.push({key:`group_${gid}`, label:palLabel(gid), pillBg:pal.bg, pillText:pal.text,
+      symbol:gf[0].symbol||'', side, fills:gf.length, qty, pnl, fees,   // ← add fees
+      entryMs, exitMs, isSolo:false});
   });
 
   soloFills.forEach(f=>{
@@ -484,6 +483,7 @@ function renderImportTable(){
       <td style="text-align:center">${r.qty}</td>
       <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.entryMs)}</td>
       <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.exitMs)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${r.fees>0?'-$'+r.fees.toFixed(2):'$0.00'}</td>
       <td class="${pnlCls}">${pnlStr}</td>
     </tr>`;
   });
