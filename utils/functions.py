@@ -17,9 +17,10 @@ def csv_handler(df_trade, df_fees=None):
 
     df_trade["symbol"] = df_trade["symbol"].str[:-2]
 
-    # Rename pnl → gross_pnl to make it explicit — fees NOT applied here
+    # pnl from CSV = gross pnl (before fees)
+    # fees are applied later in confirm_upload, not here
     df_trade["gross_pnl"] = round(df_trade["pnl"], 2)
-    df_trade["fees"]      = 0  # placeholder, applied later in confirm_upload
+    df_trade["fees"]      = 0
 
     df_trade["boughtTimestamp"] = df_trade["boughtTimestamp"].astype(str)
     df_trade["soldTimestamp"]   = df_trade["soldTimestamp"].astype(str)
@@ -27,9 +28,10 @@ def csv_handler(df_trade, df_fees=None):
     return df_trade[[
         "symbol", "buyFillId", "sellFillId",
         "qty", "buyPrice", "sellPrice",
-        "gross_pnl", "fees", "boughtTimestamp", "soldTimestamp", "duration"
+        "gross_pnl", "fees",
+        "boughtTimestamp", "soldTimestamp", "duration"
     ]]
-
+    
 def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None):
     result = []
 

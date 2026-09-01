@@ -1417,22 +1417,21 @@ def apply_fees_bulk():
     try:
         data = request.json
         ids  = data.get("ids", [])
-
         if not ids:
             return jsonify({"error": "No IDs provided"}), 400
 
         user_id = session["user"]["id"]
 
-        # ===== GET USER FEES =====
+        # Fetch fees
         fees_res = (
             supabase_admin.table("fees")
             .select("symbol, fees")
             .eq("user_id", user_id)
             .execute()
         )
-        fees_map = {f["symbol"]: f["fees"] for f in (fees_res.data or [])}
+        fees_map = {f["symbol"].upper(): f["fees"] for f in (fees_res.data or [])}
 
-        # ===== GET TRADES =====
+        # Fetch trades
         trades_res = (
             supabase_admin.table("trades")
             .select("*")
@@ -1440,32 +1439,43 @@ def apply_fees_bulk():
             .execute()
         )
 
-        trades = trades_res.data or []
         updated = []
 
-        for t in trades:
-            symbol = t["symbol"]
-            fee    = fees_map.get(symbol, 0)
+        for t in (trades_res.data or []):
+            symbol           = t["symbol"].upper()
+            fee_per_contract = fees_map.get(symbol, 0)   # 0 if not found — apply later
+            qty              = float(t.get("qty") or 0)
+            gross_pnl        = float(t.get("gross_pnl") or 0)
+            total_fees       = round(fee_per_contract * qty, 2)
+            net_pnl          = round(gross_pnl - total_fees, 2)
 
-            qty = float(t.get("qty") or 1)
-
-            # fees table = round-trip per contract
-            new_fees = fee
-
-            gross_pnl = float(t.get("gross_pnl") or 0)
-
-            # ✅ recompute from source of truth
-            pnl = gross_pnl - (qty * new_fees)
-
+            # Update trade
             supabase_admin.table("trades").update({
-                "fees": new_fees,
-                "pnl": pnl
+                "fees":  total_fees,
+                "pnl":   net_pnl,
             }).eq("id", t["id"]).execute()
 
+            # Update each fill with its own fee share
+            fills_res = (
+                supabase_admin.table("fills")
+                .select("id, qty, gross_pnl")
+                .eq("trade_id", t["id"])
+                .execute()
+            )
+            for fill in (fills_res.data or []):
+                fill_fee     = round(fee_per_contract * float(fill["qty"]), 2)
+                fill_gross   = float(fill.get("gross_pnl") or 0)
+                fill_net     = round(fill_gross - fill_fee, 2)
+                supabase_admin.table("fills").update({
+                    "fees": fill_fee,
+                    "pnl":  fill_net,
+                }).eq("id", fill["id"]).execute()
+
             updated.append({
-                "id": t["id"],
-                "fees": new_fees,
-                "pnl": pnl
+                "id":       t["id"],
+                "fees":     total_fees,
+                "pnl":      net_pnl,
+                "gross_pnl": gross_pnl,
             })
 
         return jsonify(updated)
