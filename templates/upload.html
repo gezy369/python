@@ -234,6 +234,7 @@ function buildShell(){
           <th style="width:32px;text-align:center">Qty</th>
           <th style="width:74px">Buy px</th>
           <th style="width:74px">Sell px</th>
+          <th style="width:60px">Fees</th>
           <th style="width:66px">P&amp;L</th>
           <th style="width:140px">Bought</th>
           <th style="width:140px">Sold</th>
@@ -394,6 +395,9 @@ function renderRows(){
       <td style="text-align:center;color:var(--text-primary)">${f.qty}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.buyPrice).toFixed(2)}</td>
       <td style="font-family:var(--font-mono)">${parseFloat(f.sellPrice).toFixed(2)}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted)">
+        ${parseFloat(f.fees||0) > 0 ? '-$'+parseFloat(f.fees).toFixed(2) : '$0.00'}
+      </td>
       <td class="${pnlCls}">${pnlStr}</td>
       <td>${boughtHtml}</td>
       <td>${soldHtml}</td>
