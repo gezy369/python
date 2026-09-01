@@ -682,15 +682,17 @@ def confirm_upload():
             fill_rows = []
             for f in group_fills:
                 fill_fee       = round(fee_per_contract * f["qty"], 2)
-                fill_gross_pnl = round(float(f["pnl"]), 2)   # raw pnl from CSV = gross
+                fill_gross_pnl = round(float(f["gross_pnl"]), 2)
                 fill_net_pnl   = round(fill_gross_pnl - fill_fee, 2)
                 fill_rows.append({
-                    "trade_id":         None,  # set after trade insert
+                    "trade_id":         None,
                     "buy_fill_id":      f.get("buyFillId"),
                     "sell_fill_id":     f.get("sellFillId"),
                     "qty":              f["qty"],
                     "buy_price":        f["buyPrice"],
                     "sell_price":       f["sellPrice"],
+                    "gross_pnl":        fill_gross_pnl,
+                    "fees":             fill_fee,
                     "pnl":              fill_net_pnl,
                     "bought_timestamp": f["boughtTimestamp"],
                     "sold_timestamp":   f["soldTimestamp"],

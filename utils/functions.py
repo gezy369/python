@@ -17,17 +17,9 @@ def csv_handler(df_trade, df_fees=None):
 
     df_trade["symbol"] = df_trade["symbol"].str[:-2]
 
-    # ===== FEES =====
-    if df_fees is not None and not df_fees.empty:
-        df_fees["symbol"]  = df_fees["symbol"].str.upper()
-        df_trade["symbol"] = df_trade["symbol"].str.upper()
-        df_trade = df_trade.merge(df_fees, on="symbol", how="left")
-        df_trade["fees"] = df_trade["fees"].fillna(0) * df_trade["qty"]
-        df_trade["pnl"]  = df_trade["pnl"] - df_trade["fees"]
-    else:
-        df_trade["fees"] = 0
-
-    df_trade["pnl"] = round(df_trade["pnl"], 2)
+    # Rename pnl → gross_pnl to make it explicit — fees NOT applied here
+    df_trade["gross_pnl"] = round(df_trade["pnl"], 2)
+    df_trade["fees"]      = 0  # placeholder, applied later in confirm_upload
 
     df_trade["boughtTimestamp"] = df_trade["boughtTimestamp"].astype(str)
     df_trade["soldTimestamp"]   = df_trade["soldTimestamp"].astype(str)
@@ -35,7 +27,7 @@ def csv_handler(df_trade, df_fees=None):
     return df_trade[[
         "symbol", "buyFillId", "sellFillId",
         "qty", "buyPrice", "sellPrice",
-        "pnl", "fees", "boughtTimestamp", "soldTimestamp", "duration"
+        "gross_pnl", "fees", "boughtTimestamp", "soldTimestamp", "duration"
     ]]
 
 def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None):
