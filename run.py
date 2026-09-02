@@ -611,7 +611,7 @@ def upload_file():
         session["chart_timeframe"] = request.form.get("chart_timeframe", "5m")
 
         # send preview without account_id column
-        preview = df_fills.drop(columns=["key_trading_accounts", "fees"])
+        preview = df_fills.drop(columns=["key_trading_accounts"])
 
         return jsonify({
             "rows":    preview.to_dict(orient="records"),
@@ -626,7 +626,6 @@ def upload_file():
 def confirm_upload():
     try:
         data   = request.json
-        # groups: [{ fillIndices: [0,2,3], label: "Trade 1" }, ...]
         groups = data.get("groups", [])
         fills  = session.get("preview_fills", [])
 
@@ -635,30 +634,36 @@ def confirm_upload():
         if not groups:
             return jsonify({"error": "No groups defined"}), 400
 
-        user_id        = session["user"]["id"]
+        user_id         = session["user"]["id"]
         chart_timeframe = session.get("chart_timeframe", "5m")
-        failed_charts  = []
+        failed_charts   = []
         inserted_trades = []
 
+        # ── Fetch fees once ──────────────────────────────────────────────
+        fees_res = (
+            supabase_admin.table("fees")
+            .select("symbol, fees")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        fees_map = {f["symbol"].upper(): f["fees"] for f in (fees_res.data or [])}
+
         for group in groups:
-            indices      = group.get("fillIndices", [])
-            group_fills  = [fills[i] for i in indices if i < len(fills)]
+            indices     = group.get("fillIndices", [])
+            group_fills = [fills[i] for i in indices if i < len(fills)]
             if not group_fills:
                 continue
 
-            # ── Compute trade-level aggregates ──────────────────────────
-            symbol    = group_fills[0]["symbol"]
-            account   = group_fills[0]["key_trading_accounts"]
-            total_qty = sum(f["qty"] for f in group_fills)
-            total_pnl = round(sum(f["pnl"] for f in group_fills), 2)
-            total_fees = round(sum(f.get("fees", 0) for f in group_fills), 2)
-            gross_pnl = round(total_pnl + total_fees, 2)
+            symbol  = group_fills[0]["symbol"]
+            account = group_fills[0]["key_trading_accounts"]
 
-            # Determine side: if boughtTimestamp < soldTimestamp → long
+            # Fee per contract for this symbol
+            fee_per_contract = fees_map.get(symbol.upper(), 0)
+
+            # Determine side
             first_fill = group_fills[0]
             side = "long" if first_fill["boughtTimestamp"] < first_fill["soldTimestamp"] else "short"
 
-            # Entry = earliest bought (long) or sold (short) timestamp
             if side == "long":
                 timestamps_entry = [f["boughtTimestamp"] for f in group_fills]
                 timestamps_exit  = [f["soldTimestamp"]   for f in group_fills]
@@ -673,7 +678,35 @@ def confirm_upload():
             entry_timestamp = min(timestamps_entry)
             exit_timestamp  = max(timestamps_exit)
 
-            # Weighted average entry/exit price
+            # ── Build fill rows with per-fill fee applied ────────────────
+            fill_rows = []
+            for f in group_fills:
+                fill_fee       = round(fee_per_contract * f["qty"], 2)
+                fill_gross_pnl = round(float(f["gross_pnl"]), 2)
+                fill_net_pnl   = round(fill_gross_pnl - fill_fee, 2)
+                fill_rows.append({
+                    "trade_id":         None,
+                    "buy_fill_id":      f.get("buyFillId"),
+                    "sell_fill_id":     f.get("sellFillId"),
+                    "qty":              f["qty"],
+                    "buy_price":        f["buyPrice"],
+                    "sell_price":       f["sellPrice"],
+                    "gross_pnl":        fill_gross_pnl,
+                    "fees":             fill_fee,
+                    "pnl":              fill_net_pnl,
+                    "bought_timestamp": f["boughtTimestamp"],
+                    "sold_timestamp":   f["soldTimestamp"],
+                    "duration":         f.get("duration"),
+                    "_gross":           fill_gross_pnl,
+                    "_fee":             fill_fee,
+                })
+
+            # ── Trade-level aggregates from fill rows ────────────────────
+            total_qty   = sum(f["qty"]    for f in group_fills)
+            gross_pnl   = round(sum(r["_gross"] for r in fill_rows), 2)
+            total_fees  = round(sum(r["_fee"]   for r in fill_rows), 2)
+            total_pnl   = round(gross_pnl - total_fees, 2)
+
             avg_entry = round(
                 sum(p * f["qty"] for p, f in zip(prices_entry, group_fills)) / total_qty, 4
             )
@@ -681,7 +714,6 @@ def confirm_upload():
                 sum(p * f["qty"] for p, f in zip(prices_exit, group_fills)) / total_qty, 4
             )
 
-            # Duration: first entry → last exit
             from datetime import datetime as dt
             entry_dt   = dt.fromisoformat(entry_timestamp)
             exit_dt    = dt.fromisoformat(exit_timestamp)
@@ -716,21 +748,12 @@ def confirm_upload():
             trade     = trade_res.data[0]
             trade_id  = trade["id"]
 
-            # ── Insert fills linked to this trade ────────────────────────
-            fill_rows = []
-            for f in group_fills:
-                fill_rows.append({
-                    "trade_id":        trade_id,
-                    "buy_fill_id":     f.get("buyFillId"),
-                    "sell_fill_id":    f.get("sellFillId"),
-                    "qty":             f["qty"],
-                    "buy_price":       f["buyPrice"],
-                    "sell_price":      f["sellPrice"],
-                    "pnl":             f["pnl"],
-                    "bought_timestamp": f["boughtTimestamp"],
-                    "sold_timestamp":   f["soldTimestamp"],
-                    "duration":        f.get("duration"),
-                })
+            # ── Insert fills (strip internal _ keys before insert) ───────
+            for r in fill_rows:
+                r["trade_id"] = trade_id
+                r.pop("_gross", None)
+                r.pop("_fee",   None)
+
             supabase_admin.table("fills").insert(fill_rows).execute()
 
             # ── Generate chart ───────────────────────────────────────────
@@ -744,6 +767,7 @@ def confirm_upload():
                     side        = side,
                     user_id     = user_id,
                     timeframe   = chart_timeframe,
+                    fills       = fill_rows,
                 )
                 if chart_b64:
                     supabase_admin.table("trades") \
@@ -758,8 +782,8 @@ def confirm_upload():
 
         session.pop("preview_fills", None)
         return jsonify({
-            "ok":           True,
-            "inserted":     len(inserted_trades),
+            "ok":            True,
+            "inserted":      len(inserted_trades),
             "failed_charts": failed_charts,
         })
 
@@ -1393,22 +1417,21 @@ def apply_fees_bulk():
     try:
         data = request.json
         ids  = data.get("ids", [])
-
         if not ids:
             return jsonify({"error": "No IDs provided"}), 400
 
         user_id = session["user"]["id"]
 
-        # ===== GET USER FEES =====
+        # Fetch fees
         fees_res = (
             supabase_admin.table("fees")
             .select("symbol, fees")
             .eq("user_id", user_id)
             .execute()
         )
-        fees_map = {f["symbol"]: f["fees"] for f in (fees_res.data or [])}
+        fees_map = {f["symbol"].upper(): f["fees"] for f in (fees_res.data or [])}
 
-        # ===== GET TRADES =====
+        # Fetch trades
         trades_res = (
             supabase_admin.table("trades")
             .select("*")
@@ -1416,32 +1439,43 @@ def apply_fees_bulk():
             .execute()
         )
 
-        trades = trades_res.data or []
         updated = []
 
-        for t in trades:
-            symbol = t["symbol"]
-            fee    = fees_map.get(symbol, 0)
+        for t in (trades_res.data or []):
+            symbol           = t["symbol"].upper()
+            fee_per_contract = fees_map.get(symbol, 0)   # 0 if not found — apply later
+            qty              = float(t.get("qty") or 0)
+            gross_pnl        = float(t.get("gross_pnl") or 0)
+            total_fees       = round(fee_per_contract * qty, 2)
+            net_pnl          = round(gross_pnl - total_fees, 2)
 
-            qty = float(t.get("qty") or 1)
-
-            # fees table = round-trip per contract
-            new_fees = fee
-
-            gross_pnl = float(t.get("gross_pnl") or 0)
-
-            # ✅ recompute from source of truth
-            pnl = gross_pnl - (qty * new_fees)
-
+            # Update trade
             supabase_admin.table("trades").update({
-                "fees": new_fees,
-                "pnl": pnl
+                "fees":  total_fees,
+                "pnl":   net_pnl,
             }).eq("id", t["id"]).execute()
 
+            # Update each fill with its own fee share
+            fills_res = (
+                supabase_admin.table("fills")
+                .select("id, qty, gross_pnl")
+                .eq("trade_id", t["id"])
+                .execute()
+            )
+            for fill in (fills_res.data or []):
+                fill_fee     = round(fee_per_contract * float(fill["qty"]), 2)
+                fill_gross   = float(fill.get("gross_pnl") or 0)
+                fill_net     = round(fill_gross - fill_fee, 2)
+                supabase_admin.table("fills").update({
+                    "fees": fill_fee,
+                    "pnl":  fill_net,
+                }).eq("id", fill["id"]).execute()
+
             updated.append({
-                "id": t["id"],
-                "fees": new_fees,
-                "pnl": pnl
+                "id":       t["id"],
+                "fees":     total_fees,
+                "pnl":      net_pnl,
+                "gross_pnl": gross_pnl,
             })
 
         return jsonify(updated)

@@ -17,17 +17,20 @@ def csv_handler(df_trade, df_fees=None):
 
     df_trade["symbol"] = df_trade["symbol"].str[:-2]
 
-    # ===== FEES =====
+    # Raw pnl from CSV = gross pnl (before fees)
+    df_trade["gross_pnl"] = round(df_trade["pnl"], 2)
+
+    # Apply fees if available, otherwise fees = 0
     if df_fees is not None and not df_fees.empty:
         df_fees["symbol"]  = df_fees["symbol"].str.upper()
         df_trade["symbol"] = df_trade["symbol"].str.upper()
         df_trade = df_trade.merge(df_fees, on="symbol", how="left")
-        df_trade["fees"] = df_trade["fees"].fillna(0) * df_trade["qty"]
-        df_trade["pnl"]  = df_trade["pnl"] - df_trade["fees"]
+        df_trade["fees"] = round(df_trade["fees"].fillna(0) * df_trade["qty"], 2)
     else:
         df_trade["fees"] = 0
 
-    df_trade["pnl"] = round(df_trade["pnl"], 2)
+    # Net pnl = gross - fees
+    df_trade["pnl"] = round(df_trade["gross_pnl"] - df_trade["fees"], 2)
 
     df_trade["boughtTimestamp"] = df_trade["boughtTimestamp"].astype(str)
     df_trade["soldTimestamp"]   = df_trade["soldTimestamp"].astype(str)
@@ -35,7 +38,8 @@ def csv_handler(df_trade, df_fees=None):
     return df_trade[[
         "symbol", "buyFillId", "sellFillId",
         "qty", "buyPrice", "sellPrice",
-        "pnl", "fees", "boughtTimestamp", "soldTimestamp", "duration"
+        "gross_pnl", "fees", "pnl",
+        "boughtTimestamp", "soldTimestamp", "duration"
     ]]
 
 def filter_trades(trades, account_id=None, date_from=None, date_to=None, strategy_id=None, setup_ids=None):

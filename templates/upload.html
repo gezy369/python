@@ -234,7 +234,7 @@ function buildShell(){
           <th style="width:32px;text-align:center">Qty</th>
           <th style="width:74px">Buy px</th>
           <th style="width:74px">Sell px</th>
-          <th style="width:66px">P&amp;L</th>
+          <th style="width:66px">Gross P&amp;L</th>
           <th style="width:140px">Bought</th>
           <th style="width:140px">Sold</th>
           <th style="width:78px">Duration</th>
@@ -256,7 +256,8 @@ function buildShell(){
             <th style="width:44px;text-align:center">Qty</th>
             <th style="width:130px">Entry time</th>
             <th style="width:130px">Exit time</th>
-            <th style="width:80px">P&amp;L</th>
+            <th style="width:64px">Fees</th>
+            <th style="width:80px">Net P&amp;L</th>
           </tr></thead>
           <tbody id="importTbody"></tbody>
         </table>
@@ -370,7 +371,7 @@ function renderRows(){
     const badge=g!==null
       ?`<span class="grp-pill" style="background:${pal.bg};color:${pal.text}">${palLabel(g)}</span>`
       :`<span class="grp-ungrouped">ungrouped</span>`;
-    const pnl=parseFloat(f.pnl)||0;
+    const pnl=parseFloat(f.gross_pnl)||0;
     const pnlCls=pnl>0?'fill-pnl-pos':pnl<0?'fill-pnl-neg':'';
     const pnlStr=(pnl>=0?'+':'-')+'$'+Math.abs(pnl).toFixed(2);
     const side=f._boughtMs<f._soldMs?'long':'short';
@@ -429,19 +430,32 @@ function buildImportRows(){
     const pal=PALETTE[gid%PALETTE.length];
     const side=gf[0]._boughtMs<gf[0]._soldMs?'long':'short';
     const qty=gf.reduce((s,f)=>s+f.qty,0);
-    const pnl=gf.reduce((s,f)=>s+(parseFloat(f.pnl)||0),0);
-    const entryMs=side==='long'?Math.min(...gf.map(f=>f._boughtMs)):Math.min(...gf.map(f=>f._soldMs));
-    const exitMs=side==='long'?Math.max(...gf.map(f=>f._soldMs)):Math.max(...gf.map(f=>f._boughtMs));
-    rows.push({key:`group_${gid}`,label:palLabel(gid),pillBg:pal.bg,pillText:pal.text,
-      symbol:gf[0].symbol||'',side,fills:gf.length,qty,pnl,entryMs,exitMs,isSolo:false});
+    const pnl     = gf.reduce((s, f) => s + (parseFloat(f.pnl)       || 0), 0);
+    const fees    = gf.reduce((s, f) => s + (parseFloat(f.fees)      || 0), 0);
+    const entryMs =side==='long'?Math.min(...gf.map(f=>f._boughtMs)):Math.min(...gf.map(f=>f._soldMs));
+    const exitMs  =side==='long'?Math.max(...gf.map(f=>f._soldMs)):Math.max(...gf.map(f=>f._boughtMs));
+    rows.push({key:`group_${gid}`, label:palLabel(gid), pillBg:pal.bg, pillText:pal.text,
+      symbol:gf[0].symbol||'', side, fills:gf.length, qty, pnl, fees,   // ← add fees
+      entryMs, exitMs, isSolo:false});
   });
 
-  soloFills.forEach(f=>{
-    const side=f._boughtMs<f._soldMs?'long':'short';
-    const entryMs=side==='long'?f._boughtMs:f._soldMs;
-    const exitMs=side==='long'?f._soldMs:f._boughtMs;
-    rows.push({key:`solo_${f._idx}`,label:'Solo',pillBg:'var(--bg-active)',pillText:'var(--text-secondary)',
-      symbol:f.symbol||'',side,fills:1,qty:f.qty,pnl:parseFloat(f.pnl)||0,entryMs,exitMs,isSolo:true});
+  soloFills.forEach(f => {
+    const side    = f._boughtMs < f._soldMs ? 'long' : 'short';
+    const entryMs = side === 'long' ? f._boughtMs : f._soldMs;
+    const exitMs  = side === 'long' ? f._soldMs   : f._boughtMs;
+    const pnl     = parseFloat(f.pnl)   || 0;
+    const fees    = parseFloat(f.fees)  || 0;   // ← make sure this line exists
+    rows.push({
+      key:      `solo_${f._idx}`,
+      label:    'Solo',
+      pillBg:   'var(--bg-active)',
+      pillText: 'var(--text-secondary)',
+      symbol:   f.symbol || '',
+      side, fills: 1, qty: f.qty,
+      pnl, fees,                                 // ← both explicitly passed
+      entryMs, exitMs,
+      isSolo: true,
+    });
   });
 
   return rows;
@@ -479,6 +493,7 @@ function renderImportTable(){
       <td style="text-align:center">${r.qty}</td>
       <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.entryMs)}</td>
       <td style="font-family:var(--font-mono);font-size:11px">${fmtTs(r.exitMs)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${r.fees>0?'-$'+r.fees.toFixed(2):'$0.00'}</td>
       <td class="${pnlCls}">${pnlStr}</td>
     </tr>`;
   });
