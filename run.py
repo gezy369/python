@@ -611,7 +611,7 @@ def upload_file():
         session["chart_timeframe"] = request.form.get("chart_timeframe", "5m")
 
         # send preview without account_id column
-        preview = df_fills.drop(columns=["key_trading_accounts", "fees"])
+        preview = df_fills.drop(columns=["key_trading_accounts"])
 
         return jsonify({
             "rows":    preview.to_dict(orient="records"),
