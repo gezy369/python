@@ -439,13 +439,23 @@ function buildImportRows(){
       entryMs, exitMs, isSolo:false});
   });
 
-  soloFills.forEach(f=>{
-    const side=f._boughtMs<f._soldMs?'long':'short';
-    const entryMs=side==='long'?f._boughtMs:f._soldMs;
-    const exitMs=side==='long'?f._soldMs:f._boughtMs;
-    rows.push({key:`solo_${f._idx}`, label:'Solo', pillBg:'var(--bg-active)', pillText:'var(--text-secondary)',
-      symbol:f.symbol||'', side, fills:1, qty:f.qty, pnl:parseFloat(f.pnl)||0,
-      entryMs, exitMs, isSolo:true});
+  soloFills.forEach(f => {
+    const side    = f._boughtMs < f._soldMs ? 'long' : 'short';
+    const entryMs = side === 'long' ? f._boughtMs : f._soldMs;
+    const exitMs  = side === 'long' ? f._soldMs   : f._boughtMs;
+    const pnl     = parseFloat(f.pnl)   || 0;
+    const fees    = parseFloat(f.fees)  || 0;   // ← make sure this line exists
+    rows.push({
+      key:      `solo_${f._idx}`,
+      label:    'Solo',
+      pillBg:   'var(--bg-active)',
+      pillText: 'var(--text-secondary)',
+      symbol:   f.symbol || '',
+      side, fills: 1, qty: f.qty,
+      pnl, fees,                                 // ← both explicitly passed
+      entryMs, exitMs,
+      isSolo: true,
+    });
   });
 
   return rows;
