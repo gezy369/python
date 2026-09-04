@@ -1144,7 +1144,7 @@ function renderJournalStats(data) {
     ? ((afterLossWins / afterLossTotal) * 100).toFixed(1)
     : null;
   const afterLossStat = afterLossRate !== null
-    ? `${afterLossRate}% <span style="font-size:10px;color:var(--text-faint)">(${afterLossWins}/${afterLossTotal})</span>`
+    ? `${afterLossRate}%`
     : `<span style="color:var(--text-faint)">—</span>`;
 
   statsEl.innerHTML = `
