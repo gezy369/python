@@ -9,6 +9,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-bottom: 20px;
+  align-items: start;
 }
 
 .fy-stat-card {
@@ -89,8 +90,6 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
 }
 
 .fy-equity-title {
@@ -113,7 +112,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  padding: 16px 18px 12px;
+  padding: 12px 14px 10px;
 }
 
 .fy-month-title {
@@ -154,14 +153,15 @@
 
 .fy-cal-day {
   border-radius: var(--radius-sm);
-  padding: 5px 4px 4px;
-  min-height: 44px;
+  padding: 4px 5px 3px;
+  height: 52px;
   display: flex;
   flex-direction: column;
   gap: 1px;
   cursor: pointer;
   transition: filter 0.12s;
   position: relative;
+  overflow: hidden;
 }
 .fy-cal-day:hover { filter: brightness(1.15); }
 
@@ -222,7 +222,7 @@
   <!-- Right: equity curve -->
   <div class="fy-equity-card">
     <div class="fy-equity-title">Year Equity Curve</div>
-    <canvas id="fyEquityChart" style="flex:1; width:100%; min-height:120px;"></canvas>
+    <canvas id="fyEquityChart" style="width:100%; height:130px; display:block;"></canvas>
   </div>
 </div>
 
