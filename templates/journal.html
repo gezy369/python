@@ -168,7 +168,7 @@
         <select id="bulkStrategy" class="dark-select"></select>
       </div>
       <div class="bulk-section">
-        <label>Add setups</label>
+        <label>Add tags</label>
         <div id="bulkSetupAdd" class="bulk-tag-grid"></div>
         <label style="margin-top:12px;">Remove setups</label>
         <div id="bulkSetupRemove" class="bulk-tag-grid"></div>
@@ -792,7 +792,7 @@ function toggleTradeDetails(tr, trade) {
         <div class="td-col">
           <div class="td-section-label">Setups</div>
           <select class="setup-add dark-select">
-            <option value="">+ Add setup</option>
+            <option value="">+ Add tags</option>
             ${SETUPS.map(s => `<option value="${s.id}">${s.setup_name}</option>`).join("")}
           </select>
           <div class="setup-tag-container"></div>
