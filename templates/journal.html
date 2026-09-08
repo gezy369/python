@@ -1235,9 +1235,64 @@ async function showTradeChart(trade, containerId) {
   chartEl.innerHTML = "";
   if (trade.chart_image) {
     chartEl.innerHTML = `<img src="data:image/png;base64,${trade.chart_image}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"/>`;
-    return;
+  } else {
+    chartEl.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
   }
-  chartEl.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);border-radius:6px;color:var(--text-faint);font-size:12px;">No chart available</div>`;
+  setupChartDropZone(trade, containerId);
+}
+
+function setupChartDropZone(trade, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  // Make it feel interactive
+  el.style.cursor = "pointer";
+  el.title = "Drop an image or click to upload";
+
+  const handleFile = async (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      // Strip the data URL prefix to get raw base64
+      const base64 = ev.target.result.split(",")[1];
+      const res = await fetch(`/api/trades/${trade.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chart_image: base64 })
+      });
+      if (res.ok) {
+        trade.chart_image = base64;
+        showTradeChart(trade, containerId);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Drag-and-drop
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    el.style.outline = "2px dashed var(--accent-green)";
+  });
+  el.addEventListener("dragleave", () => {
+    el.style.outline = "";
+  });
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.style.outline = "";
+    const file = e.dataTransfer.files[0];
+    handleFile(file);
+  });
+
+  // Click to upload (but don't intercept the overlay-open click on the img)
+  el.addEventListener("click", (e) => {
+    // Only trigger file picker if clicking the placeholder, not an existing image
+    if (e.target.tagName === "IMG") return;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => handleFile(input.files[0]);
+    input.click();
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
