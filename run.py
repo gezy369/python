@@ -1794,7 +1794,12 @@ def trades_summary():
     except Exception as e:
         print("GET /api/trades/summary error:", e)
         return jsonify({"error": str(e)}), 500
-
+# calendar
+@app.route("/full-year")
+@login_required
+def full_year():
+    return render_template("full_year.html")
+    
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
     app.run(debug=True)

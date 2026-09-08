@@ -75,6 +75,16 @@
       </svg>
       Journal
     </a>
+    <!-- Full year -->
+    <a class="menu-item {{ 'active' if request.endpoint == 'full_year' }}" href="{{ url_for('full_year') }}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="1" width="14" height="14" rx="2"/>
+        <line x1="1" y1="5" x2="15" y2="5"/>
+        <line x1="5" y1="1" x2="5" y2="5"/>
+        <line x1="11" y1="1" x2="11" y2="5"/>
+      </svg>
+      Full Year
+    </a>
     <!-- Logs -->
     <a class="menu-item {{ 'active' if request.endpoint == 'logs' }}" href="{{ url_for('logs') }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

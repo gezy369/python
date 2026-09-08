@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block title %}Full Year{% endblock %}
+{% block content %}
+
+<style>
+/* ── Full Year Layout ── */
+.fy-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.fy-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fy-year-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fy-year-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+.fy-year-btn:hover { background: var(--bg-hover); }
+
+.fy-year-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 52px;
+  text-align: center;
+}
+
+.fy-kpi-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fy-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fy-kpi-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fy-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.fy-kpi-value.positive { color: var(--accent-green); }
+.fy-kpi-value.negative { color: var(--accent-red); }
+.fy-kpi-value.neutral  { color: var(--text-primary); }
+
+/* Equity card */
+.fy-equity-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fy-equity-title {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Calendar grid ── */
+.fy-months-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.fy-month-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px 12px;
+}
+
+.fy-month-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.fy-month-pnl {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.fy-month-pnl.positive { color: var(--accent-green); }
+.fy-month-pnl.negative { color: var(--accent-red); }
+.fy-month-pnl.flat     { color: var(--text-faint); }
+
+/* Reuse the .calendar-grid layout from dashboard */
+.fy-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.fy-cal-header {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 2px 0 4px;
+}
+
+.fy-cal-day {
+  border-radius: var(--radius-sm);
+  padding: 5px 4px 4px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  transition: filter 0.12s;
+  position: relative;
+}
+.fy-cal-day:hover { filter: brightness(1.15); }
+
+.fy-cal-day.day-positive { background: rgba(52,195,143,0.13); }
+.fy-cal-day.day-negative { background: rgba(229,83,83,0.11); }
+.fy-cal-day.day-flat     { background: var(--bg-elevated); }
+
+.fy-cal-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.fy-cal-pnl {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fy-cal-pnl.positive { color: var(--accent-green); }
+.fy-cal-pnl.negative { color: var(--accent-red); }
+.fy-cal-trades {
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.fy-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:20px;">
+  <h2 style="margin-bottom:0;">Full Year</h2>
+</div>
+
+<!-- TOP TILES -->
+<div class="fy-top-row" id="fyTopRow">
+  <!-- Left: year selector + KPIs -->
+  <div class="fy-stat-card">
+    <div class="fy-year-selector">
+      <button class="fy-year-btn" id="fyPrevYear">◀</button>
+      <span class="fy-year-label" id="fyYearLabel"></span>
+      <button class="fy-year-btn" id="fyNextYear">▶</button>
+    </div>
+    <div class="fy-kpi-row" id="fyKpis">
+      <div class="fy-loading" style="height:80px;">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Right: equity curve -->
+  <div class="fy-equity-card">
+    <div class="fy-equity-title">Year Equity Curve</div>
+    <canvas id="fyEquityChart" style="flex:1; width:100%; min-height:120px;"></canvas>
+  </div>
+</div>
+
+<!-- MONTH CALENDARS -->
+<div class="fy-months-grid" id="fyMonthsGrid">
+  <div class="fy-loading" style="grid-column:1/-1;">Loading calendars…</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+let fyYear = new Date().getFullYear();
+let fyEquityChart = null;
+let fyUserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const MONTHS_FULL  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const accountSelect = document.getElementById("accountSelect");
+
+// ══════════════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════════════
+function fyToTZ(date) {
+  return new Date(date).toLocaleDateString("en-CA", { timeZone: fyUserTimezone });
+}
+
+function fyFmtPnl(v, compact = false) {
+  const sign = v >= 0 ? "+" : "-";
+  const abs  = Math.abs(v);
+  if (compact && abs >= 1000) return `${sign}$${(abs/1000).toFixed(1)}k`;
+  return `${sign}$${abs.toFixed(2)}`;
+}
+
+function waitForAccount() {
+  return new Promise(resolve => {
+    if (window.accountSelectorReady) return resolve();
+    document.addEventListener("accountReady", resolve, { once: true });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// YEAR SELECTOR
+// ══════════════════════════════════════════════════════════════════════════
+document.getElementById("fyYearLabel").textContent = fyYear;
+
+document.getElementById("fyPrevYear").onclick = () => {
+  fyYear--;
+  document.getElementById("fyYearLabel").textContent = fyYear;
+  loadYear();
+};
+document.getElementById("fyNextYear").onclick = () => {
+  fyYear++;
+  document.getElementById("fyYearLabel").textContent = fyYear;
+  loadYear();
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// LOAD YEAR DATA
+// ══════════════════════════════════════════════════════════════════════════
+async function loadYear() {
+  const account = accountSelect?.value || "";
+
+  document.getElementById("fyKpis").innerHTML =
+    `<div class="fy-loading" style="height:80px;">Loading…</div>`;
+  document.getElementById("fyMonthsGrid").innerHTML =
+    `<div class="fy-loading" style="grid-column:1/-1;">Loading calendars…</div>`;
+
+  // Fetch whole-year trades + tag data
+  const [rawTrades, tradeSetups, emotionTrades] = await Promise.all([
+    fetchFilteredTrades({ account }),
+    fetch("/api/trade_setups").then(r => r.json()),
+    fetch("/api/emotions_trades").then(r => r.json()),
+  ]);
+
+  // Enrich
+  const setupsByTrade = {};
+  tradeSetups.forEach(ts => {
+    const tid = Number(ts.key_trade_id);
+    (setupsByTrade[tid] = setupsByTrade[tid] || []).push(Number(ts.key_setup_id));
+  });
+  const emotionsByTrade = {};
+  emotionTrades.forEach(et => {
+    const tid = Number(et.trade_id);
+    (emotionsByTrade[tid] = emotionsByTrade[tid] || []).push(Number(et.emotions_id));
+  });
+
+  const allTrades = rawTrades.map(t => ({
+    ...t,
+    entryDate: new Date(t.entryTimestamp),
+    setups:    setupsByTrade[Number(t.id)] || [],
+    emotions:  emotionsByTrade[Number(t.id)] || [],
+  }));
+
+  // Filter to selected year
+  const yearTrades = allTrades.filter(t => fyToTZ(t.entryDate).startsWith(String(fyYear)));
+
+  renderKpis(yearTrades);
+  renderEquityCurve(yearTrades);
+  renderMonthCalendars(yearTrades);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// KPIs
+// ══════════════════════════════════════════════════════════════════════════
+function renderKpis(trades) {
+  const totalPnl  = trades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const wins      = trades.filter(t => Number(t.pnl) > 0).length;
+  const winRate   = trades.length ? ((wins / trades.length) * 100).toFixed(1) : "0.0";
+  const pnlClass  = totalPnl >= 0 ? "positive" : "negative";
+
+  document.getElementById("fyKpis").innerHTML = `
+    <div class="fy-kpi">
+      <div class="fy-kpi-label">Year equity</div>
+      <div class="fy-kpi-value ${pnlClass}">${fyFmtPnl(totalPnl)}</div>
+    </div>
+    <div class="fy-kpi">
+      <div class="fy-kpi-label">Total trades</div>
+      <div class="fy-kpi-value neutral">${trades.length}</div>
+    </div>
+    <div class="fy-kpi">
+      <div class="fy-kpi-label">Win rate</div>
+      <div class="fy-kpi-value neutral">${winRate}%</div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EQUITY CURVE
+// ══════════════════════════════════════════════════════════════════════════
+function renderEquityCurve(trades) {
+  const canvas = document.getElementById("fyEquityChart");
+
+  // Build daily cumulative
+  const grouped = {};
+  trades.forEach(t => {
+    const d = fyToTZ(t.entryDate);
+    grouped[d] = (grouped[d] || 0) + (Number(t.pnl) || 0);
+  });
+  const dates = Object.keys(grouped).sort();
+  let cum = 0;
+  const values = dates.map(d => { cum += grouped[d]; return +cum.toFixed(2); });
+
+  if (fyEquityChart) { fyEquityChart.destroy(); fyEquityChart = null; }
+
+  if (!values.length) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "12px 'DM Sans', sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.textAlign = "center";
+    ctx.fillText("No trades this year", canvas.offsetWidth / 2, 70);
+    return;
+  }
+
+  fyEquityChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [{
+        data: values,
+        borderColor: "#34c38f",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        backgroundColor: ctx2 => {
+          const { chartArea } = ctx2.chart;
+          if (!chartArea) return "transparent";
+          const g = ctx2.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, "rgba(52,195,143,0.20)");
+          g.addColorStop(1, "rgba(52,195,143,0)");
+          return g;
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: {
+          ticks: {
+            color: "#5a6070",
+            font: { size: 10, family: "'IBM Plex Mono'" },
+            callback: v => `$${v}`
+          },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MONTH CALENDARS
+// ══════════════════════════════════════════════════════════════════════════
+function renderMonthCalendars(yearTrades) {
+  const grid = document.getElementById("fyMonthsGrid");
+  grid.innerHTML = "";
+
+  // Build daily PnL lookup
+  const dailyPnL    = {};
+  const dailyTrades = {};
+  yearTrades.forEach(t => {
+    const d = fyToTZ(t.entryDate);
+    dailyPnL[d]    = (dailyPnL[d]    || 0) + (Number(t.pnl) || 0);
+    dailyTrades[d] = (dailyTrades[d] || 0) + 1;
+  });
+
+  for (let m = 0; m < 12; m++) {
+    const card = document.createElement("div");
+    card.className = "fy-month-card";
+
+    // Monthly PnL sum
+    const daysInMonth = new Date(fyYear, m + 1, 0).getDate();
+    let monthPnl = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = new Date(fyYear, m, d).toLocaleDateString("en-CA", { timeZone: fyUserTimezone });
+      monthPnl += dailyPnL[iso] || 0;
+    }
+
+    const pnlClass = monthPnl > 0 ? "positive" : monthPnl < 0 ? "negative" : "flat";
+
+    card.innerHTML = `
+      <div class="fy-month-title">
+        <span>${MONTHS_FULL[m]}</span>
+        <span class="fy-month-pnl ${pnlClass}">${monthPnl !== 0 ? fyFmtPnl(monthPnl, true) : "—"}</span>
+      </div>
+      <div class="fy-cal-grid" id="fyCal-${m}"></div>`;
+
+    grid.appendChild(card);
+    buildMonthGrid(m, dailyPnL, dailyTrades);
+  }
+}
+
+function buildMonthGrid(month, dailyPnL, dailyTrades) {
+  const container = document.getElementById(`fyCal-${month}`);
+
+  // Day headers
+  ["Mon","Tue","Wed","Thu","Fri"].forEach(d => {
+    const h = document.createElement("div");
+    h.className = "fy-cal-header";
+    h.textContent = d;
+    container.appendChild(h);
+  });
+
+  const firstDay   = new Date(fyYear, month, 1);
+  const startWd    = (firstDay.getDay() + 6) % 7; // Mon=0
+  const daysInMon  = new Date(fyYear, month + 1, 0).getDate();
+  const todayIso   = new Date().toLocaleDateString("en-CA", { timeZone: fyUserTimezone });
+
+  // Leading blanks (only for weekdays)
+  for (let i = 0; i < Math.min(startWd, 5); i++) {
+    container.appendChild(document.createElement("div"));
+  }
+
+  for (let day = 1; day <= daysInMon; day++) {
+    const dateObj = new Date(fyYear, month, day);
+    const dow = dateObj.getDay(); // 0=Sun,6=Sat
+    if (dow === 0 || dow === 6) continue;
+
+    const iso    = dateObj.toLocaleDateString("en-CA", { timeZone: fyUserTimezone });
+    const pnl    = dailyPnL[iso];
+    const count  = dailyTrades[iso] || 0;
+    const isFuture = iso > todayIso;
+
+    const cell = document.createElement("div");
+
+    if (isFuture || pnl === undefined) {
+      cell.className = "fy-cal-day day-flat";
+    } else {
+      cell.className = `fy-cal-day ${pnl > 0 ? "day-positive" : pnl < 0 ? "day-negative" : "day-flat"}`;
+      cell.addEventListener("click", () => {
+        window.location.href = `/journal?from=${iso}&to=${iso}`;
+      });
+    }
+
+    const isToday = iso === todayIso;
+
+    cell.innerHTML = `
+      <div class="fy-cal-date" style="${isToday ? "color:var(--accent-blue);" : ""}">${day}</div>
+      ${pnl !== undefined && !isFuture ? `
+        <div class="fy-cal-pnl ${pnl >= 0 ? "positive" : "negative"}">${fyFmtPnl(pnl, true)}</div>
+        <div class="fy-cal-trades">${count}t</div>` : ""}`;
+
+    container.appendChild(cell);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════
+waitForAccount().then(async () => {
+  // Load timezone from settings if available
+  try {
+    const data = await fetch("/api/settings").then(r => r.json());
+    if (data.timezone) fyUserTimezone = data.timezone;
+  } catch (e) {}
+
+  loadYear();
+
+  if (accountSelect) {
+    accountSelect.addEventListener("change", loadYear);
+  }
+});
+</script>
+
+{% endblock %}
