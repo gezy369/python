@@ -4,12 +4,22 @@
 
 <style>
 /* ── Full Year Layout ── */
+
+/* Outer wrapper: width driven by the months grid.
+   Top tiles row stretches to match via width:100%. */
+.fy-outer {
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
 .fy-top-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   align-items: start;
+  width: 100%;
 }
 
 .fy-stat-card {
@@ -107,7 +117,10 @@
 /* ── Calendar grid ── */
 .fy-months-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Two columns sized to match the dashboard calendar column width.
+     Dashboard: dash-main-grid left col ≈ 60% of 1100px content = ~648px.
+     Two cards + 14px gap → each card ≈ 317px. */
+  grid-template-columns: repeat(2, 317px);
   gap: 14px;
 }
 
@@ -208,30 +221,35 @@
   <h2 style="margin-bottom:0;">Full Year</h2>
 </div>
 
-<!-- TOP TILES -->
-<div class="fy-top-row" id="fyTopRow">
-  <!-- Left: year selector + KPIs -->
-  <div class="fy-stat-card">
-    <div class="fy-year-selector">
-      <button class="fy-year-btn" id="fyPrevYear">◀</button>
-      <span class="fy-year-label" id="fyYearLabel"></span>
-      <button class="fy-year-btn" id="fyNextYear">▶</button>
+<!-- Outer wrapper: sized by the months grid, top tiles inherit that width -->
+<div class="fy-outer">
+
+  <!-- TOP TILES — same width as the 2-column months grid below -->
+  <div class="fy-top-row" id="fyTopRow">
+    <!-- Left: year selector + KPIs -->
+    <div class="fy-stat-card">
+      <div class="fy-year-selector">
+        <button class="fy-year-btn" id="fyPrevYear">◀</button>
+        <span class="fy-year-label" id="fyYearLabel"></span>
+        <button class="fy-year-btn" id="fyNextYear">▶</button>
+      </div>
+      <div class="fy-kpi-row" id="fyKpis">
+        <div class="fy-loading" style="height:80px;">Loading…</div>
+      </div>
     </div>
-    <div class="fy-kpi-row" id="fyKpis">
-      <div class="fy-loading" style="height:80px;">Loading…</div>
+
+    <!-- Right: equity curve -->
+    <div class="fy-equity-card">
+      <div class="fy-equity-title">Year Equity Curve</div>
+      <canvas id="fyEquityChart" style="width:100%; display:block; flex:1; min-height:0;"></canvas>
     </div>
   </div>
 
-  <!-- Right: equity curve -->
-  <div class="fy-equity-card">
-    <div class="fy-equity-title">Year Equity Curve</div>
-    <canvas id="fyEquityChart" style="width:100%; display:block; flex:1; min-height:0;"></canvas>
+  <!-- MONTH CALENDARS -->
+  <div class="fy-months-grid" id="fyMonthsGrid">
+    <div class="fy-loading" style="grid-column:1/-1;">Loading calendars…</div>
   </div>
-</div>
 
-<!-- MONTH CALENDARS -->
-<div class="fy-months-grid" id="fyMonthsGrid">
-  <div class="fy-loading" style="grid-column:1/-1;">Loading calendars…</div>
 </div>
 
 <script>
