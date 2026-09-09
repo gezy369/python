@@ -47,6 +47,16 @@ function escHtml(str){
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function getSelectedAccountId(){
+  const select = document.getElementById('accountSelect');
+
+  if(!select){
+    return localStorage.getItem('selectedAccountId') || '';
+  }
+
+  return select.value || localStorage.getItem('selectedAccountId') || '';
+}
+
 async function fetchLogs(year, month){
   try {
     const accountId = getSelectedAccountId();
@@ -389,7 +399,18 @@ document.getElementById('nextMonth').addEventListener('click', () => {
 });
 
 updateMonthLabel();
-loadMonth();
+
+document.addEventListener('accountReady', () => {
+  const select = document.getElementById('accountSelect');
+
+  if(!select) return;
+
+  // Load logs for the currently selected account
+  loadMonth();
+
+  // Reload logs whenever the global account selector changes
+  select.addEventListener('change', onAccountChanged);
+});
 </script>
 
 {% endblock %}
