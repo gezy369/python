@@ -1681,27 +1681,49 @@ def logs():
 def get_logs():
     try:
         user_id = session["user"]["id"]
-        year    = request.args.get("year")
-        month   = request.args.get("month")
+        account_id = request.args.get("account")
+        year = request.args.get("year")
+        month = request.args.get("month")
+
+        if not account_id:
+            return jsonify({"error": "No account selected"}), 400
+
+        # Security: account must belong to current user
+        account_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("id", account_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not account_res.data:
+            return jsonify({"error": "Unauthorized account"}), 403
 
         query = (
             supabase_admin.table("trading_logs")
             .select("*")
             .eq("user_id", user_id)
+            .eq("account_id", account_id)
         )
 
         if year and month:
-            # filter by month: date >= YYYY-MM-01 and date < next month
-            from datetime import date
             y, m = int(year), int(month)
+
             date_from = f"{y}-{m:02d}-01"
             if m == 12:
-                date_to = f"{y+1}-01-01"
+                date_to = f"{y + 1}-01-01"
             else:
-                date_to = f"{y}-{m+1:02d}-01"
-            query = query.gte("date", date_from).lt("date", date_to)
+                date_to = f"{y}-{m + 1:02d}-01"
+
+            query = (
+                query
+                .gte("date", date_from)
+                .lt("date", date_to)
+            )
 
         res = query.order("date").execute()
+
         return jsonify(res.data or [])
 
     except Exception as e:
@@ -1713,10 +1735,42 @@ def get_logs():
 @login_required
 def create_log():
     try:
-        data            = request.json
-        data["user_id"] = session["user"]["id"]
-        res = supabase_admin.table("trading_logs").insert(data).execute()
+        data = request.json or {}
+
+        user_id = session["user"]["id"]
+        account_id = data.get("key_trading_accounts")
+
+        if not account_id:
+            return jsonify({"error": "No account selected"}), 400
+
+        # Security: account belongs to current user
+        account_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("id", account_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not account_res.data:
+            return jsonify({"error": "Unauthorized account"}), 403
+
+        row = {
+            "user_id": user_id,
+            "account_id": account_id,
+            "date": data.get("date"),
+            "logs": data.get("logs", ""),
+        }
+
+        res = (
+            supabase_admin
+            .table("trading_logs")
+            .insert(row)
+            .execute()
+        )
+
         return jsonify(res.data[0])
+
     except Exception as e:
         print("POST /api/logs error:", e)
         return jsonify({"error": str(e)}), 500
@@ -1727,14 +1781,25 @@ def create_log():
 def update_log(id):
     try:
         user_id = session["user"]["id"]
+        account_id = request.args.get("account")
+
+        if not account_id:
+            return jsonify({"error": "No account selected"}), 400
+
         res = (
             supabase_admin.table("trading_logs")
             .update(request.json)
             .eq("id", id)
-            .eq("user_id", user_id)   # ensures users can only edit their own
+            .eq("user_id", user_id)
+            .eq("account_id", account_id)
             .execute()
         )
-        return jsonify({"ok": True})
+
+        if not res.data:
+            return jsonify({"error": "Log not found"}), 404
+
+        return jsonify(res.data[0])
+
     except Exception as e:
         print(f"PATCH /api/logs/{id} error:", e)
         return jsonify({"error": str(e)}), 500

@@ -49,47 +49,129 @@ function escHtml(str){
 
 async function fetchLogs(year, month){
   try {
-    const r = await fetch(`/api/logs?year=${year}&month=${pad(month+1)}`);
+    const accountId = getSelectedAccountId();
+
+    // Logs must always belong to one specific account
+    if(!accountId) return {};
+
+    const r = await fetch(
+      `/api/logs?year=${year}&month=${pad(month+1)}&account=${encodeURIComponent(accountId)}`
+    );
+
     if(!r.ok) return {};
+
     const arr = await r.json();
+
     const map = {};
-    arr.forEach(l => { map[l.date] = l; });
+    arr.forEach(l => {
+      map[l.date] = l;
+    });
+
     return map;
-  } catch(e){ return {}; }
+  } catch(e) {
+    console.error("Failed to fetch logs:", e);
+    return {};
+  }
 }
+
 
 async function fetchTrades(year, month){
   try {
-    const r = await fetch(`/api/trades/summary?year=${year}&month=${pad(month+1)}`);
+    const accountId = getSelectedAccountId();
+
+    // Trade summary should use the same account as the logs
+    if(!accountId) return {};
+
+    const r = await fetch(
+      `/api/trades/summary?year=${year}&month=${pad(month+1)}&account=${encodeURIComponent(accountId)}`
+    );
+
     if(!r.ok) return {};
+
     const arr = await r.json();
+
     const map = {};
-    arr.forEach(t => { map[t.date] = t; });
+    arr.forEach(t => {
+      map[t.date] = t;
+    });
+
     return map;
-  } catch(e){ return {}; }
+  } catch(e) {
+    console.error("Failed to fetch trade summary:", e);
+    return {};
+  }
 }
 
+
 async function saveLog(date, text){
+  const accountId = getSelectedAccountId();
+
+  if(!accountId){
+    console.error("No trading account selected");
+    return;
+  }
+
   const existing = logsData[date];
+
   if(existing && existing.id){
-    await fetch(`/api/logs/${existing.id}`, {
-      method: 'PATCH',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ logs: text })
-    });
+
+    const r = await fetch(
+      `/api/logs/${existing.id}?account=${encodeURIComponent(accountId)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          logs: text
+        })
+      }
+    );
+
+    if(!r.ok){
+      console.error("Failed to update log:", await r.text());
+      return;
+    }
+
   } else {
+
     const r = await fetch('/api/logs', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ date, logs: text })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        date: date,
+        logs: text,
+        account_id: accountId
+      })
     });
+
     if(r.ok){
       const created = await r.json();
       logsData[date] = created;
+    } else {
+      console.error("Failed to create log:", await r.text());
+      return;
     }
   }
-  if(logsData[date]) logsData[date].logs = text;
-  else logsData[date] = { date, logs: text };
+
+  if(logsData[date]){
+    logsData[date].logs = text;
+    logsData[date].account_id = accountId;
+  } else {
+    logsData[date] = {
+      date: date,
+      logs: text,
+      account_id: accountId
+    };
+  }
+}
+
+function onAccountChanged(){
+  logsData = {};
+  tradesData = {};
+  loadMonth();
 }
 
 function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
