@@ -117,10 +117,8 @@
 /* ── Calendar grid ── */
 .fy-months-grid {
   display: grid;
-  /* Two columns sized to match the dashboard calendar column width.
-     Dashboard: dash-main-grid left col ≈ 60% of 1100px content = ~648px.
-     Two cards + 14px gap → each card ≈ 317px. */
-  grid-template-columns: repeat(2, 317px);
+  /* Dashboard: .dash-left = 420px, two cards + 14px gap → each = 203px */
+  grid-template-columns: repeat(2, 203px);
   gap: 14px;
 }
 
@@ -154,45 +152,62 @@
 .fy-cal-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 3px;
+  gap: 5px; /* matches .calendar-grid gap */
 }
 
 .fy-cal-header {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: .05em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--text-faint);
   text-align: center;
-  padding: 2px 0 4px;
+  padding: 6px 0; /* matches .calendar-header */
 }
 
 .fy-cal-day {
-  border-radius: var(--radius-sm);
-  padding: 4px 5px 3px;
-  height: 52px;
+  /* Mirror .calendar-day exactly */
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  min-height: 66px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  cursor: pointer;
-  transition: filter 0.12s;
   position: relative;
   overflow: hidden;
 }
-.fy-cal-day:hover { filter: brightness(1.15); }
+.fy-cal-day:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
 
-.fy-cal-day.day-positive { background: rgba(52,195,143,0.13); }
-.fy-cal-day.day-negative { background: rgba(229,83,83,0.11); }
-.fy-cal-day.day-flat     { background: var(--bg-elevated); }
+/* Mirror .calendar-day.day-positive / day-negative / day-flat */
+.fy-cal-day.day-positive {
+  border-color: rgba(52, 195, 143, 0.18);
+  background: linear-gradient(150deg, rgba(52, 195, 143, 0.07) 0%, var(--bg-elevated) 65%);
+}
+.fy-cal-day.day-negative {
+  border-color: rgba(229, 83, 83, 0.18);
+  background: linear-gradient(150deg, rgba(229, 83, 83, 0.07) 0%, var(--bg-elevated) 65%);
+}
+.fy-cal-day.day-flat {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+}
 
 .fy-cal-date {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-bottom: 3px;
 }
 .fy-cal-pnl {
-  font-size: 9px;
   font-family: var(--font-mono);
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -201,8 +216,9 @@
 .fy-cal-pnl.positive { color: var(--accent-green); }
 .fy-cal-pnl.negative { color: var(--accent-red); }
 .fy-cal-trades {
-  font-size: 9px;
-  color: var(--text-faint);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
 }
 
 .fy-loading {
