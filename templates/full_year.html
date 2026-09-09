@@ -90,6 +90,9 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .fy-equity-title {
@@ -222,7 +225,7 @@
   <!-- Right: equity curve -->
   <div class="fy-equity-card">
     <div class="fy-equity-title">Year Equity Curve</div>
-    <canvas id="fyEquityChart" style="width:100%; height:130px; display:block;"></canvas>
+    <canvas id="fyEquityChart" style="width:100%; display:block; flex:1; min-height:0;"></canvas>
   </div>
 </div>
 
@@ -321,7 +324,17 @@ async function loadYear() {
   const yearTrades = allTrades.filter(t => fyToTZ(t.entryDate).startsWith(String(fyYear)));
 
   renderKpis(yearTrades);
-  renderEquityCurve(yearTrades);
+
+  // Sync right card height to left card's natural height, then draw chart into remaining space
+  requestAnimationFrame(() => {
+    const leftCard  = document.querySelector(".fy-stat-card");
+    const rightCard = document.querySelector(".fy-equity-card");
+    if (leftCard && rightCard) {
+      rightCard.style.height = leftCard.offsetHeight + "px";
+    }
+    renderEquityCurve(yearTrades);
+  });
+
   renderMonthCalendars(yearTrades);
 }
 
@@ -354,6 +367,15 @@ function renderKpis(trades) {
 // ══════════════════════════════════════════════════════════════════════════
 function renderEquityCurve(trades) {
   const canvas = document.getElementById("fyEquityChart");
+
+  // Size canvas to exactly fill the card height (canvas ignores flex:1 natively)
+  const card = canvas.closest(".fy-equity-card");
+  const title = card.querySelector(".fy-equity-title");
+  const availH = card.clientHeight
+    - title.offsetHeight
+    - parseInt(getComputedStyle(card).paddingTop)
+    - parseInt(getComputedStyle(card).paddingBottom);
+  canvas.style.height = Math.max(availH, 60) + "px";
 
   // Build daily cumulative
   const grouped = {};

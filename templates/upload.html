@@ -435,7 +435,7 @@ function buildImportRows(){
     const entryMs =side==='long'?Math.min(...gf.map(f=>f._boughtMs)):Math.min(...gf.map(f=>f._soldMs));
     const exitMs  =side==='long'?Math.max(...gf.map(f=>f._soldMs)):Math.max(...gf.map(f=>f._boughtMs));
     rows.push({key:`group_${gid}`, label:palLabel(gid), pillBg:pal.bg, pillText:pal.text,
-      symbol:gf[0].symbol||'', side, fills:gf.length, qty, pnl, fees,   // ← add fees
+      symbol:gf[0].symbol||'', side, fills:gf.length, qty, pnl, fees,
       entryMs, exitMs, isSolo:false});
   });
 
@@ -444,7 +444,7 @@ function buildImportRows(){
     const entryMs = side === 'long' ? f._boughtMs : f._soldMs;
     const exitMs  = side === 'long' ? f._soldMs   : f._boughtMs;
     const pnl     = parseFloat(f.pnl)   || 0;
-    const fees    = parseFloat(f.fees)  || 0;   // ← make sure this line exists
+    const fees    = parseFloat(f.fees)  || 0;
     rows.push({
       key:      `solo_${f._idx}`,
       label:    'Solo',
@@ -452,7 +452,7 @@ function buildImportRows(){
       pillText: 'var(--text-secondary)',
       symbol:   f.symbol || '',
       side, fills: 1, qty: f.qty,
-      pnl, fees,                                 // ← both explicitly passed
+      pnl, fees,
       entryMs, exitMs,
       isSolo: true,
     });
