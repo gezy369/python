@@ -153,7 +153,7 @@ async function saveLog(date, text){
       body: JSON.stringify({
         date: date,
         logs: text,
-        account_id: accountId
+        key_trading_accounts: accountId
       })
     });
 

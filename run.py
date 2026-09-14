@@ -1736,7 +1736,6 @@ def get_logs():
 def create_log():
     try:
         data = request.json or {}
-
         user_id = session["user"]["id"]
         account_id = data.get("key_trading_accounts")
 
@@ -1808,22 +1807,29 @@ def update_log(id):
 @app.get("/api/trades/summary")
 @login_required
 def trades_summary():
-    """Returns [{date, trades, pnl}] for a given month — used by the logs page footer."""
     try:
-        user_id = session["user"]["id"]
-        year    = request.args.get("year")
-        month   = request.args.get("month")
+        user_id    = session["user"]["id"]
+        year       = request.args.get("year")
+        month      = request.args.get("month")
+        account_id = request.args.get("account")   # ← new, optional
 
-        # get all account IDs for this user
         accounts_res = (
             supabase_admin.table("trading_accounts")
             .select("id")
             .eq("user_id", user_id)
             .execute()
         )
-        account_ids = [a["id"] for a in (accounts_res.data or [])]
-        if not account_ids:
+        all_account_ids = [a["id"] for a in (accounts_res.data or [])]
+        if not all_account_ids:
             return jsonify([])
+
+        # If a specific account is requested, verify it belongs to this user
+        if account_id:
+            if account_id not in [str(a) for a in all_account_ids]:
+                return jsonify({"error": "Unauthorized account"}), 403
+            account_ids = [account_id]
+        else:
+            account_ids = all_account_ids   # dashboard: all accounts
 
         query = (
             supabase_admin.table("trades")
@@ -1833,19 +1839,17 @@ def trades_summary():
 
         if year and month:
             from datetime import date
-            y, m = int(year), int(month)
+            y, m      = int(year), int(month)
             date_from = f"{y}-{m:02d}-01"
             date_to   = f"{y+1}-01-01" if m == 12 else f"{y}-{m+1:02d}-01"
-            query = query.gte("entryTimestamp", date_from).lt("entryTimestamp", date_to)
+            query     = query.gte("entryTimestamp", date_from).lt("entryTimestamp", date_to)
 
         res    = query.execute()
         trades = res.data or []
 
-        # group by date
         from collections import defaultdict
         by_date = defaultdict(lambda: {"trades": 0, "pnl": 0.0})
         for t in trades:
-            # entryTimestamp is "YYYY-MM-DD HH:MM:SS" or ISO string
             date_str = str(t["entryTimestamp"])[:10]
             by_date[date_str]["trades"] += 1
             by_date[date_str]["pnl"]    += float(t["pnl"] or 0)
@@ -1859,11 +1863,6 @@ def trades_summary():
     except Exception as e:
         print("GET /api/trades/summary error:", e)
         return jsonify({"error": str(e)}), 500
-# calendar
-@app.route("/full-year")
-@login_required
-def full_year():
-    return render_template("full_year.html")
     
 # ===== ENTRY POINT =====
 if __name__ == "__main__":
