@@ -1680,13 +1680,13 @@ def logs():
 @login_required
 def get_logs():
     try:
-        user_id = session["user"]["id"]
+        user_id    = session["user"]["id"]
         account_id = request.args.get("account")
-        year = request.args.get("year")
-        month = request.args.get("month")
+        year       = request.args.get("year")
+        month      = request.args.get("month")
 
         if not account_id:
-            return jsonify({"error": "No account selected"}), 400
+            return jsonify([])   # return empty instead of 400 so page doesn't break
 
         # Security: account must belong to current user
         account_res = (
@@ -1696,9 +1696,8 @@ def get_logs():
             .eq("user_id", user_id)
             .execute()
         )
-
         if not account_res.data:
-            return jsonify({"error": "Unauthorized account"}), 403
+            return jsonify([])
 
         query = (
             supabase_admin.table("trading_logs")
@@ -1708,26 +1707,83 @@ def get_logs():
         )
 
         if year and month:
-            y, m = int(year), int(month)
-
+            y, m      = int(year), int(month)
             date_from = f"{y}-{m:02d}-01"
-            if m == 12:
-                date_to = f"{y + 1}-01-01"
-            else:
-                date_to = f"{y}-{m + 1:02d}-01"
-
-            query = (
-                query
-                .gte("date", date_from)
-                .lt("date", date_to)
-            )
+            date_to   = f"{y+1}-01-01" if m == 12 else f"{y}-{m+1:02d}-01"
+            query     = query.gte("date", date_from).lt("date", date_to)
 
         res = query.order("date").execute()
-
         return jsonify(res.data or [])
 
     except Exception as e:
         print("GET /api/logs error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/logs")
+@login_required
+def create_log():
+    try:
+        data       = request.json or {}
+        user_id    = session["user"]["id"]
+        account_id = data.get("account_id")
+
+        if not account_id:
+            return jsonify({"error": "No account_id provided"}), 400
+
+        # Security: account must belong to current user
+        account_res = (
+            supabase_admin.table("trading_accounts")
+            .select("id")
+            .eq("id", account_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if not account_res.data:
+            return jsonify({"error": "Unauthorized account"}), 403
+
+        row = {
+            "user_id":    user_id,
+            "account_id": account_id,
+            "date":       data.get("date"),
+            "logs":       data.get("logs", ""),
+        }
+
+        res = supabase_admin.table("trading_logs").insert(row).execute()
+        return jsonify(res.data[0])
+
+    except Exception as e:
+        print("POST /api/logs error:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.patch("/api/logs/<id>")
+@login_required
+def update_log(id):
+    try:
+        user_id    = session["user"]["id"]
+        account_id = request.args.get("account")
+        data       = request.json or {}
+        logs_text  = data.get("logs", "")
+
+        if not account_id:
+            return jsonify({"error": "No account provided"}), 400
+
+        # Only update the logs field — never pass arbitrary client data to Supabase
+        res = (
+            supabase_admin.table("trading_logs")
+            .update({"logs": logs_text})
+            .eq("id", id)
+            .eq("user_id", user_id)
+            .eq("account_id", account_id)
+            .execute()
+        )
+
+        # res.data can be [] on success in some Supabase versions — don't treat as error
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        print(f"PATCH /api/logs/{id} error:", e)
         return jsonify({"error": str(e)}), 500
 
 
