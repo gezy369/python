@@ -1735,14 +1735,14 @@ def get_logs():
 @login_required
 def create_log():
     try:
-        data = request.json or {}
-        user_id = session["user"]["id"]
-        account_id = data.get("key_trading_accounts")
+        data       = request.json or {}
+        user_id    = session["user"]["id"]
+        account_id = data.get("account_id")   # matches what JS sends
 
         if not account_id:
             return jsonify({"error": "No account selected"}), 400
 
-        # Security: account belongs to current user
+        # Security: verify account belongs to this user
         account_res = (
             supabase_admin.table("trading_accounts")
             .select("id")
@@ -1750,24 +1750,17 @@ def create_log():
             .eq("user_id", user_id)
             .execute()
         )
-
         if not account_res.data:
             return jsonify({"error": "Unauthorized account"}), 403
 
         row = {
-            "user_id": user_id,
-            "account_id": account_id,
-            "date": data.get("date"),
-            "logs": data.get("logs", ""),
+            "user_id":    user_id,
+            "account_id": account_id,   # matches Supabase column name
+            "date":       data.get("date"),
+            "logs":       data.get("logs", ""),
         }
 
-        res = (
-            supabase_admin
-            .table("trading_logs")
-            .insert(row)
-            .execute()
-        )
-
+        res = supabase_admin.table("trading_logs").insert(row).execute()
         return jsonify(res.data[0])
 
     except Exception as e:
