@@ -469,7 +469,10 @@ async function renderCalendar() {
     fetchFilteredTrades({ account: accountSelect?.value }),
     fetch("/api/trade_setups").then(r => r.json()),
     fetch("/api/emotions_trades").then(r => r.json()),
-    fetch(`/api/logs?year=${year}&month=${String(month + 1).padStart(2, "0")}`).then(r => r.json()).catch(() => []),
+    fetch(
+      `/api/logs?account=${encodeURIComponent(accountSelect?.value || "")}` +
+      `&year=${year}&month=${String(month + 1).padStart(2, "0")}`
+    ).then(r => r.json()).catch(() => []),
   ]);
  
   // Build a quick lookup: date string ("YYYY-MM-DD") -> log text
