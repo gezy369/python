@@ -1736,9 +1736,8 @@ def get_logs():
 def create_log():
     try:
         data = request.json or {}
-
         user_id = session["user"]["id"]
-        account_id = data.get("key_trading_accounts")
+        account_id = data.get("account_id")
 
         if not account_id:
             return jsonify({"error": "No account selected"}), 400
