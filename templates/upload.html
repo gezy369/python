@@ -3,7 +3,10 @@
 {% block content %}
 
 <div class="upload-container">
-
+  <div id="importOverlay">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-label" id="overlayLabel">Saving trades…</div>
+  </div>
   <!-- LEFT: UPLOAD -->
   <div id="upload-left" class="tile">
     <h2>Import Trades</h2>
@@ -141,8 +144,16 @@ const loader=document.getElementById('loader');
 const loaderTxt=document.getElementById('loader-text');
 let selectedFile=null;
 
-function showLoader(t){loaderTxt.innerText=t;loader.classList.remove('hidden')}
-function hideLoader(){loader.classList.add('hidden')}
+function showLoader(t){
+  const ol=document.getElementById('importOverlay');
+  const lb=document.getElementById('overlayLabel');
+  if(lb)lb.textContent=t;
+  if(ol)ol.classList.add('active');
+}
+function hideLoader(){
+  const ol=document.getElementById('importOverlay');
+  if(ol)ol.classList.remove('active');
+}
 
 dropzone.onclick=()=>fileInput.click();
 fileInput.onchange=e=>{selectedFile=e.target.files[0];dropzone.innerHTML='Selected: '+selectedFile.name;dropzone.classList.add('dropped')};
