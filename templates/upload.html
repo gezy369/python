@@ -417,7 +417,13 @@ function renderLegend(){
 function fmtTs(ms){
   if(!ms)return'—';
   const d=new Date(ms);
-  return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const mo=String(d.getMonth()+1).padStart(2,'0');
+  const dy=String(d.getDate()).padStart(2,'0');
+  const yr=d.getFullYear();
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  const ss=String(d.getSeconds()).padStart(2,'0');
+  return`${mo}/${dy}/${yr} ${hh}:${mm}:${ss}`;
 }
 
 function buildImportRows(){
@@ -457,7 +463,7 @@ function buildImportRows(){
       isSolo: true,
     });
   });
-
+  rows.sort((a,b)=>a.entryMs-b.entryMs);
   return rows;
 }
 
