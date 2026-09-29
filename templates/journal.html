@@ -300,7 +300,7 @@ let EMOTIONS = [];
 let dataReady = false;
 let currentView = "table";
 let currentAccountRequest = 0;
-
+const accountSelect = document.getElementById("accountSelect");
 const filterLogic   = { strategy: 'or', setup: 'or', emotion: 'or' };
 const activeFilters = { strategy: new Set(), setup: new Set(), emotion: new Set() };
 
@@ -539,15 +539,17 @@ function filterByCategory(data, type, getTradeValue) {
 
 function applyFiltersAndRender() {
   if (!dataReady) return;
+
   let data = originalData.slice();
+
   data = filterByDateRange(data);
   data = filterByColumnText(data);
   data = filterByCategory(data, 'setup',    t => t.setups);
   data = filterByCategory(data, 'strategy', t => toNum(t.key_strategies_id));
   data = filterByCategory(data, 'emotion',  t => t.emotions);
-  const acct = accountSelect?.value;
-  if (acct) data = data.filter(t => String(t.key_trading_accounts) === String(acct));
+
   data.sort((a, b) => a.entryTimestamp - b.entryTimestamp);
+
   if (currentView === "table") {
     buildRows(data);
     updatePnLChart(data);
@@ -1349,23 +1351,27 @@ function toggleView() {
 // ══════════════════════════════════════════════════════════════════════════
 // ACCOUNT SELECTION
 // ══════════════════════════════════════════════════════════════════════════
-const accountSelect = document.getElementById("accountSelect");
 
-if (accountSelect) {
-  accountSelect.addEventListener("change", async () => {
-    const accountId  = accountSelect.value;
-    if (!accountId) return;
-    const requestId  = ++currentAccountRequest;
+document.addEventListener("accountChanged", async (event) => {
+  const accountId = event.detail.accountId;
+  const requestId = ++currentAccountRequest;
+
+  try {
     const [rawTrades, tradeSetups, emotionTrades] = await Promise.all([
-      fetchFilteredTrades({ account: accountId }),
+      fetchFilteredTrades({ account: accountId || "" }),
       fetch("/api/trade_setups").then(r => r.json()),
       fetch("/api/emotions_trades").then(r => r.json())
     ]);
+
     if (requestId !== currentAccountRequest) return;
+
     originalData = enrichTrades(rawTrades, tradeSetups, emotionTrades);
     applyFiltersAndRender();
-  });
-}
+
+  } catch (err) {
+    console.error("Failed to reload trades after account change:", err);
+  }
+});
 
 // ══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -1390,15 +1396,27 @@ Promise.all([
   loadGlobalChartSettings()
 ]).then(async ([strategies, setups, tradeSetups, emotions, emotionTrades]) => {
   await waitForAccount();
+
   STRATEGIES = strategies;
   SETUPS     = setups;
   EMOTIONS   = emotions;
+
   buildFilterButtons();
-  const rawTrades = await fetchFilteredTrades({ account: accountSelect?.value });
-  originalData    = enrichTrades(rawTrades, tradeSetups, emotionTrades);
+
+  const rawTrades = await fetchFilteredTrades({
+    account: accountSelect?.value || ""
+  });
+
+  originalData = enrichTrades(
+    rawTrades,
+    tradeSetups,
+    emotionTrades
+  );
+
   buildHeaders();
   dataReady = true;
   applyFiltersAndRender();
+
 }).catch(err => console.error("Journal init failed:", err));
 </script>
 

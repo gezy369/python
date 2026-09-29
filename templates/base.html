@@ -27,32 +27,64 @@
     </div>
 
     <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const select = document.getElementById("accountSelect");
-      if (!select) return;
+document.addEventListener("DOMContentLoaded", async () => {
+  const select = document.getElementById("accountSelect");
+  if (!select) return;
 
-      const res = await fetch("/api/accounts");
-      const accounts = await res.json();
+  try {
+    const res = await fetch("/api/accounts");
+    if (!res.ok) throw new Error("Failed to load accounts");
 
-  select.innerHTML = `<option value="">All accounts</option>`;
-      select.innerHTML = `<option value="">All accounts</option>`;
-      accounts.forEach(acc => {
-        const opt = document.createElement("option");
-        opt.value = acc.id;
-        opt.textContent = acc.name;
-        select.appendChild(opt);
-      });
+    const accounts = await res.json();
 
-      const saved = localStorage.getItem("selectedAccountId");
-      if (saved) select.value = saved;
+    select.innerHTML = `<option value="">All accounts</option>`;
 
-      select.addEventListener("change", () => {
-        localStorage.setItem("selectedAccountId", select.value);
-      });
-
-      window.accountSelectorReady = true;
-      document.dispatchEvent(new Event("accountReady"));
+    accounts.forEach(acc => {
+      const opt = document.createElement("option");
+      opt.value = String(acc.id);
+      opt.textContent = acc.name;
+      select.appendChild(opt);
     });
+
+    const saved = localStorage.getItem("selectedAccountId");
+
+    if (
+      saved &&
+      [...select.options].some(option => option.value === String(saved))
+    ) {
+      select.value = String(saved);
+    } else {
+      select.value = "";
+      localStorage.removeItem("selectedAccountId");
+    }
+
+    select.addEventListener("change", () => {
+      const accountId = select.value;
+
+      localStorage.setItem("selectedAccountId", accountId);
+
+      // Global event for whichever page is currently open
+      window.dispatchEvent(
+        new CustomEvent("accountChanged", {
+          detail: { accountId }
+        })
+      );
+    });
+
+    window.accountSelectorReady = true;
+    document.dispatchEvent(new Event("accountReady"));
+
+    // Tell the current page about the restored account too
+    window.dispatchEvent(
+      new CustomEvent("accountChanged", {
+        detail: { accountId: select.value }
+      })
+    );
+
+  } catch (err) {
+    console.error("Account selector failed:", err);
+  }
+});
     </script>
 
     <!-- Dashboard -->

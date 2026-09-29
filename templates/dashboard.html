@@ -399,8 +399,9 @@ document.addEventListener("click", e => {
 let isRendering = false;
 let pendingRender = false;
 
-const accountSelect = document.getElementById("accountSelect");
-if (accountSelect) accountSelect.addEventListener("change", renderCalendar);
+window.addEventListener("accountChanged", () => {
+  renderCalendar();
+});
 
 const calendarEl = document.getElementById("tradingCalendar");
 
@@ -1055,12 +1056,51 @@ document.addEventListener("click", e => {
   window.location.href = `/journal?from=${date}&to=${date}`;
 });
 
-function waitForAccount() {
-  return new Promise(resolve => {
-    if (window.accountSelectorReady) return resolve();
-    document.addEventListener("accountReady", resolve, { once: true });
-  });
-}
+document.addEventListener("DOMContentLoaded", async () => {
+  const select = document.getElementById("accountSelect");
+  if (!select) return;
+
+  try {
+    const res = await fetch("/api/accounts");
+    const accounts = await res.json();
+
+    select.innerHTML = `<option value="">All accounts</option>`;
+
+    accounts.forEach(acc => {
+      const opt = document.createElement("option");
+      opt.value = acc.id;
+      opt.textContent = acc.name;
+      select.appendChild(opt);
+    });
+
+    const saved = localStorage.getItem("selectedAccountId");
+
+    if (saved && [...select.options].some(opt => opt.value === saved)) {
+      select.value = saved;
+    } else {
+      select.value = "";
+      localStorage.removeItem("selectedAccountId");
+    }
+
+    select.addEventListener("change", () => {
+      const accountId = select.value;
+
+      localStorage.setItem("selectedAccountId", accountId);
+
+      document.dispatchEvent(
+        new CustomEvent("accountChanged", {
+          detail: { accountId }
+        })
+      );
+    });
+
+    window.accountSelectorReady = true;
+    document.dispatchEvent(new Event("accountReady"));
+
+  } catch (err) {
+    console.error("Failed to load accounts:", err);
+  }
+});
 
 /* ===================== INIT ===================== */
 
