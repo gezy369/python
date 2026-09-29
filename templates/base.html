@@ -27,64 +27,39 @@
     </div>
 
     <script>
-document.addEventListener("DOMContentLoaded", async () => {
-  const select = document.getElementById("accountSelect");
-  if (!select) return;
+    document.addEventListener("DOMContentLoaded", async () => {
+      const select = document.getElementById("accountSelect");
+      if (!select) return;
 
-  try {
-    const res = await fetch("/api/accounts");
-    if (!res.ok) throw new Error("Failed to load accounts");
+      const res = await fetch("/api/accounts");
+      const accounts = await res.json();
 
-    const accounts = await res.json();
+  select.innerHTML = `<option value="">All accounts</option>`;
+      select.innerHTML = `<option value="">All accounts</option>`;
+      accounts.forEach(acc => {
+        const opt = document.createElement("option");
+        opt.value = acc.id;
+        opt.textContent = acc.name;
+        select.appendChild(opt);
+      });
 
-    select.innerHTML = `<option value="">All accounts</option>`;
+      const saved = localStorage.getItem("selectedAccountId");
+      if (saved) select.value = saved;
 
-    accounts.forEach(acc => {
-      const opt = document.createElement("option");
-      opt.value = String(acc.id);
-      opt.textContent = acc.name;
-      select.appendChild(opt);
-    });
+      select.addEventListener("change", () => {
+        const accountId = select.value;
 
-    const saved = localStorage.getItem("selectedAccountId");
+        localStorage.setItem("selectedAccountId", accountId);
 
-    if (
-      saved &&
-      [...select.options].some(option => option.value === String(saved))
-    ) {
-      select.value = String(saved);
-    } else {
-      select.value = "";
-      localStorage.removeItem("selectedAccountId");
-    }
-
-    select.addEventListener("change", () => {
-      const accountId = select.value;
-
-      localStorage.setItem("selectedAccountId", accountId);
-
-      // Global event for whichever page is currently open
-      window.dispatchEvent(
-        new CustomEvent("accountChanged", {
+        // Notify every page that uses the shared account selector.
+        document.dispatchEvent(new CustomEvent("accountChanged", {
           detail: { accountId }
-        })
-      );
+        }));
+      });
+
+      window.accountSelectorReady = true;
+      document.dispatchEvent(new Event("accountReady"));
     });
-
-    window.accountSelectorReady = true;
-    document.dispatchEvent(new Event("accountReady"));
-
-    // Tell the current page about the restored account too
-    window.dispatchEvent(
-      new CustomEvent("accountChanged", {
-        detail: { accountId: select.value }
-      })
-    );
-
-  } catch (err) {
-    console.error("Account selector failed:", err);
-  }
-});
     </script>
 
     <!-- Dashboard -->
